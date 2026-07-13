@@ -1,0 +1,561 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta name="description" content="Professional 80mm Thermal POS Receipt - Print Ready">
+    <title>Thermal Receipt - 80mm (POS)</title>
+    <style>
+        /* ============================================
+           PROFESSIONAL 80MM THERMAL RECEIPT
+           ============================================
+           
+           SPECIFICATIONS:
+           - Paper: Thermal roll 80mm width
+           - DPI: 203 (thermal printer standard)
+           - Color Mode: Monochrome optimized
+           - Format: Continuous feed
+           - Compatibility: All thermal POS printers
+           - Fast print optimization
+           - QR code support
+        */
+
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        @page {
+            size: 80mm auto;
+            margin: 0;
+            padding: 0;
+        }
+
+        html, body {
+            width: 80mm;
+            background: white;
+            font-family: 'Courier New', monospace;
+            color: #000000;
+            line-height: 1.3;
+            padding: 0;
+            margin: 0;
+        }
+
+        body {
+            display: flex;
+            justify-content: center;
+            padding: 0;
+            margin: 0;
+        }
+
+        .receipt-container {
+            width: 80mm;
+            background: white;
+            position: relative;
+            display: flex;
+            flex-direction: column;
+            padding: 2mm 3mm;
+        }
+
+        .content {
+            position: relative;
+            z-index: 1;
+            display: flex;
+            flex-direction: column;
+        }
+
+        /* ===== HEADER ===== */
+        .receipt-header {
+            text-align: center;
+            margin-bottom: 3mm;
+            padding-bottom: 2mm;
+            border-bottom: 1px solid #000000;
+        }
+
+        .receipt-logo {
+            font-size: 14pt;
+            font-weight: 700;
+            color: #000000;
+            margin-bottom: 1.5mm;
+            letter-spacing: 1pt;
+        }
+
+        .receipt-company {
+            font-size: 9pt;
+            font-weight: 700;
+            color: #000000;
+            margin-bottom: 1mm;
+        }
+
+        .receipt-address {
+            font-size: 7pt;
+            color: #000000;
+            line-height: 1.4;
+            margin-bottom: 1.5mm;
+        }
+
+        .receipt-meta {
+            font-size: 7pt;
+            color: #000000;
+            margin-bottom: 1mm;
+        }
+
+        /* Divider */
+        .divider {
+            height: 1px;
+            background: #000000;
+            margin: 2mm 0;
+        }
+
+        .divider-dashed {
+            text-align: center;
+            font-size: 8pt;
+            letter-spacing: 2pt;
+            margin: 2mm 0;
+            color: #000000;
+        }
+
+        /* ===== ITEMS SECTION ===== */
+        .receipt-items {
+            margin-bottom: 3mm;
+        }
+
+        .receipt-items-header {
+            display: flex;
+            justify-content: space-between;
+            font-size: 7.5pt;
+            font-weight: 700;
+            color: #000000;
+            margin-bottom: 1mm;
+            padding-bottom: 1mm;
+            border-bottom: 1px solid #000000;
+        }
+
+        .receipt-items-header div {
+            text-align: right;
+        }
+
+        .receipt-items-header .item-desc {
+            text-align: left;
+            flex: 1;
+        }
+
+        .receipt-item {
+            display: flex;
+            justify-content: space-between;
+            font-size: 8pt;
+            color: #000000;
+            margin-bottom: 1.5mm;
+        }
+
+        .receipt-item-desc {
+            flex: 1;
+            font-weight: 600;
+        }
+
+        .receipt-item-qty {
+            text-align: center;
+            min-width: 8mm;
+        }
+
+        .receipt-item-price {
+            text-align: right;
+            min-width: 15mm;
+            font-weight: 700;
+        }
+
+        .item-detail {
+            font-size: 7pt;
+            color: #333333;
+            margin-left: 2mm;
+            margin-top: 0.5mm;
+        }
+
+        /* ===== TOTALS SECTION ===== */
+        .receipt-totals {
+            margin-bottom: 2mm;
+            padding-top: 1mm;
+            border-top: 1px solid #000000;
+        }
+
+        .total-row {
+            display: flex;
+            justify-content: space-between;
+            font-size: 8pt;
+            color: #000000;
+            margin-bottom: 1mm;
+        }
+
+        .total-label {
+            font-weight: 600;
+        }
+
+        .total-value {
+            font-weight: 700;
+            font-family: 'Courier New', monospace;
+        }
+
+        .total-amount {
+            display: flex;
+            justify-content: space-between;
+            font-size: 10pt;
+            font-weight: 700;
+            color: #000000;
+            background: white;
+            padding: 1.5mm 0;
+            border-top: 2px solid #000000;
+            border-bottom: 2px solid #000000;
+            margin-bottom: 1mm;
+        }
+
+        .total-amount-label {
+            text-transform: uppercase;
+            letter-spacing: 1pt;
+        }
+
+        .total-amount-value {
+            font-family: 'Courier New', monospace;
+        }
+
+        /* Payment & Balance */
+        .payment-section {
+            font-size: 8pt;
+            color: #000000;
+            margin-bottom: 2mm;
+        }
+
+        .payment-row {
+            display: flex;
+            justify-content: space-between;
+            margin-bottom: 0.8mm;
+        }
+
+        .payment-label {
+            font-weight: 600;
+        }
+
+        .payment-value {
+            font-family: 'Courier New', monospace;
+            font-weight: 700;
+        }
+
+        .balance-row .payment-label {
+            font-weight: 700;
+            text-transform: uppercase;
+        }
+
+        .balance-row .payment-value {
+            font-size: 9pt;
+            font-weight: 700;
+        }
+
+        /* ===== FOOTER SECTION ===== */
+        .receipt-footer {
+            text-align: center;
+            font-size: 8pt;
+            color: #000000;
+            margin-top: 2mm;
+            padding-top: 2mm;
+            border-top: 1px solid #000000;
+        }
+
+        .receipt-thank-you {
+            font-size: 9pt;
+            font-weight: 700;
+            margin-bottom: 1.5mm;
+        }
+
+        .receipt-footer-text {
+            font-size: 7pt;
+            color: #333333;
+            line-height: 1.4;
+            margin-bottom: 1mm;
+        }
+
+        .receipt-terms {
+            font-size: 6.5pt;
+            color: #333333;
+            line-height: 1.3;
+            background: white;
+            padding: 1mm 0;
+        }
+
+        /* QR Code & Barcode Section */
+        .qr-section {
+            text-align: center;
+            margin: 2mm 0;
+        }
+
+        .qr-code {
+            display: inline-block;
+            width: 40mm;
+            height: 40mm;
+            border: 1px solid #000000;
+            background: white;
+        }
+
+        .qr-label {
+            font-size: 6.5pt;
+            font-weight: 600;
+            color: #000000;
+            margin-top: 1mm;
+        }
+
+        /* Receipt Number */
+        .receipt-number {
+            font-size: 7pt;
+            color: #000000;
+            text-align: center;
+            margin: 2mm 0;
+            font-family: 'Courier New', monospace;
+            font-weight: 700;
+        }
+
+        /* Signature/Stamp Area */
+        .signature-area {
+            text-align: center;
+            font-size: 6.5pt;
+            color: #000000;
+            margin-top: 2mm;
+            padding-top: 1mm;
+        }
+
+        .signature-line {
+            width: 30mm;
+            margin: 2mm auto 0.5mm auto;
+            border-top: 0.75px solid #000000;
+        }
+
+        /* ===== PRINT OPTIMIZATION ===== */
+        @media print {
+            html, body {
+                width: 80mm;
+                margin: 0;
+                padding: 0;
+                background: white;
+            }
+
+            @page {
+                size: 80mm;
+                margin: 0;
+            }
+
+            .receipt-container {
+                width: 80mm;
+                margin: 0;
+                padding: 2mm 3mm;
+                page-break-after: always;
+                box-shadow: none;
+            }
+
+            * {
+                color: #000000 !important;
+                background: white !important;
+            }
+
+            .no-print {
+                display: none !important;
+            }
+
+            /* Optimize for thermal printer */
+            body {
+                font-smoothing: antialiased;
+                -webkit-font-smoothing: antialiased;
+            }
+
+            /* Remove unwanted elements */
+            .screen-only {
+                display: none !important;
+            }
+        }
+
+        /* ===== THERMAL PRINTER SPECIFIC ===== */
+        @media print and (width: 80mm) {
+            .receipt-container {
+                width: 80mm;
+                padding: 2mm 3mm;
+            }
+
+            /* Ensure monochrome */
+            * {
+                color: #000000 !important;
+            }
+        }
+    </style>
+</head>
+<body>
+    <div class="receipt-container">
+        <div class="content">
+            
+            <!-- ===== RECEIPT HEADER ===== -->
+            <div class="receipt-header">
+                <div class="receipt-logo">{{ company.code or 'POS' }}</div>
+                <div class="receipt-company">{{ company.name }}</div>
+                <div class="receipt-address">
+                    {{ company.address }}<br>
+                    {{ company.city|default('') }}<br>
+                    Ph: {{ company.phone }}
+                </div>
+                <div class="receipt-meta">
+                    Tax ID: {{ company.tax_id }}
+                </div>
+            </div>
+
+            <div class="divider-dashed">- - - - - - - - - - -</div>
+
+            <!-- ===== RECEIPT DETAILS ===== -->
+            <div class="receipt-meta">
+                <div style="margin-bottom: 0.5mm;">
+                    <strong>Receipt #:</strong> {{ receipt.receipt_number|default('') }}
+                </div>
+                <div style="margin-bottom: 0.5mm;">
+                    <strong>Date:</strong> {{ receipt.date|default('') }}
+                </div>
+                <div style="margin-bottom: 0.5mm;">
+                    <strong>Time:</strong> {{ receipt.time|default('') }}
+                </div>
+                <div>
+                    <strong>Cashier:</strong> {{ receipt.cashier|default('POS') }}
+                </div>
+            </div>
+
+            <div class="divider">-</div>
+
+            <!-- ===== CUSTOMER INFO ===== -->
+            {% if customer %}
+            <div class="receipt-meta">
+                <div><strong>Customer:</strong> {{ customer.name }}</div>
+                <div>{{ customer.phone }}</div>
+            </div>
+            <div class="divider-dashed">- - - - - - - - - - -</div>
+            {% endif %}
+
+            <!-- ===== ITEMS ===== -->
+            <div class="receipt-items">
+                <div class="receipt-items-header">
+                    <div class="item-desc">Description</div>
+                    <div style="min-width: 8mm;">Qty</div>
+                    <div style="min-width: 15mm;">Price</div>
+                </div>
+
+                {% for item in receipt.items %}
+                <div class="receipt-item">
+                    <div class="receipt-item-desc">{{ item.product.name }}</div>
+                    <div class="receipt-item-qty">{{ item.quantity }}</div>
+                    <div class="receipt-item-price">{{ '${:,.2f}'.format(item.total) }}</div>
+                </div>
+                <div class="item-detail">
+                    @ {{ '${:,.2f}'.format(item.unit_price) }} x {{ item.quantity }}
+                </div>
+                {% endfor %}
+            </div>
+
+            <div class="divider">-</div>
+
+            <!-- ===== TOTALS ===== -->
+            <div class="receipt-totals">
+                <div class="total-row">
+                    <span class="total-label">Subtotal:</span>
+                    <span class="total-value">{{ '${:,.2f}'.format(receipt.subtotal|default(0)) }}</span>
+                </div>
+
+                {% if receipt.discount > 0 %}
+                <div class="total-row">
+                    <span class="total-label">Discount:</span>
+                    <span class="total-value">-{{ '${:,.2f}'.format(receipt.discount) }}</span>
+                </div>
+                {% endif %}
+
+                {% if receipt.tax > 0 %}
+                <div class="total-row">
+                    <span class="total-label">Tax:</span>
+                    <span class="total-value">{{ '${:,.2f}'.format(receipt.tax) }}</span>
+                </div>
+                {% endif %}
+
+                <div class="total-amount">
+                    <span class="total-amount-label">Total</span>
+                    <span class="total-amount-value">{{ '${:,.2f}'.format(receipt.total|default(0)) }}</span>
+                </div>
+
+                <div class="payment-section">
+                    <div class="payment-row">
+                        <span class="payment-label">Tendered:</span>
+                        <span class="payment-value">{{ '${:,.2f}'.format(receipt.payment_received|default(0)) }}</span>
+                    </div>
+                    <div class="payment-row">
+                        <span class="payment-label">Change:</span>
+                        <span class="payment-value">{{ '${:,.2f}'.format(receipt.change|default(0)) }}</span>
+                    </div>
+                    <div class="payment-row balance-row">
+                        <span class="payment-label">Payment Method:</span>
+                        <span class="payment-value">{{ receipt.payment_method|default('CASH') }}</span>
+                    </div>
+                </div>
+            </div>
+
+            <div class="divider-dashed">- - - - - - - - - - -</div>
+
+            <!-- ===== QR CODE (if available) ===== -->
+            {% if receipt.qr_code %}
+            <div class="qr-section">
+                <div class="qr-code" id="qrcode"></div>
+                <div class="qr-label">Scan for Invoice</div>
+            </div>
+            <div class="divider-dashed">- - - - - - - - - - -</div>
+            {% endif %}
+
+            <!-- ===== FOOTER ===== -->
+            <div class="receipt-footer">
+                <div class="receipt-thank-you">Thank You!</div>
+                <div class="receipt-footer-text">
+                    Come Again Soon<br>
+                    {{ company.name }}
+                </div>
+                <div class="receipt-terms">
+                    Returns within 30 days with receipt.<br>
+                    Defective items only.<br>
+                    {{ company.email }}
+                </div>
+            </div>
+
+            <!-- ===== RECEIPT NUMBER / REFERENCE ===== -->
+            <div style="text-align: center; margin-top: 2mm;">
+                <div class="divider">-</div>
+                <div class="receipt-number">
+                    #{{ receipt.receipt_number|default('') }}
+                </div>
+                <div style="font-size: 6.5pt; color: #333333; margin-top: 1mm;">
+                    Printed: {{ 'now'|default('') }}
+                </div>
+            </div>
+
+            <!-- ===== SIGNATURE / VERIFICATION ===== -->
+            <div class="signature-area">
+                <div class="signature-line"></div>
+                <div>Authorized By</div>
+            </div>
+
+            <!-- Extra space for tear-off -->
+            <div style="height: 5mm;"></div>
+
+        </div>
+    </div>
+
+    <!-- Optional QR Code Generation Script -->
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/qrcodejs/1.0.0/qrcode.min.js"></script>
+    <script>
+        document.addEventListener('DOMContentLoaded', function() {
+            const qrcodeElement = document.getElementById('qrcode');
+            if (qrcodeElement) {
+                new QRCode(qrcodeElement, {
+                    text: "{{ receipt.qr_code|default('') }}",
+                    width: 120,
+                    height: 120
+                });
+            }
+        });
+    </script>
+</body>
+</html>

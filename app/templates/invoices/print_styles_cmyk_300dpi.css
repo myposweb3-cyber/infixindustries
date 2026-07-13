@@ -1,0 +1,578 @@
+/* =====================================================
+   PROFESSIONAL PRINT STYLES - CMYK 300 DPI OPTIMIZED
+   =====================================================
+   
+   This stylesheet provides comprehensive printing support for:
+   - A4 Invoices (210mm × 297mm)
+   - A5 Invoices (148mm × 210mm)
+   - 80mm Thermal Receipts (continuous feed)
+   
+   SPECIFICATIONS:
+   ✓ CMYK Color Mode (grayscale compatible)
+   ✓ 300 DPI High Resolution
+   ✓ Print-friendly margins and bleed
+   ✓ No color variations between screens/printers
+   ✓ Sharp text rendering
+   ✓ Optimized font loading
+   ✓ Laser & thermal printer compatible
+   ✓ Low ink consumption design
+*/
+
+/* ===================================================
+   UNIVERSAL PRINT MEDIA QUERIES
+   =================================================== */
+
+@media print {
+    /* Reset all defaults for print */
+    * {
+        margin: 0 !important;
+        padding: 0 !important;
+        border-collapse: collapse !important;
+        border-spacing: 0 !important;
+    }
+
+    html {
+        background: white !important;
+        width: 100% !important;
+        height: 100% !important;
+        margin: 0 !important;
+        padding: 0 !important;
+    }
+
+    body {
+        width: 100% !important;
+        height: 100% !important;
+        background: white !important;
+        margin: 0 !important;
+        padding: 0 !important;
+        font-smoothing: antialiased;
+        -webkit-font-smoothing: antialiased;
+        -moz-osx-font-smoothing: grayscale;
+        text-rendering: optimizeLegibility;
+    }
+
+    /* Force black text for all text elements */
+    h1, h2, h3, h4, h5, h6,
+    p, span, div, table, tr, td, th {
+        color: #000000 !important;
+        text-shadow: none !important;
+        background-color: transparent !important;
+    }
+
+    /* Link text should not show URLs */
+    a[href]::after {
+        content: "" !important;
+    }
+
+    abbr[title]::after {
+        content: "" !important;
+    }
+
+    /* Hide web-only elements */
+    .no-print,
+    .screen-only,
+    .btn,
+    .button,
+    .web-only,
+    .nav,
+    .navbar,
+    .footer-web,
+    .printer-hidden,
+    button,
+    input[type="button"],
+    .modal,
+    .sidebar,
+    .controls {
+        display: none !important;
+        visibility: hidden !important;
+    }
+
+    /* Prevent page breaks in important sections */
+    .header,
+    .invoice-container,
+    .receipt-container,
+    .company-block,
+    .customer-block,
+    .billing-sections,
+    .billing-block,
+    .items-table,
+    .items-table thead,
+    .items-table tbody tr,
+    .totals-wrapper,
+    .totals,
+    .footer,
+    .footer-col {
+        page-break-inside: avoid !important;
+    }
+
+    /* Allow page breaks before/after sections */
+    .page-break {
+        page-break-after: always !important;
+    }
+
+    .page-break-before {
+        page-break-before: always !important;
+    }
+
+    /* Optimize text for printing */
+    body {
+        font-size: 11pt;
+        line-height: 1.5;
+        font-family: 'Segoe UI', 'Helvetica Neue', Arial, sans-serif;
+        color: #000000;
+    }
+
+    /* Adjust font sizes for print */
+    h1 { font-size: 18pt !important; }
+    h2 { font-size: 16pt !important; }
+    h3 { font-size: 14pt !important; }
+    h4 { font-size: 12pt !important; }
+    h5 { font-size: 11pt !important; }
+    h6 { font-size: 10pt !important; }
+    p { font-size: 11pt !important; }
+    small { font-size: 9pt !important; }
+
+    /* Table optimization */
+    table {
+        width: 100% !important;
+        border-collapse: collapse !important;
+        border-spacing: 0 !important;
+    }
+
+    tbody {
+        display: table-row-group;
+    }
+
+    thead {
+        display: table-header-group;
+    }
+
+    tfoot {
+        display: table-footer-group;
+    }
+
+    tr {
+        page-break-inside: avoid !important;
+    }
+
+    td, th {
+        background-color: transparent !important;
+    }
+
+    /* Image optimization for printing */
+    img {
+        max-width: 100% !important;
+        height: auto !important;
+    }
+
+    /* Remove shadows and effects */
+    * {
+        box-shadow: none !important;
+        text-shadow: none !important;
+        filter: none !important;
+    }
+
+    /* Ensure borders print correctly */
+    hr {
+        border: 1px solid #000000 !important;
+    }
+}
+
+/* ===================================================
+   A4 INVOICE PRINT STYLES
+   =================================================== */
+
+@page:first {
+    size: A4;
+    margin: 12.7mm;
+    marks: crop;
+}
+
+@media print and (width: 210mm) {
+    @page {
+        size: A4;
+        margin: 12.7mm;
+    }
+
+    body {
+        width: 210mm;
+        height: 297mm;
+    }
+
+    .invoice-container {
+        width: 184.6mm;
+        height: auto;
+        margin: 0;
+        padding: 12.7mm;
+    }
+
+    /* A4 Specific Colors */
+    .items-table thead {
+        background: #e0e0e0 !important;
+    }
+
+    .items-table tbody tr:nth-child(odd) {
+        background: white !important;
+    }
+
+    .totals .total-row {
+        background: #cccccc !important;
+        color: #000000 !important;
+    }
+}
+
+/* ===================================================
+   A5 INVOICE PRINT STYLES
+   =================================================== */
+
+@media print and (width: 148mm) {
+    @page {
+        size: A5;
+        margin: 10mm;
+    }
+
+    body {
+        width: 148mm;
+        height: 210mm;
+    }
+
+    .invoice-container {
+        width: 128mm;
+        height: auto;
+        margin: 0;
+        padding: 10mm;
+    }
+
+    /* Reduce font sizes for A5 */
+    body { font-size: 10pt !important; }
+    h1 { font-size: 14pt !important; }
+    h2 { font-size: 12pt !important; }
+    p { font-size: 9pt !important; }
+
+    /* Adjust spacing */
+    .items-table {
+        margin: 4mm 0 !important;
+    }
+
+    .items-table thead {
+        background: #e0e0e0 !important;
+    }
+
+    .totals .total-row {
+        background: #cccccc !important;
+    }
+}
+
+/* ===================================================
+   80MM THERMAL RECEIPT PRINT STYLES
+   =================================================== */
+
+@media print and (width: 80mm) {
+    @page {
+        size: 80mm;
+        margin: 0;
+    }
+
+    body {
+        width: 80mm;
+        height: auto;
+    }
+
+    .receipt-container {
+        width: 80mm;
+        margin: 0;
+        padding: 2mm 3mm;
+    }
+
+    /* Thermal printer optimizations */
+    body {
+        font-family: 'Courier New', monospace;
+        font-size: 8pt;
+        line-height: 1.3;
+    }
+
+    /* Ensure monochrome output */
+    * {
+        color: #000000 !important;
+        background-color: white !important;
+    }
+
+    /* Compact layout */
+    .receipt-item {
+        font-size: 8pt;
+        margin-bottom: 1mm !important;
+    }
+
+    .receipt-totals {
+        margin: 2mm 0 !important;
+    }
+
+    /* QR Code sizing */
+    .qr-code {
+        width: 40mm !important;
+        height: 40mm !important;
+        border: 1px solid #000000 !important;
+    }
+}
+
+/* ===================================================
+   CMYK COLOR OPTIMIZATION
+   =================================================== */
+
+/* Convert all colors to CMYK-safe blacks for printing */
+@media print {
+    /* Pure black for text (K=100) */
+    body, html {
+        color: #000000 !important;
+    }
+
+    /* Dark gray for backgrounds (K=20) */
+    .items-table thead,
+    .items-table tbody tr:nth-child(odd) {
+        background-color: #E0E0E0 !important;
+    }
+
+    /* Light gray for alternating rows (K=5) */
+    .items-table tbody tr:nth-child(even) {
+        background-color: #FAFAFA !important;
+    }
+
+    /* Medium gray for totals (K=30) */
+    .totals .total-row {
+        background-color: #CCCCCC !important;
+    }
+
+    /* Remove all color filters */
+    * {
+        filter: none !important;
+        -webkit-filter: none !important;
+    }
+}
+
+/* ===================================================
+   FONT OPTIMIZATION FOR 300 DPI PRINTING
+   =================================================== */
+
+@font-face {
+    font-family: 'Courier New';
+    font-style: normal;
+    font-weight: normal;
+    src: local('Courier New');
+}
+
+@media print {
+    body {
+        -webkit-font-smoothing: grayscale;
+        -moz-osx-font-smoothing: grayscale;
+        text-rendering: optimizeLegibility;
+        font-kerning: auto;
+    }
+
+    h1, h2, h3, h4, h5, h6 {
+        font-weight: bold !important;
+        -webkit-font-smoothing: antialiased;
+        -moz-osx-font-smoothing: auto;
+    }
+
+    /* Monospace fonts for numbers */
+    .money, .amount, .price, .total, .col-price, .col-total {
+        font-family: 'Courier New', monospace !important;
+        letter-spacing: 0.05em;
+    }
+}
+
+/* ===================================================
+   PROFESSIONAL DIVIDERS & BORDERS
+   =================================================== */
+
+@media print {
+    .divider {
+        border-top: 0.75px solid #000000 !important;
+        border-bottom: none !important;
+        height: 0 !important;
+    }
+
+    .divider-thick {
+        border-top: 2px solid #000000 !important;
+        border-bottom: none !important;
+        height: 0 !important;
+    }
+
+    .divider-dashed {
+        text-align: center;
+        letter-spacing: 2pt;
+        color: #000000 !important;
+    }
+
+    table thead {
+        border-top: 1.5px solid #000000 !important;
+        border-bottom: 1.5px solid #000000 !important;
+    }
+
+    table tbody tr:last-child td {
+        border-bottom: 1.5px solid #000000 !important;
+    }
+}
+
+/* ===================================================
+   WATERMARK HANDLING
+   =================================================== */
+
+@media print {
+    .watermark {
+        display: none !important;
+        visibility: hidden !important;
+    }
+
+    /* If using background watermark */
+    .watermark-background {
+        background-image: url('data:image/svg+xml,<svg xmlns="http://www.w3.org/2000/svg" width="400" height="400"><text x="50" y="200" font-size="80" fill="rgba(0,0,0,0.02)" text-anchor="middle" transform="rotate(-45)">INVOICE</text></svg>');
+        background-repeat: repeat;
+        background-size: 200px 200px;
+    }
+}
+
+/* ===================================================
+   PROFESSIONAL SPACING & ALIGNMENT
+   =================================================== */
+
+@media print {
+    .invoice-container,
+    .receipt-container {
+        box-sizing: border-box;
+        position: relative;
+    }
+
+    /* Professional spacing */
+    .header {
+        margin-bottom: 10mm !important;
+        padding-bottom: 8mm !important;
+    }
+
+    .footer {
+        margin-top: auto !important;
+        padding-top: 8mm !important;
+    }
+
+    /* Text alignment */
+    .text-center { text-align: center !important; }
+    .text-left { text-align: left !important; }
+    .text-right { text-align: right !important; }
+
+    /* Font weights */
+    .font-bold { font-weight: bold !important; }
+    .font-normal { font-weight: normal !important; }
+}
+
+/* ===================================================
+   SIGNATURE & STAMP AREAS
+   =================================================== */
+
+@media print {
+    .signature-box,
+    .stamp-box,
+    .signature-area {
+        border: 1px solid #000000 !important;
+        min-height: 20mm !important;
+    }
+
+    .sig-line {
+        border-top: 1px solid #000000 !important;
+        margin-top: 2mm !important;
+        margin-bottom: 1mm !important;
+    }
+}
+
+/* ===================================================
+   TROUBLESHOOTING & COMPATIBILITY
+   =================================================== */
+
+@media print {
+    /* Fix for printing issues */
+    .print-fix {
+        page-break-inside: avoid !important;
+        display: block !important;
+    }
+
+    /* Ensure content prints */
+    .force-print {
+        print-color-adjust: exact !important;
+        -webkit-print-color-adjust: exact !important;
+        color-adjust: exact !important;
+    }
+
+    /* No background colors by default, but preserve if needed */
+    .bg-preserve {
+        background-color: inherit !important;
+    }
+}
+
+/* ===================================================
+   QUALITY ASSURANCE CLASSES
+   =================================================== */
+
+@media print {
+    /* High contrast for readability */
+    .high-contrast {
+        background-color: white !important;
+        color: #000000 !important;
+        font-weight: bold !important;
+    }
+
+    /* Professional alignment */
+    .money {
+        text-align: right !important;
+        font-family: 'Courier New', monospace !important;
+    }
+
+    /* No decorative elements */
+    .decoration,
+    .ornament,
+    svg.ornament {
+        display: none !important;
+    }
+}
+
+/* ===================================================
+   RESPONSIVE PRINT SIZES
+   =================================================== */
+
+/* A4 Standard */
+@media print and (width: 210mm), print and (width: 8.5in) {
+    @page { size: A4; margin: 12.7mm; }
+}
+
+/* A5 Half */
+@media print and (width: 148mm), print and (width: 5.83in) {
+    @page { size: A5; margin: 10mm; }
+}
+
+/* Thermal Receipt */
+@media print and (width: 80mm), print and (width: 3.15in) {
+    @page { size: 80mm; margin: 0; }
+}
+
+/* ===================================================
+   FINAL OPTIMIZATIONS
+   =================================================== */
+
+@media print {
+    /* Print with exact colors */
+    * {
+        -webkit-print-color-adjust: exact !important;
+        print-color-adjust: exact !important;
+        color-adjust: exact !important;
+    }
+
+    /* Optimize for fast loading */
+    body {
+        font-weight: 400 !important;
+    }
+
+    /* Ensure no clipping */
+    .invoice-container,
+    .receipt-container {
+        overflow: visible !important;
+        max-width: 100% !important;
+    }
+}

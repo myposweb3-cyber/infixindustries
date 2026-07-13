@@ -1,0 +1,505 @@
+{% extends "base.html" %}
+
+{% block title %}Audit Logs - {{ app_name }}{% endblock %}
+
+{% block content %}
+<div class="container-fluid">
+    <div class="d-flex justify-content-between align-items-center mb-4">
+        <h4 class="mb-0">
+            <i class="fas fa-history me-2"></i>Audit Logs
+        </h4>
+        <div>
+            <button class="btn btn-outline-secondary btn-sm" onclick="exportLogs()">
+                <i class="fas fa-download me-1"></i> Export
+            </button>
+        </div>
+    </div>
+
+    <!-- Stats Cards -->
+    <div class="row mb-4">
+        <div class="col-md-3">
+            <div class="card border-0 shadow-sm">
+                <div class="card-body">
+                    <div class="d-flex justify-content-between align-items-center">
+                        <div>
+                            <p class="text-muted mb-0 small">Total Logs</p>
+                            <h4 class="mb-0" id="totalLogs">-</h4>
+                        </div>
+                        <div class="bg-primary bg-opacity-10 text-primary rounded-circle p-3">
+                            <i class="fas fa-list fa-lg"></i>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+        <div class="col-md-3">
+            <div class="card border-0 shadow-sm">
+                <div class="card-body">
+                    <div class="d-flex justify-content-between align-items-center">
+                        <div>
+                            <p class="text-muted mb-0 small">Last 24 Hours</p>
+                            <h4 class="mb-0" id="recentLogs">-</h4>
+                        </div>
+                        <div class="bg-success bg-opacity-10 text-success rounded-circle p-3">
+                            <i class="fas fa-clock fa-lg"></i>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+        <div class="col-md-3">
+            <div class="card border-0 shadow-sm">
+                <div class="card-body">
+                    <div class="d-flex justify-content-between align-items-center">
+                        <div>
+                            <p class="text-muted mb-0 small">Entity Types</p>
+                            <h4 class="mb-0" id="entityTypesCount">-</h4>
+                        </div>
+                        <div class="bg-info bg-opacity-10 text-info rounded-circle p-3">
+                            <i class="fas fa-database fa-lg"></i>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+        <div class="col-md-3">
+            <div class="card border-0 shadow-sm">
+                <div class="card-body">
+                    <div class="d-flex justify-content-between align-items-center">
+                        <div>
+                            <p class="text-muted mb-0 small">Active Users</p>
+                            <h4 class="mb-0" id="activeUsers">-</h4>
+                        </div>
+                        <div class="bg-warning bg-opacity-10 text-warning rounded-circle p-3">
+                            <i class="fas fa-users fa-lg"></i>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Filters -->
+    <div class="card border-0 shadow-sm mb-4">
+        <div class="card-body">
+            <form id="filterForm" class="row g-3">
+                <div class="col-md-2">
+                    <label class="form-label small">Entity Type</label>
+                    <select class="form-select form-select-sm" id="entityTypeFilter">
+                        <option value="">All Types</option>
+                    </select>
+                </div>
+                <div class="col-md-2">
+                    <label class="form-label small">Action</label>
+                    <select class="form-select form-select-sm" id="actionFilter">
+                        <option value="">All Actions</option>
+                        <option value="create">Create</option>
+                        <option value="update">Update</option>
+                        <option value="delete">Delete</option>
+                        <option value="login">Login</option>
+                        <option value="logout">Logout</option>
+                    </select>
+                </div>
+                <div class="col-md-2">
+                    <label class="form-label small">User</label>
+                    <select class="form-select form-select-sm" id="userFilter">
+                        <option value="">All Users</option>
+                    </select>
+                </div>
+                <div class="col-md-2">
+                    <label class="form-label small">Start Date</label>
+                    <input type="date" class="form-control form-control-sm" id="startDateFilter">
+                </div>
+                <div class="col-md-2">
+                    <label class="form-label small">End Date</label>
+                    <input type="date" class="form-control form-control-sm" id="endDateFilter">
+                </div>
+                <div class="col-md-2">
+                    <label class="form-label small">Search</label>
+                    <input type="text" class="form-control form-control-sm" id="searchFilter" placeholder="Search description...">
+                </div>
+                <div class="col-12">
+                    <button type="button" class="btn btn-primary btn-sm" onclick="applyFilters()">
+                        <i class="fas fa-filter me-1"></i> Apply Filters
+                    </button>
+                    <button type="button" class="btn btn-outline-secondary btn-sm ms-1" onclick="clearFilters()">
+                        <i class="fas fa-times me-1"></i> Clear
+                    </button>
+                </div>
+            </form>
+        </div>
+    </div>
+
+    <!-- Audit Logs Table -->
+    <div class="card border-0 shadow-sm">
+        <div class="card-body p-0">
+            <div class="table-responsive">
+                <table class="table table-hover mb-0">
+                    <thead class="table-light">
+                        <tr>
+                            <th class="px-3">Timestamp</th>
+                            <th>User</th>
+                            <th>Entity Type</th>
+                            <th>Action</th>
+                            <th>Description</th>
+                            <th>IP Address</th>
+                            <th class="text-end px-3">Details</th>
+                        </tr>
+                    </thead>
+                    <tbody id="auditLogsTable">
+                        <tr>
+                            <td colspan="7" class="text-center py-4">
+                                <div class="spinner-border text-primary" role="status">
+                                    <span class="visually-hidden">Loading...</span>
+                                </div>
+                            </td>
+                        </tr>
+                    </tbody>
+                </table>
+            </div>
+        </div>
+    </div>
+
+    <!-- Pagination -->
+    <div class="d-flex justify-content-between align-items-center mt-3">
+        <div class="text-muted small">
+            Showing <span id="showingFrom">0</span> to <span id="showingTo">0</span> of <span id="totalItems">0</span> entries
+        </div>
+        <nav>
+            <ul class="pagination pagination-sm mb-0" id="pagination">
+            </ul>
+        </nav>
+    </div>
+</div>
+
+<!-- Detail Modal -->
+<div class="modal fade" id="detailModal" tabindex="-1" aria-hidden="true">
+    <div class="modal-dialog modal-lg">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title">Audit Log Details</h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+            </div>
+            <div class="modal-body" id="detailContent">
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block scripts %}
+<script>
+let currentPage = 1;
+let totalPages = 1;
+
+document.addEventListener('DOMContentLoaded', function() {
+    loadStats();
+    loadFilters();
+    loadAuditLogs();
+});
+
+function loadStats() {
+    fetch('/audit/api/audit-logs/stats?days=30')
+        .then(response => response.json())
+        .then(data => {
+            document.getElementById('totalLogs').textContent = data.total_count || 0;
+            document.getElementById('recentLogs').textContent = data.recent_count || 0;
+            document.getElementById('entityTypesCount').textContent = Object.keys(data.entity_type_counts || {}).length;
+            document.getElementById('activeUsers').textContent = Object.keys(data.user_counts || {}).length;
+        })
+        .catch(error => console.error('Error loading stats:', error));
+}
+
+function loadFilters() {
+    fetch('/audit/api/audit-logs?page=1&per_page=1')
+        .then(response => response.json())
+        .then(data => {
+            // Populate entity types
+            const entityTypeSelect = document.getElementById('entityTypeFilter');
+            (data.filters.entity_types || []).forEach(type => {
+                const option = document.createElement('option');
+                option.value = type;
+                option.textContent = type;
+                entityTypeSelect.appendChild(option);
+            });
+
+            // Populate users from all-users endpoint (includes all users, not just recent)
+            fetch('/audit/api/audit-logs/all-users')
+                .then(res => res.json())
+                .then(users => {
+                    const userSelect = document.getElementById('userFilter');
+                    (users || []).forEach(user => {
+                        const option = document.createElement('option');
+                        option.value = user.id;
+                        option.textContent = user.username;
+                        userSelect.appendChild(option);
+                    });
+                });
+        })
+        .catch(error => console.error('Error loading filters:', error));
+}
+
+function loadAuditLogs(page = 1) {
+    currentPage = page;
+    
+    const params = new URLSearchParams({
+        page: page,
+        per_page: 50,
+        entity_type: document.getElementById('entityTypeFilter').value,
+        action: document.getElementById('actionFilter').value,
+        user_id: document.getElementById('userFilter').value,
+        start_date: document.getElementById('startDateFilter').value,
+        end_date: document.getElementById('endDateFilter').value,
+        search: document.getElementById('searchFilter').value
+    });
+
+    fetch(`/audit/api/audit-logs?${params}`)
+        .then(response => response.json())
+        .then(data => {
+            renderTable(data.logs);
+            renderPagination(data.current_page, data.pages);
+            updateShowingInfo(data);
+        })
+        .catch(error => {
+            console.error('Error loading audit logs:', error);
+            document.getElementById('auditLogsTable').innerHTML = `
+                <tr>
+                    <td colspan="7" class="text-center py-4 text-danger">
+                        Error loading audit logs
+                    </td>
+                </tr>
+            `;
+        });
+}
+
+function renderTable(logs) {
+    const tbody = document.getElementById('auditLogsTable');
+    
+    if (logs.length === 0) {
+        tbody.innerHTML = `
+            <tr>
+                <td colspan="7" class="text-center py-4 text-muted">
+                    No audit logs found
+                </td>
+            </tr>
+        `;
+        return;
+    }
+
+    tbody.innerHTML = logs.map(log => {
+        const actionClass = getActionClass(log.action);
+        
+        // Format timestamp properly in local timezone
+        let timestamp = '-';
+        if (log.timestamp) {
+            try {
+                // The timestamp comes from backend as ISO string with 'Z' indicator (UTC)
+                let dateStr = log.timestamp;
+                // Ensure it has the Z suffix for UTC parsing
+                if (!dateStr.endsWith('Z')) {
+                    dateStr += 'Z';
+                }
+                const date = new Date(dateStr);
+                
+                // Get local timezone offset
+                const userTimezone = Intl.DateTimeFormat().resolvedOptions().timeZone;
+                
+                // Format using browser's local timezone
+                timestamp = date.toLocaleString('en-GB', {
+                    year: 'numeric',
+                    month: '2-digit',
+                    day: '2-digit',
+                    hour: '2-digit',
+                    minute: '2-digit',
+                    second: '2-digit',
+                    hour12: false,
+                    timeZone: userTimezone
+                });
+            } catch(e) {
+                console.error('Error parsing timestamp:', log.timestamp, e);
+                timestamp = log.timestamp_str || log.timestamp || '-';
+            }
+        }
+        
+        return `
+            <tr>
+                <td class="px-3">${timestamp}</td>
+                <td>${log.username || 'System'}</td>
+                <td>${log.entity_type || '-'}</td>
+                <td><span class="badge ${actionClass}">${log.action || '-'}</span></td>
+                <td>${log.description || '-'}</td>
+                <td>${log.ip_address || '-'}</td>
+                <td class="text-end px-3">
+                    <button class="btn btn-sm btn-outline-primary" onclick="showDetail(${log.id})">
+                        <i class="fas fa-eye"></i>
+                    </button>
+                </td>
+            </tr>
+        `;
+    }).join('');
+}
+
+function getActionClass(action) {
+    switch(action) {
+        case 'create': return 'bg-success';
+        case 'update': return 'bg-primary';
+        case 'delete': return 'bg-danger';
+        case 'login': return 'bg-info';
+        case 'logout': return 'bg-secondary';
+        default: return 'bg-light text-dark';
+    }
+}
+
+function renderPagination(current, total) {
+    totalPages = total;
+    const pagination = document.getElementById('pagination');
+    
+    if (total <= 1) {
+        pagination.innerHTML = '';
+        return;
+    }
+
+    let html = '';
+    
+    // Previous button
+    html += `<li class="page-item ${current === 1 ? 'disabled' : ''}">
+        <a class="page-link" href="#" onclick="loadAuditLogs(${current - 1}); return false;">Previous</a>
+    </li>`;
+    
+    // Page numbers
+    for (let i = 1; i <= total; i++) {
+        if (i === 1 || i === total || (i >= current - 2 && i <= current + 2)) {
+            html += `<li class="page-item ${i === current ? 'active' : ''}">
+                <a class="page-link" href="#" onclick="loadAuditLogs(${i}); return false;">${i}</a>
+            </li>`;
+        } else if (i === current - 3 || i === current + 3) {
+            html += `<li class="page-item disabled"><span class="page-link">...</span></li>`;
+        }
+    }
+    
+    // Next button
+    html += `<li class="page-item ${current === total ? 'disabled' : ''}">
+        <a class="page-link" href="#" onclick="loadAuditLogs(${current + 1}); return false;">Next</a>
+    </li>`;
+    
+    pagination.innerHTML = html;
+}
+
+function updateShowingInfo(data) {
+    const from = (data.current_page - 1) * 50 + 1;
+    const to = Math.min(data.current_page * 50, data.total);
+    document.getElementById('showingFrom').textContent = data.total > 0 ? from : 0;
+    document.getElementById('showingTo').textContent = to;
+    document.getElementById('totalItems').textContent = data.total;
+}
+
+function applyFilters() {
+    loadAuditLogs(1);
+}
+
+function clearFilters() {
+    document.getElementById('entityTypeFilter').value = '';
+    document.getElementById('actionFilter').value = '';
+    document.getElementById('userFilter').value = '';
+    document.getElementById('startDateFilter').value = '';
+    document.getElementById('endDateFilter').value = '';
+    document.getElementById('searchFilter').value = '';
+    loadAuditLogs(1);
+}
+
+function showDetail(id) {
+    fetch(`/audit/api/audit-logs/${id}`)
+        .then(response => response.json())
+        .then(data => {
+            const modal = new bootstrap.Modal(document.getElementById('detailModal'));
+            const content = document.getElementById('detailContent');
+            
+            const oldValues = data.old_values ? JSON.stringify(data.old_values, null, 2) : 'None';
+            const newValues = data.new_values ? JSON.stringify(data.new_values, null, 2) : 'None';
+            
+            // Format timestamp in local timezone
+            let timestamp = data.timestamp || '-';
+            if (data.timestamp) {
+                try {
+                    let dateStr = data.timestamp;
+                    // Ensure it has the Z suffix for UTC parsing
+                    if (!dateStr.endsWith('Z')) {
+                        dateStr += 'Z';
+                    }
+                    const date = new Date(dateStr);
+                    const userTimezone = Intl.DateTimeFormat().resolvedOptions().timeZone;
+                    
+                    timestamp = date.toLocaleString('en-GB', {
+                        year: 'numeric',
+                        month: '2-digit',
+                        day: '2-digit',
+                        hour: '2-digit',
+                        minute: '2-digit',
+                        second: '2-digit',
+                        hour12: false,
+                        timeZone: userTimezone
+                    });
+                } catch(e) {
+                    console.error('Error parsing detail timestamp:', data.timestamp, e);
+                    timestamp = data.timestamp_str || data.timestamp;
+                }
+            }
+            
+            content.innerHTML = `
+                <div class="row">
+                    <div class="col-md-6">
+                        <p><strong>ID:</strong> ${data.id}</p>
+                        <p><strong>User:</strong> ${data.username || 'System'}</p>
+                        <p><strong>Entity Type:</strong> ${data.entity_type || '-'}</p>
+                        <p><strong>Entity ID:</strong> ${data.entity_id || '-'}</p>
+                        <p><strong>Action:</strong> <span class="badge ${getActionClass(data.action)}">${data.action}</span></p>
+                    </div>
+                    <div class="col-md-6">
+                        <p><strong>Timestamp:</strong> ${timestamp}</p>
+                        <p><strong>IP Address:</strong> ${data.ip_address || '-'}</p>
+                        <p><strong>Company:</strong> ${data.company_name || '-'}</p>
+                    </div>
+                </div>
+                <hr>
+                <p><strong>Description:</strong></p>
+                <p>${data.description || '-'}</p>
+                <hr>
+                <div class="row">
+                    <div class="col-md-6">
+                        <p><strong>Old Values:</strong></p>
+                        <pre class="bg-light p-3 rounded">${escapeHtml(oldValues)}</pre>
+                    </div>
+                    <div class="col-md-6">
+                        <p><strong>New Values:</strong></p>
+                        <pre class="bg-light p-3 rounded">${escapeHtml(newValues)}</pre>
+                    </div>
+                </div>
+            `;
+            
+            modal.show();
+        })
+        .catch(error => console.error('Error loading audit log details:', error));
+}
+
+function escapeHtml(text) {
+    if (typeof text !== 'string') return text;
+    const div = document.createElement('div');
+    div.textContent = text;
+    return div.innerHTML;
+}
+
+function exportLogs() {
+    const params = new URLSearchParams({
+        entity_type: document.getElementById('entityTypeFilter').value,
+        action: document.getElementById('actionFilter').value,
+        start_date: document.getElementById('startDateFilter').value,
+        end_date: document.getElementById('endDateFilter').value
+    });
+
+    // Download as PDF
+    const url = `/audit/api/audit-logs/export?${params}`;
+    window.location.href = url;
+}
+</script>
+{% endblock %}
+

@@ -1,0 +1,1081 @@
+{% extends "base.html" %}
+
+{% block title %}Returns - {{ app_name }}{% endblock %}
+
+{% block content %}
+<div class="container-fluid">
+    <div class="row">
+        <div class="col-12">
+            <div class="d-flex justify-content-between align-items-center mb-4">
+                <h2><i class="fas fa-undo-alt me-2"></i>Returns</h2>
+                <div>
+                    <button class="btn btn-primary" id="refreshBtn">
+                        <i class="fas fa-sync-alt me-1"></i>Refresh
+                    </button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Return Form Section -->
+    <div class="row mb-4">
+        <div class="col-md-12">
+            <div class="card">
+                <div class="card-header">
+                    <h5 class="mb-0">Process Return</h5>
+                </div>
+                <div class="card-body">
+                    <div class="row">
+                        <div class="col-md-4">
+                            <label for="saleIdInput" class="form-label">Enter Sale ID</label>
+                            <div class="input-group">
+                                <input type="number" class="form-control" id="saleIdInput" placeholder="Enter Sale ID">
+                                <button class="btn btn-primary" type="button" id="loadSaleBtn">
+                                    <i class="fas fa-search"></i> Load
+                                </button>
+                            </div>
+                        </div>
+                        <div class="col-md-8" id="saleInfo" style="display: none;">
+                            <div class="alert alert-info mb-0">
+                                <strong>Sale Info:</strong> 
+                                <span id="saleInfoText"></span>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Return Type Selection -->
+    <div class="row mb-4" id="returnTypeSection" style="display: none;">
+        <div class="col-md-12">
+            <div class="card">
+                <div class="card-header">
+                    <h5 class="mb-0">Return Type</h5>
+                </div>
+                <div class="card-body">
+                    <div class="row">
+                        <div class="col-md-4">
+                            <div class="form-check">
+                                <input class="form-check-input" type="radio" name="returnType" id="fullReturn" value="full" checked>
+                                <label class="form-check-label" for="fullReturn">
+                                    <strong>Full Return</strong> - Return entire invoice
+                                </label>
+                            </div>
+                        </div>
+                        <div class="col-md-4">
+                            <div class="form-check">
+                                <input class="form-check-input" type="radio" name="returnType" id="partialReturn" value="partial">
+                                <label class="form-check-label" for="partialReturn">
+                                    <strong>Partial Return</strong> - Return selected items only
+                                </label>
+                            </div>
+                        </div>
+                        <div class="col-md-4">
+                            <div class="form-check">
+                                <input class="form-check-input" type="radio" name="returnType" id="exchangeReturn" value="exchange">
+                                <label class="form-check-label" for="exchangeReturn">
+                                    <strong>Exchange</strong> - Exchange items for different ones
+                                </label>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Items Selection for Partial Return -->
+    <div class="row mb-4" id="itemsSection" style="display: none;">
+        <div class="col-md-12">
+            <div class="card">
+                <div class="card-header d-flex justify-content-between align-items-center">
+                    <h5 class="mb-0">Select Items to Return</h5>
+                    <span class="text-muted" id="itemsCount">0 items</span>
+                </div>
+                <div class="card-body">
+                    <div class="table-responsive">
+                        <table class="table table-hover" id="returnItemsTable">
+                            <thead>
+                                <tr>
+                                    <th><input type="checkbox" id="selectAllItems"></th>
+                                    <th>Product</th>
+                                    <th>Qty Purchased</th>
+                                    <th>Already Returned</th>
+                                    <th>Can Return</th>
+                                    <th>Return Qty</th>
+                                    <th>Price</th>
+                                    <th>Total</th>
+                                    <th>Return Reason</th>
+                                </tr>
+                            </thead>
+                            <tbody id="returnItemsBody">
+                                <!-- Items will be loaded here -->
+                            </tbody>
+                        </table>
+                    </div>
+                    
+                    <div class="row mt-3">
+                        <div class="col-md-12 text-end">
+                        <h5>Refund Amount: <span id="refundCurrency">Rs. </span><span id="refundAmount">0.00</span></h5>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Return Details -->
+    <div class="row mb-4" id="returnDetailsSection" style="display: none;">
+        <div class="col-md-12">
+            <div class="card">
+                <div class="card-header">
+                    <h5 class="mb-0">Return Details</h5>
+                </div>
+                <div class="card-body">
+                    <div class="row">
+                        <div class="col-md-6">
+                            <label for="returnReason" class="form-label">Return Reason *</label>
+                            <select class="form-select" id="returnReason" required>
+                                <option value="">Select Reason</option>
+                                <option value="Defective Product">Defective Product</option>
+                                <option value="Wrong Item">Wrong Item</option>
+                                <option value="Not as Described">Not as Described</option>
+                                <option value="Changed Mind">Changed Mind</option>
+                                <option value="Size/Fit Issue">Size/Fit Issue</option>
+                                <option value="Quality Issue">Quality Issue</option>
+                                <option value="Other">Other</option>
+                            </select>
+                        </div>
+                        <div class="col-md-6">
+                            <label for="refundMethod" class="form-label">Refund Method *</label>
+                            <select class="form-select" id="refundMethod" required>
+                                <option value="">Select Refund Method</option>
+                                <option value="Cash">Cash</option>
+                                <option value="Card">Card</option>
+                                <option value="Store Credit">Store Credit</option>
+                            </select>
+                        </div>
+                    </div>
+                    <div class="row mt-3">
+                        <div class="col-md-12">
+                            <label for="returnNotes" class="form-label">Notes (Optional)</label>
+                            <textarea class="form-control" id="returnNotes" rows="2" placeholder="Additional notes..."></textarea>
+                        </div>
+                    </div>
+                    <div class="row mt-3">
+                        <div class="col-md-12 text-end">
+                <h4>Total Refund: <span id="refundLabel">Rs. </span><span id="totalRefundAmount">0.00</span></h4>
+                        </div>
+                    </div>
+                    <div class="row mt-3">
+                        <div class="col-md-12 text-end">
+                            <button class="btn btn-success btn-lg" id="processReturnBtn">
+                                <i class="fas fa-check me-1"></i> Process Return
+                            </button>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Returns History -->
+    <div class="row">
+        <div class="col-12">
+            <div class="card">
+                <div class="card-header d-flex justify-content-between align-items-center">
+                    <h5 class="mb-0">Returns History</h5>
+                    <span class="text-muted" id="returnsCount">0 returns</span>
+                </div>
+                <div class="card-body">
+                    <!-- Filters -->
+                    <div class="row mb-3">
+                        <div class="col-md-3">
+                            <input type="text" class="form-control" id="searchInput" placeholder="Search customer...">
+                        </div>
+                        <div class="col-md-3">
+                            <input type="date" class="form-control" id="startDate">
+                        </div>
+                        <div class="col-md-3">
+                            <input type="date" class="form-control" id="endDate">
+                        </div>
+                        <div class="col-md-3 d-flex">
+                            <button class="btn btn-primary me-2" id="filterBtn">
+                                <i class="fas fa-filter me-1"></i>Filter
+                            </button>
+                            <button class="btn btn-outline-secondary" id="clearFilterBtn">
+                                <i class="fas fa-times me-1"></i>Clear
+                            </button>
+                        </div>
+                    </div>
+                    <div class="table-responsive">
+                        <table class="table table-striped table-hover" id="returnsTable">
+                            <thead>
+                                <tr>
+                                    <th>ID</th>
+                                    <th>Date</th>
+                                    <th>Customer</th>
+                                    <th>Original Sale</th>
+                                    <th>Items</th>
+                                    <th>Refund Amount</th>
+                                    <th>Refund Method</th>
+                                    <th>Reason</th>
+                                    <th>User</th>
+                                    <th>Actions</th>
+                                </tr>
+                            </thead>
+                            <tbody id="returnsTableBody">
+                                <!-- Returns will be loaded here -->
+                            </tbody>
+                        </table>
+                    </div>
+
+                    <!-- Pagination -->
+                    <nav id="paginationNav" class="mt-3" aria-label="Returns pagination">
+                        <ul class="pagination justify-content-center" id="pagination">
+                            <!-- Pagination will be loaded here -->
+                        </ul>
+                    </nav>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Return Details Modal -->
+<div class="modal fade" id="returnDetailsModal" tabindex="-1">
+    <div class="modal-dialog modal-lg">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title">Return Details #<span id="returnId"></span></h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+            </div>
+            <div class="modal-body">
+                <div class="row mb-3">
+                    <div class="col-md-6">
+                        <p><strong>Date:</strong> <span id="returnDate"></span></p>
+                        <p><strong>Customer:</strong> <span id="returnCustomer"></span></p>
+                        <p><strong>Original Sale:</strong> <span id="returnOriginalSale"></span></p>
+                    </div>
+                    <div class="col-md-6">
+                        <p><strong>Refund Method:</strong> <span id="returnRefundMethod"></span></p>
+                        <p><strong>Reason:</strong> <span id="returnReasonText"></span></p>
+                        <p><strong>Processed By:</strong> <span id="returnUser"></span></p>
+                    </div>
+                </div>
+                
+                <h6>Returned Items</h6>
+                <div class="table-responsive">
+                    <table class="table table-sm" id="returnItemsTableModal">
+                        <thead>
+                            <tr>
+                                <th>Product</th>
+                                <th>Qty</th>
+                                <th>Price</th>
+                                <th>Total</th>
+                                <th>Reason</th>
+                            </tr>
+                        </thead>
+                        <tbody id="returnItemsBodyModal">
+                            <!-- Items will be loaded here -->
+                        </tbody>
+                    </table>
+                </div>
+                
+                <div class="row mt-3">
+                    <div class="col-md-12 text-end">
+                        <h5>Total Refund: <span id="returnLabel">Rs. </span><span id="returnTotal"></span></h5>
+                    </div>
+                </div>
+                
+                <div class="row mt-3" id="returnNotesRow">
+                    <div class="col-md-12">
+                        <p><strong>Notes:</strong> <span id="returnNotesText"></span></p>
+                    </div>
+                </div>
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Close</button>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Exchange Modal -->
+<div class="modal fade" id="exchangeModal" tabindex="-1">
+    <div class="modal-dialog modal-lg">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title">Exchange Items</h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+            </div>
+            <div class="modal-body">
+                <p>Add items the customer will take in exchange. Use product ID, quantity and price.</p>
+                <div class="table-responsive">
+                    <table class="table table-sm" id="exchangeItemsTable">
+                        <thead>
+                            <tr>
+                                <th>Product ID</th>
+                                <th>Product Name (optional)</th>
+                                <th>Quantity</th>
+                                <th>Price</th>
+                                <th></th>
+                            </tr>
+                        </thead>
+                        <tbody id="exchangeItemsBody">
+                            <!-- rows added dynamically -->
+                        </tbody>
+                    </table>
+                </div>
+                <button class="btn btn-sm btn-outline-primary" id="addExchangeRowBtn">Add Row</button>
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancel</button>
+                <button type="button" class="btn btn-primary" id="exchangeSaveBtn">Save Exchange</button>
+            </div>
+        </div>
+    </div>
+</div>
+
+{% endblock %}
+
+{% block scripts %}
+<script>
+let currentPage = 1;
+let currentSaleId = null;
+let currentSaleData = null;
+let selectedItems = [];
+let currencySymbol = 'Rs. ';  // Default, will be loaded from settings
+
+function loadCurrencySymbol() {
+    fetch('/api/currency-symbol')
+        .then(response => {
+            if (!response.ok) throw new Error('Failed to load settings');
+            return response.json();
+        })
+        .then(data => {
+            if (data && data.currency_symbol) {
+                currencySymbol = data.currency_symbol;
+            } else {
+                currencySymbol = 'Rs. ';
+            }
+            
+            // Update all currency labels on returns pages
+            const refundLabel = document.getElementById('refundLabel');
+            const returnLabel = document.getElementById('returnLabel');
+            const refundCurrency = document.getElementById('refundCurrency');
+            
+            if (refundLabel) refundLabel.textContent = currencySymbol;
+            if (returnLabel) returnLabel.textContent = currencySymbol;
+            if (refundCurrency) refundCurrency.textContent = currencySymbol;
+        })
+        .catch(error => {
+            console.error('Error loading currency symbol:', error);
+            currencySymbol = 'Rs. ';
+        });
+}
+
+// Call it on page load
+document.addEventListener('DOMContentLoaded', function() {
+    loadCurrencySymbol();
+});
+
+$(document).ready(function() {
+    // Set default dates (last 30 days)
+    const today = new Date();
+    const thirtyDaysAgo = new Date(today);
+    thirtyDaysAgo.setDate(today.getDate() - 30);
+    
+    document.getElementById('endDate').value = today.toISOString().split('T')[0];
+    document.getElementById('startDate').value = thirtyDaysAgo.toISOString().split('T')[0];
+
+    loadReturns();
+
+    // Event listeners
+    document.getElementById('loadSaleBtn').addEventListener('click', loadSale);
+    document.getElementById('saleIdInput').addEventListener('keypress', function(e) {
+        if (e.key === 'Enter') loadSale();
+    });
+    
+    document.getElementById('refreshBtn').addEventListener('click', function() {
+        loadReturns();
+    });
+
+    document.getElementById('filterBtn').addEventListener('click', function() {
+        currentPage = 1;
+        loadReturns();
+    });
+
+    document.getElementById('clearFilterBtn').addEventListener('click', function() {
+        document.getElementById('searchInput').value = '';
+        document.getElementById('startDate').value = '';
+        document.getElementById('endDate').value = '';
+        currentPage = 1;
+        loadReturns();
+    });
+
+    // Return type selection
+    document.querySelectorAll('input[name="returnType"]').forEach(radio => {
+        radio.addEventListener('change', function() {
+            // Show items section for both 'partial' and 'exchange' return types
+            if (this.value === 'partial' || this.value === 'exchange') {
+                document.getElementById('itemsSection').style.display = 'block';
+            } else {
+                document.getElementById('itemsSection').style.display = 'none';
+                calculateRefund();
+            }
+        });
+    });
+
+    // Select all items
+    document.getElementById('selectAllItems').addEventListener('change', function() {
+        const checkboxes = document.querySelectorAll('.item-checkbox');
+        checkboxes.forEach(cb => {
+            cb.checked = this.checked;
+            const itemId = cb.dataset.itemId;
+            if (this.checked) {
+                if (!selectedItems.find(i => i.sale_item_id === itemId)) {
+                    const row = cb.closest('tr');
+                    const maxQty = parseFloat(row.dataset.remainingQty);
+                    selectedItems.push({
+                        sale_item_id: itemId,
+                        quantity: maxQty,
+                        reason: ''
+                    });
+                }
+            } else {
+                selectedItems = selectedItems.filter(i => i.sale_item_id !== itemId);
+            }
+        });
+        calculateRefund();
+    });
+
+    // Process return button
+    document.getElementById('processReturnBtn').addEventListener('click', processReturn);
+});
+
+function loadSale() {
+    const saleId = document.getElementById('saleIdInput').value;
+    if (!saleId) {
+        showAlert('Please enter a Sale ID', 'warning');
+        return;
+    }
+
+    fetch(`/sales/api/sales/${saleId}/items`)
+        .then(response => {
+            if (!response.ok) {
+                throw new Error('Sale not found');
+            }
+            return response.json();
+        })
+        .then(data => {
+            currentSaleId = saleId;
+            currentSaleData = data;
+            
+            // Show sale info
+            document.getElementById('saleInfo').style.display = 'block';
+document.getElementById('saleInfoText').innerHTML = `
+Sale #${data.sale_id} | Date: ${window.formatTimestamp(data.sale_date, true)} | Customer: ${data.customer} | Total: Rs ${data.total.toFixed(2)} | Payment: ${data.payment}
+            `;
+            
+            // Show return type section
+            document.getElementById('returnTypeSection').style.display = 'block';
+            document.getElementById('returnDetailsSection').style.display = 'block';
+            
+            // Load items for partial return
+            loadSaleItems(data.items);
+            
+            // Calculate full refund for full return
+            calculateRefund();
+        })
+        .catch(error => {
+            console.error('Error loading sale:', error);
+            showAlert('Sale not found', 'danger');
+            document.getElementById('saleInfo').style.display = 'none';
+            document.getElementById('returnTypeSection').style.display = 'none';
+            document.getElementById('itemsSection').style.display = 'none';
+            document.getElementById('returnDetailsSection').style.display = 'none';
+        });
+}
+
+function loadSaleItems(items) {
+    const tbody = document.getElementById('returnItemsBody');
+    tbody.innerHTML = '';
+    
+    selectedItems = [];
+    
+    if (items.length === 0) {
+        tbody.innerHTML = '<tr><td colspan="9" class="text-center">No items available for return</td></tr>';
+        return;
+    }
+
+    items.forEach(item => {
+        const row = document.createElement('tr');
+        row.dataset.remainingQty = item.remaining_qty;
+        row.dataset.price = item.price || item.total / item.quantity || 0;
+        row.dataset.itemId = item.id;
+        row.innerHTML = `
+            <td><input type="checkbox" class="item-checkbox" data-item-id="${item.id}"></td>
+            <td>${item.product_name}</td>
+            <td>${item.quantity}</td>
+            <td>${item.already_returned}</td>
+            <td><strong>${item.remaining_qty}</strong></td>
+            <td>
+                <input type="number" class="form-control form-control-sm return-qty" 
+                    data-item-id="${item.id}" data-max-qty="${item.remaining_qty}" 
+value="${item.remaining_qty}" min="0" max="${item.remaining_qty}" disabled>
+            </td>
+            <td>Rs ${item.price.toFixed(2)}</td>
+<td class="item-total">Rs ${item.total.toFixed(2)}</td>
+            <td>
+                <select class="form-select form-select-sm item-reason" data-item-id="${item.id}" disabled>
+                    <option value="">Select Reason</option>
+                    <option value="Defective">Defective</option>
+                    <option value="Wrong Item">Wrong Item</option>
+                    <option value="Not as Described">Not as Described</option>
+                    <option value="Changed Mind">Changed Mind</option>
+                    <option value="Other">Other</option>
+                </select>
+            </td>
+        `;
+        tbody.appendChild(row);
+    });
+
+    document.getElementById('itemsCount').textContent = `${items.length} items`;
+
+    // Add event listeners for checkboxes
+    document.querySelectorAll('.item-checkbox').forEach(cb => {
+        cb.addEventListener('change', function() {
+            const itemId = this.dataset.itemId;
+            const row = this.closest('tr');
+            const qtyInput = row.querySelector('.return-qty');
+            const reasonSelect = row.querySelector('.item-reason');
+            const maxQty = parseFloat(row.dataset.remainingQty);
+            
+            if (this.checked) {
+                qtyInput.disabled = false;
+                reasonSelect.disabled = false;
+                qtyInput.value = maxQty;
+                
+                // Add to selected items
+                selectedItems.push({
+                    sale_item_id: itemId,
+                    quantity: maxQty,
+                    reason: ''
+                });
+            } else {
+                qtyInput.disabled = true;
+                reasonSelect.disabled = true;
+                qtyInput.value = maxQty;
+                
+                // Remove from selected items
+                selectedItems = selectedItems.filter(i => i.sale_item_id !== itemId);
+            }
+            calculateRefund();
+        });
+    });
+
+    // Add event listeners for quantity inputs
+    document.querySelectorAll('.return-qty').forEach(input => {
+        input.addEventListener('change', function() {
+            const itemId = this.dataset.itemId;
+            const maxQty = parseFloat(this.dataset.maxQty);
+            let qty = parseFloat(this.value);
+            
+            if (qty > maxQty) qty = maxQty;
+            if (qty < 0) qty = 0;
+            
+            this.value = qty;
+            
+            // Update selected items
+            const item = selectedItems.find(i => i.sale_item_id === itemId);
+            if (item) {
+                item.quantity = qty;
+            }
+            
+            // Update row total
+            const row = this.closest('tr');
+            const price = parseFloat(row.dataset.price);
+row.querySelector('.item-total').textContent = `Rs ${(qty * price).toFixed(2)}`;
+            
+            calculateRefund();
+        });
+    });
+
+    // Add event listeners for reason selects
+    document.querySelectorAll('.item-reason').forEach(select => {
+        select.addEventListener('change', function() {
+            const itemId = this.dataset.itemId;
+            const item = selectedItems.find(i => i.sale_item_id === itemId);
+            if (item) {
+                item.reason = this.value;
+            }
+        });
+    });
+}
+
+function calculateRefund() {
+    const returnType = document.querySelector('input[name="returnType"]:checked').value;
+    let refund = 0;
+    
+    if (returnType === 'full' && currentSaleData) {
+        // Full return - use the actual total paid (already includes all discounts)
+        // Use currentSaleData.total which is what the customer actually paid
+        refund = currentSaleData.total;
+    } else {
+        // Partial return - calculate based on selected items
+        // Must subtract discount from price: (price - discount) * quantity
+        selectedItems.forEach(item => {
+            const rowElement = document.querySelector(`[data-item-id="${item.sale_item_id}"]`);
+            if (!rowElement) {
+                console.error('Row element not found for item:', item.sale_item_id);
+                return;
+            }
+            const row = rowElement.closest('tr');
+            if (!row) {
+                console.error('Row not found for item:', item.sale_item_id);
+                return;
+            }
+            // Get the original price and discount from currentSaleData items
+            const saleItem = currentSaleData.items.find(i => i.id === parseInt(item.sale_item_id));
+            const price = saleItem ? saleItem.price : (parseFloat(row.dataset.price) || 0);
+            const discount = saleItem ? (saleItem.discount || 0) : 0;
+            
+            // Calculate refund: (price - discount) * quantity
+            const itemRefund = (price - discount) * item.quantity;
+            refund += itemRefund;
+        });
+    }
+    
+    document.getElementById('refundAmount').textContent = refund.toFixed(2);
+    document.getElementById('totalRefundAmount').textContent = refund.toFixed(2);
+}
+
+function processReturn() {
+    const returnType = document.querySelector('input[name="returnType"]:checked').value;
+    const returnReason = document.getElementById('returnReason').value;
+    const refundMethod = document.getElementById('refundMethod').value;
+    const notes = document.getElementById('returnNotes').value;
+    
+    console.log('Processing return:', { returnType, returnReason, refundMethod, currentSaleId });
+    
+    if (!returnReason) {
+        showAlert('Please select a return reason', 'warning');
+        return;
+    }
+    
+    if (!refundMethod) {
+        showAlert('Please select a refund method', 'warning');
+        return;
+    }
+    
+    if (!currentSaleId) {
+        showAlert('Please load a sale first', 'warning');
+        return;
+    }
+    
+    // Validate currentSaleData exists for full return
+    if (returnType === 'full' && !currentSaleData) {
+        showAlert('Sale data not loaded. Please reload the sale.', 'danger');
+        return;
+    }
+    
+    let items = [];
+    let isFullReturn = false;
+    let refundAmount = 0;
+    
+    if (returnType === 'full') {
+        // Full return - include all items
+        isFullReturn = true;
+        if (currentSaleData && currentSaleData.items) {
+            currentSaleData.items.forEach(item => {
+                const qty = item.remaining_qty || item.quantity || 0;
+                const price = item.price || 0;
+                const discount = item.discount || 0;
+                items.push({
+                    sale_item_id: item.id,
+                    quantity: qty,
+                    reason: returnReason
+                });
+                // Calculate refund with discount: (price - discount) * quantity
+                refundAmount += (price - discount) * qty;
+            });
+        }
+    } else {
+        // Partial return
+        if (selectedItems.length === 0) {
+            showAlert('Please select at least one item to return', 'warning');
+            return;
+        }
+        
+        selectedItems.forEach(item => {
+            if (item.quantity > 0) {
+                // Get the sale item to get discount
+                const saleItem = currentSaleData.items.find(i => i.id === parseInt(item.sale_item_id));
+                const price = saleItem ? saleItem.price : 0;
+                const discount = saleItem ? (saleItem.discount || 0) : 0;
+                
+                items.push({
+                    sale_item_id: item.sale_item_id,
+                    quantity: item.quantity,
+                    reason: item.reason || returnReason
+                });
+                
+                // Calculate refund with discount: (price - discount) * quantity
+                refundAmount += (price - discount) * item.quantity;
+            }
+        });
+        
+        if (items.length === 0) {
+            showAlert('Please select at least one item to return', 'warning');
+            return;
+        }
+    }
+    
+    const returnData = {
+        sale_id: parseInt(currentSaleId),
+        return_reason: returnReason,
+        refund_method: refundMethod,
+        refund_amount: refundAmount,
+        is_full_return: isFullReturn,
+        items: items,
+        notes: notes
+    };
+    const endpoint = returnType === 'exchange' ? `/sales/api/sales/${currentSaleId}/exchange` : '/sales/api/returns';
+
+    if (returnType === 'exchange') {
+        showExchangeModal()
+            .then(newItems => {
+                if (!newItems || newItems.length === 0) {
+                    showAlert('No exchange items provided', 'warning');
+                    return;
+                }
+                returnData.new_items = newItems;
+                submitReturn(endpoint, returnData);
+            })
+            .catch(() => {
+                // Modal dismissed or cancelled
+            });
+        return;
+    }
+
+    // Normal return submission
+    submitReturn(endpoint, returnData);
+}
+
+function resetForm() {
+    currentSaleId = null;
+    currentSaleData = null;
+    selectedItems = [];
+    
+    document.getElementById('saleIdInput').value = '';
+    document.getElementById('saleInfo').style.display = 'none';
+    document.getElementById('returnTypeSection').style.display = 'none';
+    document.getElementById('itemsSection').style.display = 'none';
+    document.getElementById('returnDetailsSection').style.display = 'none';
+    document.getElementById('returnReason').value = '';
+    document.getElementById('refundMethod').value = '';
+    document.getElementById('returnNotes').value = '';
+    document.getElementById('refundAmount').textContent = '0.00';
+    document.getElementById('totalRefundAmount').textContent = '0.00';
+    document.getElementById('fullReturn').checked = true;
+}
+
+function loadReturns() {
+    const search = document.getElementById('searchInput').value;
+    const startDate = document.getElementById('startDate').value;
+    const endDate = document.getElementById('endDate').value;
+
+    let url = `/sales/api/returns?page=${currentPage}&per_page=20`;
+    if (search) url += `&search=${encodeURIComponent(search)}`;
+    if (startDate) url += `&start_date=${startDate}`;
+    if (endDate) url += `&end_date=${endDate}`;
+
+    fetch(url)
+        .then(response => {
+            if (!response.ok) {
+                throw new Error(`HTTP error! status: ${response.status}`);
+            }
+            const contentType = response.headers.get('content-type');
+            if (!contentType || !contentType.includes('application/json')) {
+                throw new Error('Response is not JSON');
+            }
+            return response.json();
+        })
+        .then(data => {
+            renderReturns(data.returns);
+            renderPagination(data);
+            document.getElementById('returnsCount').textContent = `${data.total} returns`;
+        })
+        .catch(error => {
+            console.error('Error loading returns:', error);
+            showAlert('Error loading returns: ' + error.message, 'danger');
+        });
+}
+
+function renderReturns(returns) {
+    const tbody = document.getElementById('returnsTableBody');
+    tbody.innerHTML = '';
+
+    if (returns.length === 0) {
+        tbody.innerHTML = '<tr><td colspan="10" class="text-center">No returns found</td></tr>';
+        return;
+    }
+
+    returns.forEach(return_record => {
+        const row = document.createElement('tr');
+        row.innerHTML = `
+            <td>#${return_record.id}</td>
+            <td>${window.formatTimestamp(return_record.date, true)}</td>
+            <td>${return_record.customer}</td>
+            <td><a href="#" onclick="viewSaleDetails(${return_record.original_sale_id}); return false;">#${return_record.original_sale_id}</a></td>
+            <td>${return_record.items_count}</td>
+<td><strong>${currencySymbol} ${return_record.refund_amount.toFixed(2)}</strong></td>
+            <td>${return_record.refund_method}</td>
+            <td>${return_record.return_reason}</td>
+            <td>${return_record.user}</td>
+            <td>
+                <button class="btn btn-sm btn-outline-info" onclick="viewReturnDetails(${return_record.id})" title="View Details">
+                    <i class="fas fa-eye"></i>
+                </button>
+            </td>
+        `;
+        tbody.appendChild(row);
+    });
+}
+
+function renderPagination(data) {
+    const $pagination = $('#pagination');
+    $pagination.empty();
+
+    if (data.pages <= 1) return;
+
+    // Previous button
+    if (data.current_page > 1) {
+        $pagination.append(`<li class="page-item"><a class="page-link" href="#" onclick="changePage(${data.current_page - 1})">Previous</a></li>`);
+    }
+
+    // Page numbers
+    for (let i = Math.max(1, data.current_page - 2); i <= Math.min(data.pages, data.current_page + 2); i++) {
+        const activeClass = i === data.current_page ? 'active' : '';
+        $pagination.append(`<li class="page-item ${activeClass}"><a class="page-link" href="#" onclick="changePage(${i})">${i}</a></li>`);
+    }
+
+    // Next button
+    if (data.current_page < data.pages) {
+        $pagination.append(`<li class="page-item"><a class="page-link" href="#" onclick="changePage(${data.current_page + 1})">Next</a></li>`);
+    }
+}
+
+function changePage(page) {
+    currentPage = page;
+    loadReturns();
+}
+
+function viewReturnDetails(returnId) {
+    fetch(`/sales/api/returns/${returnId}`)
+        .then(response => {
+            if (!response.ok) {
+                throw new Error(`HTTP error! status: ${response.status}`);
+            }
+            const contentType = response.headers.get('content-type');
+            if (!contentType || !contentType.includes('application/json')) {
+                throw new Error('Response is not JSON');
+            }
+            return response.json();
+        })
+        .then(data => {
+            if (data.error) {
+                throw new Error(data.error);
+            }
+            
+            document.getElementById('returnId').textContent = data.id;
+            document.getElementById('returnDate').textContent = data.date;
+            document.getElementById('returnCustomer').textContent = data.customer;
+            document.getElementById('returnOriginalSale').textContent = `#${data.original_sale_id}`;
+            document.getElementById('returnRefundMethod').textContent = data.refund_method;
+            document.getElementById('returnReasonText').textContent = data.return_reason;
+            document.getElementById('returnUser').textContent = data.user;
+            document.getElementById('returnTotal').textContent = data.refund_amount.toFixed(2);
+            document.getElementById('returnNotesText').textContent = data.notes || 'N/A';
+
+            // Render items
+            const tbody = document.getElementById('returnItemsBodyModal');
+            tbody.innerHTML = '';
+            data.items.forEach(item => {
+                const row = document.createElement('tr');
+                row.innerHTML = `
+                    <td>${item.product_name}</td>
+                    <td>${item.quantity}</td>
+                    <td>Rs ${item.price.toFixed(2)}</td>
+                    <td>Rs ${item.total.toFixed(2)}</td>
+                    <td>${item.reason || 'N/A'}</td>
+                `;
+                tbody.appendChild(row);
+            });
+
+            // Show modal
+            new bootstrap.Modal(document.getElementById('returnDetailsModal')).show();
+        })
+        .catch(error => {
+            console.error('Error loading return details:', error);
+            showAlert('Error loading return details: ' + error.message, 'danger');
+        });
+}
+
+function showAlert(message, type) {
+    const alertDiv = document.createElement('div');
+    alertDiv.className = `alert alert-${type} alert-dismissible fade show position-fixed`;
+    alertDiv.style.cssText = 'top: 20px; right: 20px; z-index: 9999; min-width: 300px;';
+    alertDiv.innerHTML = `${message}<button type="button" class="btn-close" data-bs-dismiss="alert"></button>`;
+    document.body.appendChild(alertDiv);
+    setTimeout(() => { if (alertDiv.parentNode) alertDiv.remove(); }, 5000);
+}
+
+function viewSaleDetails(saleId) {
+    // Load sale details - redirect to sales history with the sale
+    window.location.href = `/sales/sales/history?sale_id=${saleId}`;
+}
+</script>
+<script>
+// Submit helper used by both normal returns and exchanges
+function submitReturn(endpoint, returnData) {
+    console.log('Submitting return to:', endpoint, 'with data:', returnData);
+    
+    const csrfToken = document.querySelector('input[name="csrf_token"]')?.value || '';
+    fetch(endpoint, {
+        method: 'POST',
+        headers: {
+            'Content-Type': 'application/json',
+            'X-CSRFToken': csrfToken
+        },
+        body: JSON.stringify(returnData)
+    })
+    .then(response => {
+        console.log('Response status:', response.status);
+        // Check content type first
+        const contentType = response.headers.get('content-type');
+        if (!response.ok) {
+            if (contentType && contentType.includes('application/json')) {
+                return response.json().then(err => {
+                    throw new Error(err.error || err.message || 'HTTP error ' + response.status);
+                });
+            } else {
+                // HTML response - likely login redirect or error page
+                throw new Error('Session expired. Please refresh the page and login again.');
+            }
+        }
+        if (contentType && contentType.includes('application/json')) {
+            return response.json();
+        } else {
+            throw new Error('Invalid response from server. Please refresh the page.');
+        }
+    })
+    .then(data => {
+        console.log('Response data:', data);
+        if (data.success) {
+            showAlert(data.message || 'Return processed successfully!', 'success');
+            resetForm();
+            loadReturns();
+        } else {
+            showAlert(data.error || data.message || 'Error processing return', 'danger');
+        }
+    })
+    .catch(error => {
+        console.error('Error processing return:', error);
+        showAlert('Error processing return: ' + error.message, 'danger');
+    });
+}
+
+// Exchange modal helpers
+(function() {
+    const modalEl = document.getElementById('exchangeModal');
+    if (!modalEl) return;
+    const modal = new bootstrap.Modal(modalEl);
+    const body = document.getElementById('exchangeItemsBody');
+
+    function addExchangeRow() {
+        const tr = document.createElement('tr');
+        tr.innerHTML = `
+            <td><input type="number" class="form-control form-control-sm exchange-product-id" min="1" /></td>
+            <td><input type="text" class="form-control form-control-sm exchange-product-name" placeholder="Optional" /></td>
+            <td><input type="number" class="form-control form-control-sm exchange-qty" min="1" value="1" /></td>
+            <td><input type="number" class="form-control form-control-sm exchange-price" min="0" step="0.01" value="0.00" /></td>
+            <td><button class="btn btn-sm btn-outline-danger exchange-remove">Remove</button></td>
+        `;
+        body.appendChild(tr);
+    }
+
+    function collectExchangeItems() {
+        const rows = Array.from(body.querySelectorAll('tr'));
+        const items = [];
+        rows.forEach(r => {
+            const pidEl = r.querySelector('.exchange-product-id');
+            const nameEl = r.querySelector('.exchange-product-name');
+            const qtyEl = r.querySelector('.exchange-qty');
+            const priceEl = r.querySelector('.exchange-price');
+
+            const product_id = parseInt(pidEl.value);
+            const quantity = parseInt(qtyEl.value);
+            const price = parseFloat(priceEl.value);
+
+            if (!product_id || quantity <= 0 || isNaN(price)) return;
+
+            const item = { product_id, quantity, price };
+            if (nameEl && nameEl.value) item.product_name = nameEl.value;
+            items.push(item);
+        });
+        return items;
+    }
+
+    // Add row button
+    const addBtn = document.getElementById('addExchangeRowBtn');
+    if (addBtn) addBtn.addEventListener('click', (e) => { e.preventDefault(); addExchangeRow(); });
+
+    // Remove row (event delegation)
+    body.addEventListener('click', (e) => {
+        if (e.target && e.target.classList.contains('exchange-remove')) {
+            const tr = e.target.closest('tr');
+            if (tr) tr.remove();
+        }
+    });
+
+    // Save button resolves the modal promise with collected items
+    document.getElementById('exchangeSaveBtn').addEventListener('click', (e) => {
+        const items = collectExchangeItems();
+        if (!items || items.length === 0) {
+            showAlert('Please add at least one valid exchange item', 'warning');
+            return;
+        }
+        if (window._exchangeResolve) {
+            window._exchangeResolve(items);
+            delete window._exchangeResolve;
+        }
+        modal.hide();
+    });
+
+    // When modal is hidden without saving, reject the promise if present
+    modalEl.addEventListener('hidden.bs.modal', () => {
+        if (window._exchangeResolve) {
+            // treat as cancel
+            window._exchangeReject && window._exchangeReject();
+            delete window._exchangeResolve;
+            delete window._exchangeReject;
+        }
+    });
+
+    // Expose showExchangeModal
+    window.showExchangeModal = function() {
+        return new Promise((resolve, reject) => {
+            body.innerHTML = '';
+            addExchangeRow();
+            window._exchangeResolve = resolve;
+            window._exchangeReject = reject;
+            modal.show();
+        });
+    };
+})();
+</script>
+{% endblock %}

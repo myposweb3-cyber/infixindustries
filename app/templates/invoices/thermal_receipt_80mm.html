@@ -1,0 +1,560 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Thermal POS Receipt - 80mm</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        @page {
+            size: 80mm auto;
+            margin: 0;
+            padding: 0;
+        }
+
+        html, body {
+            width: 80mm;
+            background: white;
+            font-family: 'Courier New', monospace;
+            color: #000000;
+            padding: 0;
+            margin: 0;
+        }
+
+        .receipt-container {
+            width: 80mm;
+            background: white;
+            padding: 0;
+            margin: 0;
+            font-size: 11pt;
+            line-height: 1.2;
+        }
+
+        /* Header */
+        .receipt-header {
+            text-align: center;
+            padding: 3mm 2mm;
+            border-bottom: 1pt solid #000000;
+            margin-bottom: 2mm;
+        }
+
+        .company-logo {
+            font-size: 16pt;
+            font-weight: bold;
+            margin-bottom: 1mm;
+            letter-spacing: 1px;
+        }
+
+        .company-name {
+            font-size: 11pt;
+            font-weight: bold;
+            margin-bottom: 1mm;
+        }
+
+        .company-details {
+            font-size: 9pt;
+            line-height: 1.3;
+            margin-bottom: 1mm;
+        }
+
+        .divider {
+            border-top: 1pt solid #000000;
+            margin: 2mm 0;
+        }
+
+        .divider-dashed {
+            border-top: 1pt dashed #000000;
+            margin: 1mm 0;
+        }
+
+        /* Receipt Number & Time */
+        .receipt-info {
+            font-size: 9pt;
+            padding: 1mm 2mm;
+            margin-bottom: 1mm;
+            text-align: center;
+        }
+
+        .info-row {
+            display: flex;
+            justify-content: space-between;
+            margin-bottom: 0.5mm;
+            font-size: 9pt;
+        }
+
+        .info-label {
+            font-weight: bold;
+        }
+
+        .info-value {
+            text-align: right;
+        }
+
+        /* Customer Section */
+        .customer-section {
+            font-size: 9pt;
+            padding: 1mm 2mm;
+            margin-bottom: 1mm;
+        }
+
+        .customer-row {
+            display: flex;
+            justify-content: space-between;
+            margin-bottom: 0.5mm;
+        }
+
+        .customer-label {
+            font-weight: bold;
+            min-width: 35mm;
+        }
+
+        .customer-value {
+            text-align: right;
+            flex: 1;
+            word-break: break-word;
+        }
+
+        /* Items Table */
+        .items-section {
+            padding: 1mm 2mm;
+            font-size: 9pt;
+        }
+
+        .items-header {
+            display: flex;
+            justify-content: space-between;
+            font-weight: bold;
+            margin-bottom: 1mm;
+            padding-bottom: 0.5mm;
+            border-bottom: 1pt solid #000000;
+            font-size: 8pt;
+            letter-spacing: 0.5px;
+        }
+
+        .items-header-col1 {
+            width: 8mm;
+            text-align: center;
+        }
+
+        .items-header-col2 {
+            flex: 1;
+            text-align: left;
+        }
+
+        .items-header-col3 {
+            width: 15mm;
+            text-align: right;
+        }
+
+        .items-header-col4 {
+            width: 12mm;
+            text-align: right;
+        }
+
+        .item-row {
+            display: flex;
+            justify-content: space-between;
+            margin-bottom: 0.5mm;
+            font-size: 9pt;
+            padding-bottom: 0.5mm;
+            border-bottom: 0.5pt dotted #cccccc;
+        }
+
+        .item-col1 {
+            width: 8mm;
+            text-align: center;
+            font-weight: bold;
+        }
+
+        .item-col2 {
+            flex: 1;
+            text-align: left;
+            word-break: break-word;
+            padding: 0 1mm;
+        }
+
+        .item-col3 {
+            width: 15mm;
+            text-align: right;
+        }
+
+        .item-col4 {
+            width: 12mm;
+            text-align: right;
+            font-weight: bold;
+        }
+
+        .item-code {
+            font-size: 8pt;
+            color: #333333;
+        }
+
+        /* Totals Section */
+        .totals-section {
+            padding: 1mm 2mm;
+            border-top: 1pt solid #000000;
+            margin-top: 1mm;
+            font-size: 9pt;
+        }
+
+        .total-row {
+            display: flex;
+            justify-content: space-between;
+            margin-bottom: 0.5mm;
+            padding: 0.5mm 0;
+        }
+
+        .total-label {
+            font-weight: bold;
+        }
+
+        .total-value {
+            text-align: right;
+            min-width: 20mm;
+        }
+
+        .total-row-bottom {
+            border-bottom: 0.5pt solid #000000;
+            padding-bottom: 1mm;
+            margin-bottom: 1mm;
+        }
+
+        .grand-total {
+            display: flex;
+            justify-content: space-between;
+            font-size: 11pt;
+            font-weight: bold;
+            padding: 1mm 0;
+            margin: 1mm 0;
+            border-top: 1pt solid #000000;
+            border-bottom: 1pt solid #000000;
+        }
+
+        .grand-total-label {
+            text-align: left;
+        }
+
+        .grand-total-value {
+            text-align: right;
+            min-width: 20mm;
+        }
+
+        .settlement-row {
+            display: flex;
+            justify-content: space-between;
+            font-size: 9pt;
+            margin: 0.5mm 0;
+        }
+
+        .settlement-label {
+            font-weight: bold;
+        }
+
+        .settlement-value {
+            text-align: right;
+            min-width: 20mm;
+        }
+
+        /* Payment Method */
+        .payment-section {
+            padding: 1mm 2mm;
+            font-size: 9pt;
+            text-align: center;
+            margin: 1mm 0;
+        }
+
+        .payment-method {
+            font-weight: bold;
+            margin-bottom: 0.5mm;
+        }
+
+        .payment-ref {
+            font-size: 8pt;
+            margin-bottom: 0.5mm;
+        }
+
+        /* QR Code / Barcode */
+        .barcode-section {
+            text-align: center;
+            padding: 2mm 0;
+            margin: 1mm 0;
+            border-top: 1pt solid #000000;
+            border-bottom: 1pt solid #000000;
+        }
+
+        .barcode {
+            font-size: 14pt;
+            font-weight: bold;
+            font-family: 'Code128', monospace;
+            letter-spacing: 2px;
+            margin: 1mm 0;
+        }
+
+        .barcode-label {
+            font-size: 8pt;
+            margin-top: 0.5mm;
+        }
+
+        .qr-code {
+            width: 30mm;
+            height: 30mm;
+            display: inline-block;
+            margin: 1mm 0;
+            background: #f5f5f5;
+            border: 1pt solid #000000;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 8pt;
+            color: #999999;
+        }
+
+        /* Footer */
+        .receipt-footer {
+            text-align: center;
+            padding: 1mm 2mm;
+            border-top: 1pt solid #000000;
+            margin-top: 1mm;
+            font-size: 9pt;
+        }
+
+        .thank-you {
+            font-weight: bold;
+            margin-bottom: 1mm;
+            font-size: 10pt;
+        }
+
+        .footer-text {
+            font-size: 8pt;
+            line-height: 1.3;
+            margin-bottom: 0.5mm;
+        }
+
+        .footer-contact {
+            font-size: 8pt;
+            margin: 0.5mm 0;
+        }
+
+        .terms {
+            font-size: 7pt;
+            line-height: 1.2;
+            margin: 1mm 0;
+        }
+
+        /* Print Optimization */
+        @media print {
+            * {
+                margin: 0;
+                padding: 0;
+            }
+
+            body {
+                margin: 0;
+                padding: 0;
+                background: white;
+            }
+
+            .receipt-container {
+                width: 80mm;
+                margin: 0;
+                padding: 0;
+                box-shadow: none;
+            }
+
+            @page {
+                size: 80mm auto;
+                margin: 0;
+                padding: 0;
+            }
+        }
+
+        /* Monochrome & High Contrast */
+        .receipt-container {
+            background: #ffffff;
+            color: #000000;
+        }
+
+        /* Text styling for thermal compatibility */
+        .bold {
+            font-weight: bold;
+        }
+
+        .center {
+            text-align: center;
+        }
+
+        .right {
+            text-align: right;
+        }
+
+        /* Spacing utilities */
+        .mt-1 { margin-top: 1mm; }
+        .mt-2 { margin-top: 2mm; }
+        .mb-1 { margin-bottom: 1mm; }
+        .mb-2 { margin-bottom: 2mm; }
+        .pt-1 { padding-top: 1mm; }
+        .pb-1 { padding-bottom: 1mm; }
+    </style>
+</head>
+<body>
+    <div class="receipt-container">
+        <!-- Header -->
+        <div class="receipt-header">
+            <div class="company-logo">{{ company_name }}</div>
+            <div class="company-name">{{ company_name }}</div>
+            <div class="company-details">
+                {{ company_address }}<br>
+                Tel: {{ company_phone }}
+            </div>
+        </div>
+
+        <!-- Receipt Info -->
+        <div class="receipt-info">
+            <div class="info-row">
+                <span class="info-label">Receipt #:</span>
+                <span class="info-value">{{ invoice_number }}</span>
+            </div>
+            <div class="info-row">
+                <span class="info-label">Date:</span>
+                <span class="info-value">{{ invoice_date }}</span>
+            </div>
+            {% if sale_time %}
+            <div class="info-row">
+                <span class="info-label">Time:</span>
+                <span class="info-value">{{ sale_time }}</span>
+            </div>
+            {% endif %}
+            <div class="info-row">
+                <span class="info-label">Cashier:</span>
+                <span class="info-value">John Smith</span>
+            </div>
+        </div>
+
+        <div class="divider"></div>
+
+        <!-- Customer Section -->
+        <div class="customer-section">
+            <div class="customer-row">
+                <span class="customer-label">Customer:</span>
+                <span class="customer-value">Walk-In Customer</span>
+            </div>
+            <div class="customer-row">
+                <span class="customer-label">Invoice #:</span>
+                <span class="customer-value">INV-2026-4567</span>
+            </div>
+        </div>
+
+        <div class="divider-dashed"></div>
+
+        <!-- Items Section -->
+        <div class="items-section">
+            <div class="items-header">
+                <div class="items-header-col1">Qty</div>
+                <div class="items-header-col2">Description</div>
+                <div class="items-header-col3">Price</div>
+                <div class="items-header-col4">Total</div>
+            </div>
+
+            {% for item in items %}
+            <div class="item-row">
+                <div class="item-col1">{{ item.qty }}</div>
+                <div class="item-col2">
+                    <div>{{ item.description }}</div>
+                    <div class="item-code">{{ item.code }}</div>
+                </div>
+                <div class="item-col3">{{ currency_symbol }}{{ "%.2f"|format(item.unit_price) }}</div>
+                <div class="item-col4">{{ currency_symbol }}{{ "%.2f"|format(item.total) }}</div>
+            </div>
+            {% endfor %}
+        </div>
+
+        <div class="divider-dashed"></div>
+
+        <!-- Totals Section -->
+        <div class="totals-section">
+            <div class="total-row">
+                <span class="total-label">Subtotal:</span>
+                <span class="total-value">{{ currency_symbol }}{{ "%.2f"|format(subtotal) }}</span>
+            </div>
+            {% if discount_total > 0 %}
+            <div class="total-row">
+                <span class="total-label">Discount:</span>
+                <span class="total-value">-{{ currency_symbol }}{{ "%.2f"|format(discount_total) }}</span>
+            </div>
+            {% endif %}
+            {% if tax_amount > 0 %}
+            <div class="total-row">
+                <span class="total-label">Tax ({{ tax_rate }}%):</span>
+                <span class="total-value">{{ currency_symbol }}{{ "%.2f"|format(tax_amount) }}</span>
+            </div>
+            {% endif %}
+
+            <div class="grand-total">
+                <span class="grand-total-label">TOTAL</span>
+                <span class="grand-total-value">{{ currency_symbol }}{{ "%.2f"|format(total) }}</span>
+            </div>
+        </div>
+
+        <div class="divider-dashed"></div>
+
+        <!-- Payment Section -->
+        <div class="payment-section">
+            <div class="payment-method">PAYMENT METHOD: {{ payment_method }}</div>
+        </div>
+
+        <div class="settlement-row">
+            <span class="settlement-label">Amount Paid:</span>
+            <span class="settlement-value">{{ currency_symbol }}{{ "%.2f"|format(paid_amount) }}</span>
+        </div>
+        {% if balance_due > 0 %}
+        <div class="settlement-row">
+            <span class="settlement-label">Balance:</span>
+            <span class="settlement-value">{{ currency_symbol }}{{ "%.2f"|format(balance_due) }}</span>
+        </div>
+        {% endif %}
+        <div class="settlement-row">
+            <span class="settlement-label">Change:</span>
+            <span class="settlement-value">{{ currency_symbol }}{{ "%.2f"|format(change) }}</span>
+        </div>
+
+        <div class="divider-dashed"></div>
+
+        <!-- Barcode / QR Code -->
+        <div class="barcode-section">
+            <div class="barcode">{{ invoice_number }}</div>
+            <div class="barcode-label">Receipt #</div>
+        </div>
+            </div>
+        </div>
+
+        <div class="divider"></div>
+
+        <!-- Footer -->
+        <div class="receipt-footer">
+            <div class="thank-you">{{ thank_you }}</div>
+            <div class="footer-text">{{ thank_you_message }}</div>
+            <div class="footer-contact">{{ company_email }}</div>
+            <div class="footer-contact">Phone: {{ company_phone }}</div>
+
+            {% if warranty_info %}
+            <div class="terms mt-2">
+                <strong>Warranty Info:</strong><br>
+                {{ warranty_info }}
+            </div>
+            {% endif %}
+
+            <div class="footer-text mt-2">
+                {{ footer_text }}
+            </div>
+        </div>
+
+        <!-- Bottom spacing -->
+        <div style="height: 10mm;"></div>
+    </div>
+</body>
+</html>

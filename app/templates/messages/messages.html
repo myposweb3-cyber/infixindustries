@@ -1,0 +1,1148 @@
+{% extends "base.html" %}
+
+{% block title %}Messages & Notifications - {{ super() }}{% endblock %}
+
+{% block head %}
+<style>
+    .message-tabs .nav-link {
+        border: none;
+        color: #6c757d;
+        padding: 10px 20px;
+    }
+    .message-tabs .nav-link.active {
+        color: #4e73df;
+        background: transparent;
+        border-bottom: 2px solid #4e73df;
+        font-weight: 600;
+    }
+    .message-tabs .nav-link:hover {
+        border-color: transparent;
+    }
+    .customer-select-item {
+        padding: 8px 12px;
+        border-bottom: 1px solid #f0f0f0;
+        cursor: pointer;
+    }
+    .customer-select-item:hover {
+        background-color: #f8f9fa;
+    }
+    .template-card {
+        cursor: pointer;
+        transition: all 0.2s;
+    }
+    .template-card:hover {
+        transform: translateY(-2px);
+        box-shadow: 0 4px 6px rgba(0,0,0,0.1);
+    }
+    .template-card.selected {
+        border-color: #4e73df;
+        background-color: #f0f4ff;
+    }
+    .message-preview {
+        background: #f8f9fa;
+        border-radius: 8px;
+        padding: 15px;
+        white-space: pre-wrap;
+        font-size: 0.9rem;
+    }
+    .channel-badge {
+        font-size: 0.75rem;
+        padding: 4px 8px;
+    }
+    .bulk-progress {
+        height: 4px;
+        border-radius: 2px;
+    }
+    .search-highlight {
+        background-color: #fff3cd;
+        padding: 0 2px;
+    }
+</style>
+{% endblock %}
+
+{% block content %}
+<div class="container-fluid py-4">
+    <div class="d-flex justify-content-between align-items-center mb-4">
+        <h1 class="h3 mb-0 text-gray-800">
+            <i class="fas fa-envelope me-2 text-primary"></i>Messages & Notifications
+        </h1>
+    </div>
+
+    <!-- Settings Alert -->
+    <div class="alert alert-info d-flex align-items-center mb-4" id="configAlert" style="display: none;">
+        <i class="fas fa-cog me-2"></i>
+        <span>Configure WhatsApp and Email settings in Settings to enable messaging features.</span>
+        <a href="{{ url_for('settings.settings') }}" class="btn btn-sm btn-info ms-auto">Go to Settings</a>
+    </div>
+
+    <!-- Tabs -->
+    <ul class="nav nav-tabs message-tabs mb-4" id="messageTabs" role="tablist">
+        <li class="nav-item">
+            <button class="nav-link active" id="send-tab" data-bs-toggle="tab" data-bs-target="#send-panel" type="button">
+                <i class="fas fa-paper-plane me-1"></i> Send Message
+            </button>
+        </li>
+        <li class="nav-item">
+            <button class="nav-link" id="bulk-tab" data-bs-toggle="tab" data-bs-target="#bulk-panel" type="button">
+                <i class="fas fa-users me-1"></i> Bulk Messaging
+            </button>
+        </li>
+        <li class="nav-item">
+            <button class="nav-link" id="receipts-tab" data-bs-toggle="tab" data-bs-target="#receipts-panel" type="button">
+                <i class="fas fa-receipt me-1"></i> Send Receipts
+            </button>
+        </li>
+        <li class="nav-item">
+            <button class="nav-link" id="reminders-tab" data-bs-toggle="tab" data-bs-target="#reminders-panel" type="button">
+                <i class="fas fa-bell me-1"></i> Payment Reminders
+            </button>
+        </li>
+        <li class="nav-item">
+            <button class="nav-link" id="self-tab" data-bs-toggle="tab" data-bs-target="#self-panel" type="button">
+                <i class="fas fa-bookmark me-1"></i> Reminder to Self
+            </button>
+        </li>
+        <li class="nav-item">
+            <button class="nav-link" id="settings-tab" data-bs-toggle="tab" data-bs-target="#settings-panel" type="button">
+                <i class="fas fa-cog me-1"></i> Auto Settings
+            </button>
+        </li>
+    </ul>
+
+    <div class="tab-content" id="messageTabsContent">
+        
+        <!-- Send Single Message -->
+        <div class="tab-pane fade show active" id="send-panel" role="tabpanel">
+            <div class="row">
+                <div class="col-lg-8">
+                    <div class="card shadow-sm mb-4">
+                        <div class="card-header py-3">
+                            <h6 class="m-0 font-weight-bold text-primary">Send Message to Customer</h6>
+                        </div>
+                        <div class="card-body">
+                            <!-- Customer Selection -->
+                            <div class="mb-3">
+                                <label class="form-label">Select Customer</label>
+                                <div class="input-group">
+                                    <span class="input-group-text"><i class="fas fa-user"></i></span>
+                                    <input type="text" class="form-control" id="customerSearch" placeholder="Search customer by name or phone..." autocomplete="off">
+                                </div>
+                                <div id="customerResults" class="list-group mt-2" style="display: none; max-height: 200px; overflow-y: auto;"></div>
+                                <input type="hidden" id="selectedCustomerId">
+                                <div id="selectedCustomerInfo" class="mt-2" style="display: none;">
+                                    <span class="badge bg-primary" id="selectedCustomerName"></span>
+                                    <span class="badge bg-secondary" id="selectedCustomerPhone"></span>
+                                    <span class="badge bg-info" id="selectedCustomerBalance"></span>
+                                </div>
+                            </div>
+
+                            <!-- Message Template -->
+                            <div class="mb-3">
+                                <label class="form-label">Message Template (Optional)</label>
+                                <div class="row g-2" id="templateGrid">
+                                    <!-- Templates loaded via JS -->
+                                </div>
+                            </div>
+
+                            <!-- Message -->
+                            <div class="mb-3">
+                                <label class="form-label">Message</label>
+                                <textarea class="form-control" id="messageText" rows="5" placeholder="Type your message here..."></textarea>
+                                <div class="d-flex justify-content-between mt-2">
+                                    <small class="text-muted" id="charCount">0 characters</small>
+                                    <small class="text-muted">Using WhatsApp format (bold with *)</small>
+                                </div>
+                            </div>
+
+                            <!-- Preview -->
+                            <div class="mb-3">
+                                <label class="form-label">Preview</label>
+                                <div class="message-preview" id="messagePreview">Your message will appear here...</div>
+                            </div>
+
+                            <!-- Channel -->
+                            <div class="mb-3">
+                                <label class="form-label">Channel</label>
+                                <div class="btn-group" role="group">
+                                    <input type="radio" class="btn-check" name="channel" id="channelWhatsapp" value="whatsapp" checked>
+                                    <label class="btn btn-outline-success" for="channelWhatsapp">
+                                        <i class="fab fa-whatsapp me-1"></i> WhatsApp
+                                    </label>
+                                    <input type="radio" class="btn-check" name="channel" id="channelEmail" value="email">
+                                    <label class="btn btn-outline-primary" for="channelEmail">
+                                        <i class="fas fa-envelope me-1"></i> Email
+                                    </label>
+                                    <input type="radio" class="btn-check" name="channel" id="channelBoth" value="both">
+                                    <label class="btn btn-outline-secondary" for="channelBoth">
+                                        <i class="fas fa-broadcast-tower me-1"></i> Both
+                                    </label>
+                                </div>
+                            </div>
+
+                            <!-- Actions -->
+                            <div class="d-flex gap-2">
+                                <button class="btn btn-primary" id="sendMessageBtn">
+                                    <i class="fas fa-paper-plane me-2"></i>Send Message
+                                </button>
+                                <button class="btn btn-outline-secondary" id="generateWaLinkBtn">
+                                    <i class="fab fa-whatsapp me-2"></i>Generate WhatsApp Link
+                                </button>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="col-lg-4">
+                    <div class="card shadow-sm">
+                        <div class="card-header py-3">
+                            <h6 class="m-0 font-weight-bold text-primary">Quick Info</h6>
+                        </div>
+                        <div class="card-body">
+                            <div class="mb-3">
+                                <label class="form-label">Customers with Balance</label>
+                                <h4 id="customersWithBalance">Loading...</h4>
+                            </div>
+                            <div class="mb-3">
+                                <label class="form-label">Total Customers</label>
+                                <h4 id="totalCustomers">Loading...</h4>
+                            </div>
+                            <hr>
+                            <div class="alert alert-info small">
+                                <i class="fas fa-info-circle me-1"></i>
+                                Use *text* for bold in WhatsApp messages.
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Bulk Messaging -->
+        <div class="tab-pane fade" id="bulk-panel" role="tabpanel">
+            <div class="card shadow-sm mb-4">
+                <div class="card-header py-3 d-flex justify-content-between align-items-center">
+                    <h6 class="m-0 font-weight-bold text-primary">Bulk Messaging</h6>
+                    <button class="btn btn-sm btn-outline-primary" id="selectAllCustomers">
+                        <i class="fas fa-check-square me-1"></i>Select All
+                    </button>
+                </div>
+                <div class="card-body">
+                    <!-- Filter -->
+                    <div class="row mb-3">
+                        <div class="col-md-6">
+                            <input type="text" class="form-control" id="bulkCustomerSearch" placeholder="Search customers...">
+                        </div>
+                        <div class="col-md-3">
+                            <div class="form-check form-switch mt-2">
+                                <input class="form-check-input" type="checkbox" id="onlyWithBalance">
+                                <label class="form-check-label" for="onlyWithBalance">Only customers with balance</label>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Customer List -->
+                    <div class="table-responsive mb-3" style="max-height: 300px; overflow-y: auto;">
+                        <table class="table table-bordered table-hover" id="bulkCustomerTable">
+                            <thead class="table-light sticky-top">
+                                <tr>
+                                    <th width="40">
+                                        <input type="checkbox" class="form-check-input" id="selectAllCheckbox">
+                                    </th>
+                                    <th>Name</th>
+                                    <th>Phone</th>
+                                    <th>Email</th>
+                                    <th>Balance</th>
+                                </tr>
+                            </thead>
+                            <tbody id="bulkCustomerBody">
+                                <!-- Loaded via JS -->
+                            </tbody>
+                        </table>
+                    </div>
+
+                    <!-- Message -->
+                    <div class="mb-3">
+                        <label class="form-label">Message to <span id="selectedCount">0</span> customers</label>
+                        <textarea class="form-control" id="bulkMessageText" rows="4" placeholder="Type your broadcast message here..."></textarea>
+                    </div>
+
+                    <!-- Channel -->
+                    <div class="mb-3">
+                        <label class="form-label">Channel</label>
+                        <div class="btn-group" role="group">
+                            <input type="radio" class="btn-check" name="bulkChannel" id="bulkChannelWa" value="whatsapp" checked>
+                            <label class="btn btn-outline-success btn-sm" for="bulkChannelWa">WhatsApp</label>
+                            <input type="radio" class="btn-check" name="bulkChannel" id="bulkChannelEmail" value="email">
+                            <label class="btn btn-outline-primary btn-sm" for="bulkChannelEmail">Email</label>
+                        </div>
+                    </div>
+
+                    <!-- Send Button -->
+                    <button class="btn btn-primary btn-lg" id="sendBulkBtn">
+                        <i class="fas fa-paper-plane me-2"></i>Send to <span id="bulkSendCount">0</span> Customers
+                    </button>
+
+                    <!-- Progress -->
+                    <div class="mt-3" id="bulkProgress" style="display: none;">
+                        <div class="progress">
+                            <div class="progress-bar progress-bar-striped progress-bar-animated" style="width: 100%"></div>
+                        </div>
+                        <small class="text-muted">Sending messages...</small>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Send Receipts -->
+        <div class="tab-pane fade" id="receipts-panel" role="tabpanel">
+            <div class="card shadow-sm mb-4">
+                <div class="card-header py-3">
+                    <h6 class="m-0 font-weight-bold text-primary">Send Receipts</h6>
+                </div>
+                <div class="card-body">
+                    <!-- Recent Sales -->
+                    <div class="mb-3">
+                        <label class="form-label">Select Sale</label>
+                        <select class="form-select" id="receiptSaleSelect">
+                            <option value="">Select a sale...</option>
+                        </select>
+                    </div>
+
+                    <!-- Sale Info -->
+                    <div class="alert alert-info" id="receiptSaleInfo" style="display: none;">
+                        <div class="row">
+                            <div class="col-md-3">
+                                <strong>Customer:</strong> <span id="receiptCustomerName">-</span>
+                            </div>
+                            <div class="col-md-3">
+                                <strong>Date:</strong> <span id="receiptSaleDate">-</span>
+                            </div>
+                            <div class="col-md-3">
+                                <strong>Total:</strong> <span id="receiptSaleTotal">-</span>
+                            </div>
+                            <div class="col-md-3">
+                                <strong>Items:</strong> <span id="receiptItemsCount">-</span>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Phone Override -->
+                    <div class="row mb-3">
+                        <div class="col-md-4">
+                            <label class="form-label">Phone (override)</label>
+                            <input type="text" class="form-control" id="receiptPhone" placeholder="Leave empty to use customer phone">
+                        </div>
+                        <div class="col-md-4">
+                            <label class="form-label">Email (override)</label>
+                            <input type="email" class="form-control" id="receiptEmail" placeholder="Leave empty to use customer email">
+                        </div>
+                        <div class="col-md-4">
+                            <label class="form-label">Channel</label>
+                            <select class="form-select" id="receiptChannel">
+                                <option value="whatsapp">WhatsApp</option>
+                                <option value="email">Email</option>
+                                <option value="both">Both</option>
+                            </select>
+                        </div>
+                    </div>
+
+                    <!-- Send Button -->
+                    <button class="btn btn-success" id="sendReceiptBtn">
+                        <i class="fas fa-receipt me-2"></i>Send Receipt
+                    </button>
+                </div>
+            </div>
+        </div>
+
+        <!-- Payment Reminders -->
+        <div class="tab-pane fade" id="reminders-panel" role="tabpanel">
+            <div class="card shadow-sm mb-4">
+                <div class="card-header py-3 d-flex justify-content-between align-items-center">
+                    <h6 class="m-0 font-weight-bold text-primary">Payment Reminders</h6>
+                    <button class="btn btn-warning btn-sm" id="sendAllRemindersBtn">
+                        <i class="fas fa-bell me-1"></i>Send to All with Balance
+                    </button>
+                </div>
+                <div class="card-body">
+                    <!-- Filter -->
+                    <div class="row mb-3">
+                        <div class="col-md-6">
+                            <input type="text" class="form-control" id="reminderSearch" placeholder="Search customers with balance...">
+                        </div>
+                    </div>
+
+                    <!-- Customers with Balance -->
+                    <div class="table-responsive">
+                        <table class="table table-bordered table-hover" id="reminderTable">
+                            <thead class="table-light">
+                                <tr>
+                                    <th>Customer</th>
+                                    <th>Phone</th>
+                                    <th>Email</th>
+                                    <th>Balance</th>
+                                    <th>Actions</th>
+                                </tr>
+                            </thead>
+                            <tbody id="reminderBody">
+                                <!-- Loaded via JS -->
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Reminder to Self -->
+        <div class="tab-pane fade" id="self-panel" role="tabpanel">
+            <div class="row">
+                <div class="col-lg-6">
+                    <div class="card shadow-sm mb-4">
+                        <div class="card-header py-3">
+                            <h6 class="m-0 font-weight-bold text-primary">Send Reminder to Self</h6>
+                        </div>
+                        <div class="card-body">
+                            <p class="text-muted">Send a reminder message to your own phone/email for things like:</p>
+                            <ul class="text-muted mb-3">
+                                <li>Stock replenishment needs</li>
+                                <li>Important tasks to remember</li>
+                                <li>Daily summary reminders</li>
+                                <li>Follow-up actions</li>
+                            </ul>
+
+                            <div class="mb-3">
+                                <label class="form-label">Reminder Message</label>
+                                <textarea class="form-control" id="selfMessageText" rows="4" placeholder="Type your reminder here..."></textarea>
+                            </div>
+
+                            <div class="mb-3">
+                                <label class="form-label">Channel</label>
+                                <div class="btn-group" role="group">
+                                    <input type="radio" class="btn-check" name="selfChannel" id="selfChannelWa" value="whatsapp" checked>
+                                    <label class="btn btn-outline-success btn-sm" for="selfChannelWa">WhatsApp</label>
+                                    <input type="radio" class="btn-check" name="selfChannel" id="selfChannelEmail" value="email">
+                                    <label class="btn btn-outline-primary btn-sm" for="selfChannelEmail">Email</label>
+                                </div>
+                            </div>
+
+                            <button class="btn btn-info" id="sendSelfBtn">
+                                <i class="fas fa-bookmark me-2"></i>Send to My Number
+                            </button>
+                        </div>
+                    </div>
+                </div>
+                <div class="col-lg-6">
+                    <div class="card shadow-sm">
+                        <div class="card-header py-3">
+                            <h6 class="m-0 font-weight-bold text-primary">Admin Contact Info</h6>
+                        </div>
+                        <div class="card-body">
+                            <div class="mb-3">
+                                <label class="form-label">Your WhatsApp Number</label>
+                                <input type="text" class="form-control" id="adminPhone" placeholder="+1234567890">
+                                <small class="text-muted">Where self-reminders will be sent</small>
+                            </div>
+                            <div class="mb-3">
+                                <label class="form-label">Your Email</label>
+                                <input type="email" class="form-control" id="adminEmail" placeholder="admin@example.com">
+                            </div>
+                            <button class="btn btn-primary btn-sm" id="saveAdminContactBtn">
+                                <i class="fas fa-save me-1"></i>Save Contact Info
+                            </button>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Auto Settings -->
+        <div class="tab-pane fade" id="settings-panel" role="tabpanel">
+            <div class="card shadow-sm mb-4">
+                <div class="card-header py-3">
+                    <h6 class="m-0 font-weight-bold text-primary">Automatic Notifications</h6>
+                </div>
+                <div class="card-body">
+                    <p class="text-muted">Configure automatic messages to be sent after certain events.</p>
+                    
+                    <div class="row">
+                        <div class="col-md-6 mb-3">
+                            <div class="form-check form-switch">
+                                <input class="form-check-input" type="checkbox" id="autoSendReceipt">
+                                <label class="form-check-label" for="autoSendReceipt">
+                                    <strong>Auto-send Receipt</strong>
+                                    <br><small class="text-muted">Send receipt to customer automatically after each sale</small>
+                                </label>
+                            </div>
+                        </div>
+                        <div class="col-md-6 mb-3">
+                            <div class="form-check form-switch">
+                                <input class="form-check-input" type="checkbox" id="autoOrderAlert">
+                                <label class="form-check-label" for="autoOrderAlert">
+                                    <strong>Order Alert</strong>
+                                    <br><small class="text-muted">Send notification to admin when new order is placed</small>
+                                </label>
+                            </div>
+                        </div>
+                        <div class="col-md-6 mb-3">
+                            <div class="form-check form-switch">
+                                <input class="form-check-input" type="checkbox" id="autoPaymentReminder">
+                                <label class="form-check-label" for="autoPaymentReminder">
+                                    <strong>Payment Reminder</strong>
+                                    <br><small class="text-muted">Automatically remind customers with outstanding balances</small>
+                                </label>
+                            </div>
+                        </div>
+                        <div class="col-md-6 mb-3">
+                            <div class="form-check form-switch">
+                                <input class="form-check-input" type="checkbox" id="autoDeliveryAlert">
+                                <label class="form-check-label" for="autoDeliveryAlert">
+                                    <strong>Delivery Alerts</strong>
+                                    <br><small class="text-muted">Send delivery status updates to customers</small>
+                                </label>
+                            </div>
+                        </div>
+                    </div>
+
+                    <hr>
+
+                    <button class="btn btn-primary" id="saveAutoSettingsBtn">
+                        <i class="fas fa-save me-2"></i>Save Auto Settings
+                    </button>
+                </div>
+            </div>
+        </div>
+
+    </div>
+</div>
+
+<!-- Toast Notification -->
+<div class="position-fixed bottom-0 end-0 p-3" style="z-index: 1100">
+    <div id="messageToast" class="toast" role="alert" aria-live="assertive" aria-atomic="true">
+        <div class="toast-header">
+            <i class="fas fa-envelope me-2"></i>
+            <strong class="me-auto">Message</strong>
+            <button type="button" class="btn-close" data-bs-dismiss="toast"></button>
+        </div>
+        <div class="toast-body" id="toastBody">
+            Message sent successfully!
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block scripts %}
+<script>
+document.addEventListener('DOMContentLoaded', function() {
+    const toast = new bootstrap.Toast(document.getElementById('messageToast'));
+    let allCustomers = [];
+    let selectedCustomers = new Set();
+
+    // ==================== Utility Functions ====================
+    
+    function showToast(message, isSuccess = true) {
+        document.getElementById('toastBody').textContent = message;
+        document.getElementById('toastBody').parentElement.classList.remove('bg-danger', 'text-white');
+        if (!isSuccess) {
+            document.getElementById('toastBody').parentElement.classList.add('bg-danger', 'text-white');
+        }
+        toast.show();
+    }
+
+    function formatCurrency(amount) {
+        return parseFloat(amount || 0).toFixed(2);
+    }
+
+    // ==================== Load Initial Data ====================
+    
+    loadMessageSettings();
+    loadCustomers();
+    loadSalesForReceipts();
+    loadTemplates();
+    loadCustomersWithBalance();
+
+    // ==================== Load Settings ====================
+    
+    function loadMessageSettings() {
+        fetch('/api/messages/settings')
+            .then(res => res.json())
+            .then(data => {
+                document.getElementById('adminPhone').value = data.admin_phone || '';
+                document.getElementById('adminEmail').value = data.admin_email || '';
+                document.getElementById('autoSendReceipt').checked = data.auto_send_receipt === 'true';
+                document.getElementById('autoOrderAlert').checked = data.auto_order_alert === 'true';
+                document.getElementById('autoPaymentReminder').checked = data.auto_payment_reminder === 'true';
+                document.getElementById('autoDeliveryAlert').checked = data.auto_delivery_alert === 'true';
+            })
+            .catch(err => console.error('Error loading settings:', err));
+    }
+
+    // ==================== Load Customers ====================
+    
+    function loadCustomers() {
+        fetch('/api/messages/customers')
+            .then(res => res.json())
+            .then(data => {
+                allCustomers = data;
+                document.getElementById('totalCustomers').textContent = data.length;
+                renderBulkCustomerTable(data);
+            })
+            .catch(err => console.error('Error loading customers:', err));
+    }
+
+    function loadCustomersWithBalance() {
+        fetch('/api/messages/customers?with_balance=true')
+            .then(res => res.json())
+            .then(data => {
+                document.getElementById('customersWithBalance').textContent = data.length;
+                renderReminderTable(data);
+            })
+            .catch(err => console.error('Error loading customers with balance:', err));
+    }
+
+    // ==================== Customer Search (Single) ====================
+    
+    const customerSearchInput = document.getElementById('customerSearch');
+    const customerResults = document.getElementById('customerResults');
+
+    customerSearchInput.addEventListener('input', function() {
+        const query = this.value.toLowerCase().trim();
+        
+        if (query.length < 2) {
+            customerResults.style.display = 'none';
+            return;
+        }
+
+        const filtered = allCustomers.filter(c => 
+            c.name.toLowerCase().includes(query) || 
+            (c.phone && c.phone.includes(query))
+        ).slice(0, 10);
+
+        if (filtered.length > 0) {
+            customerResults.innerHTML = filtered.map(c => `
+                <div class="list-group-item list-group-item-action customer-select-item" data-id="${c.id}" data-name="${c.name}" data-phone="${c.phone || ''}" data-balance="${c.current_balance || 0}">
+                    <div class="d-flex justify-content-between">
+                        <strong>${c.name}</strong>
+                        ${c.current_balance > 0 ? `<span class="badge bg-warning">Balance: ${formatCurrency(c.current_balance)}</span>` : ''}
+                    </div>
+                    <small class="text-muted">${c.phone || 'No phone'} | ${c.email || 'No email'}</small>
+                </div>
+            `).join('');
+            customerResults.style.display = 'block';
+        } else {
+            customerResults.style.display = 'none';
+        }
+    });
+
+    customerResults.addEventListener('click', function(e) {
+        const item = e.target.closest('.customer-select-item');
+        if (item) {
+            selectCustomer(
+                item.dataset.id,
+                item.dataset.name,
+                item.dataset.phone,
+                item.dataset.balance
+            );
+            customerResults.style.display = 'none';
+            customerSearchInput.value = '';
+        }
+    });
+
+    function selectCustomer(id, name, phone, balance) {
+        document.getElementById('selectedCustomerId').value = id;
+        document.getElementById('selectedCustomerName').textContent = name;
+        document.getElementById('selectedCustomerPhone').textContent = phone || 'No phone';
+        document.getElementById('selectedCustomerBalance').textContent = `Balance: ${formatCurrency(balance)}`;
+        document.getElementById('selectedCustomerInfo').style.display = 'block';
+    }
+
+    // ==================== Message Templates ====================
+    
+    function loadTemplates() {
+        fetch('/api/messages/templates')
+            .then(res => res.json())
+            .then(templates => {
+                const grid = document.getElementById('templateGrid');
+                grid.innerHTML = templates.slice(0, 7).map((t, i) => `
+                    <div class="col-md-4 col-6">
+                        <div class="card template-card h-100" data-template="${t.id}" data-message="${encodeURIComponent(t.message)}">
+                            <div class="card-body py-2 px-3">
+                                <small class="text-primary fw-bold">${t.name}</small>
+                            </div>
+                        </div>
+                    </div>
+                `).join('');
+
+                grid.querySelectorAll('.template-card').forEach(card => {
+                    card.addEventListener('click', function() {
+                        const message = decodeURIComponent(this.dataset.message);
+                        document.getElementById('messageText').value = message;
+                        updatePreview();
+                    });
+                });
+            })
+            .catch(err => console.error('Error loading templates:', err));
+    }
+
+    // ==================== Message Preview ====================
+    
+    function updatePreview() {
+        const message = document.getElementById('messageText').value;
+        // Convert *text* to **text** for WhatsApp bold
+        const formatted = message.replace(/\*([^*]+)\*/g, '*$1*');
+        document.getElementById('messagePreview').textContent = formatted || 'Your message will appear here...';
+        document.getElementById('charCount').textContent = `${message.length} characters`;
+    }
+
+    document.getElementById('messageText').addEventListener('input', updatePreview);
+    document.getElementById('bulkMessageText').addEventListener('input', function() {
+        document.getElementById('bulkSendCount').textContent = selectedCustomers.size;
+    });
+
+    // ==================== Send Single Message ====================
+    
+    document.getElementById('sendMessageBtn').addEventListener('click', function() {
+        const customerId = document.getElementById('selectedCustomerId').value;
+        const message = document.getElementById('messageText').value;
+        const channel = document.querySelector('input[name="channel"]:checked').value;
+
+        if (!customerId) {
+            showToast('Please select a customer', false);
+            return;
+        }
+        if (!message.trim()) {
+            showToast('Please enter a message', false);
+            return;
+        }
+
+        this.disabled = true;
+        this.innerHTML = '<i class="fas fa-spinner fa-spin me-2"></i>Sending...';
+
+        fetch('/api/messages/customer/' + customerId + '/custom-reminder', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ message: message })
+        })
+        .then(res => res.json())
+        .then(data => {
+            if (data.success) {
+                showToast('Message sent successfully!');
+                document.getElementById('messageText').value = '';
+                document.getElementById('selectedCustomerId').value = '';
+                document.getElementById('selectedCustomerInfo').style.display = 'none';
+                updatePreview();
+            } else {
+                showToast(data.error || 'Failed to send message', false);
+            }
+        })
+        .catch(err => {
+            console.error(err);
+            showToast('Error sending message', false);
+        })
+        .finally(() => {
+            this.disabled = false;
+            this.innerHTML = '<i class="fas fa-paper-plane me-2"></i>Send Message';
+        });
+    });
+
+    // Generate WhatsApp Link
+    document.getElementById('generateWaLinkBtn').addEventListener('click', function() {
+        const phone = document.getElementById('selectedCustomerPhone').textContent.replace('No phone', '').trim();
+        const message = document.getElementById('messageText').value;
+
+        if (!phone) {
+            showToast('No phone number available', false);
+            return;
+        }
+
+        fetch('/api/messages/generate-whatsapp-link', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ phone: phone, message: message })
+        })
+        .then(res => res.json())
+        .then(data => {
+            if (data.wa_link) {
+                window.open(data.wa_link, '_blank');
+            }
+        })
+        .catch(err => console.error(err));
+    });
+
+    // ==================== Bulk Messaging ====================
+    
+    function renderBulkCustomerTable(customers) {
+        const tbody = document.getElementById('bulkCustomerBody');
+        tbody.innerHTML = customers.map(c => `
+            <tr>
+                <td><input type="checkbox" class="form-check-input bulk-customer-checkbox" value="${c.id}" ${selectedCustomers.has(c.id) ? 'checked' : ''}></td>
+                <td>${c.name}</td>
+                <td>${c.phone || '-'}</td>
+                <td>${c.email || '-'}</td>
+                <td>${c.current_balance > 0 ? `<span class="text-danger">${formatCurrency(c.current_balance)}</span>` : '-'}</td>
+            </tr>
+        `).join('');
+
+        // Add event listeners
+        tbody.querySelectorAll('.bulk-customer-checkbox').forEach(cb => {
+            cb.addEventListener('change', function() {
+                if (this.checked) {
+                    selectedCustomers.add(parseInt(this.value));
+                } else {
+                    selectedCustomers.delete(parseInt(this.value));
+                }
+                document.getElementById('selectedCount').textContent = selectedCustomers.size;
+                document.getElementById('bulkSendCount').textContent = selectedCustomers.size;
+            });
+        });
+    }
+
+    document.getElementById('bulkCustomerSearch').addEventListener('input', function() {
+        const query = this.value.toLowerCase();
+        const filtered = allCustomers.filter(c => 
+            c.name.toLowerCase().includes(query) || 
+            (c.phone && c.phone.includes(query))
+        );
+        renderBulkCustomerTable(filtered);
+    });
+
+    document.getElementById('onlyWithBalance').addEventListener('change', function() {
+        if (this.checked) {
+            const withBalance = allCustomers.filter(c => c.current_balance > 0);
+            renderBulkCustomerTable(withBalance);
+        } else {
+            renderBulkCustomerTable(allCustomers);
+        }
+    });
+
+    document.getElementById('selectAllCheckbox').addEventListener('change', function() {
+        const checkboxes = document.querySelectorAll('.bulk-customer-checkbox');
+        checkboxes.forEach(cb => {
+            cb.checked = this.checked;
+            if (this.checked) {
+                selectedCustomers.add(parseInt(cb.value));
+            } else {
+                selectedCustomers.delete(parseInt(cb.value));
+            }
+        });
+        document.getElementById('selectedCount').textContent = selectedCustomers.size;
+        document.getElementById('bulkSendCount').textContent = selectedCustomers.size;
+    });
+
+    document.getElementById('sendBulkBtn').addEventListener('click', function() {
+        const customerIds = Array.from(selectedCustomers);
+        const message = document.getElementById('bulkMessageText').value;
+        const channel = document.querySelector('input[name="bulkChannel"]:checked').value;
+
+        if (customerIds.length === 0) {
+            showToast('Please select at least one customer', false);
+            return;
+        }
+        if (!message.trim()) {
+            showToast('Please enter a message', false);
+            return;
+        }
+
+        this.disabled = true;
+        document.getElementById('bulkProgress').style.display = 'block';
+
+        fetch('/api/messages/bulk', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({
+                customer_ids: customerIds,
+                message: message,
+                channel: channel
+            })
+        })
+        .then(res => res.json())
+        .then(data => {
+            if (data.success) {
+                showToast(data.message);
+                selectedCustomers.clear();
+                document.getElementById('bulkMessageText').value = '';
+                document.getElementById('selectedCount').textContent = '0';
+                document.getElementById('bulkSendCount').textContent = '0';
+                document.getElementById('selectAllCheckbox').checked = false;
+            } else {
+                showToast(data.error || 'Failed to send bulk messages', false);
+            }
+        })
+        .catch(err => {
+            console.error(err);
+            showToast('Error sending bulk messages', false);
+        })
+        .finally(() => {
+            this.disabled = false;
+            document.getElementById('bulkProgress').style.display = 'none';
+        });
+    });
+
+    // ==================== Send Receipts ====================
+    
+    function loadSalesForReceipts() {
+        fetch('/api/messages/sales?limit=50')
+            .then(res => {
+                if (!res.ok) throw new Error(`HTTP error! status: ${res.status}`);
+                const contentType = res.headers.get('content-type');
+                if (!contentType || !contentType.includes('application/json')) {
+                    throw new Error('Response is not JSON');
+                }
+                return res.json();
+            })
+            .then(sales => {
+                const select = document.getElementById('receiptSaleSelect');
+                select.innerHTML = '<option value="">Select a sale...</option>' + 
+                    sales.map(s => `<option value="${s.id}">#${s.id} - ${s.customer} - ${formatCurrency(s.total)} (${window.formatTimestamp(s.date, true)})</option>`).join('');
+            })
+            .catch(err => console.error('Error loading sales:', err));
+    }
+
+    document.getElementById('receiptSaleSelect').addEventListener('change', function() {
+        const saleId = this.value;
+        if (!saleId) {
+            document.getElementById('receiptSaleInfo').style.display = 'none';
+            return;
+        }
+
+        fetch('/api/messages/sales?limit=100')
+            .then(res => {
+                if (!res.ok) throw new Error(`HTTP error! status: ${res.status}`);
+                const contentType = res.headers.get('content-type');
+                if (!contentType || !contentType.includes('application/json')) {
+                    throw new Error('Response is not JSON');
+                }
+                return res.json();
+            })
+            .then(sales => {
+                const sale = sales.find(s => s.id == saleId);
+                if (sale) {
+                    document.getElementById('receiptCustomerName').textContent = sale.customer;
+                    document.getElementById('receiptSaleDate').textContent = window.formatTimestamp(sale.date, true);
+                    document.getElementById('receiptSaleTotal').textContent = formatCurrency(sale.total);
+                    document.getElementById('receiptItemsCount').textContent = sale.items_count;
+                    document.getElementById('receiptSaleInfo').style.display = 'block';
+                }
+            });
+    });
+
+    document.getElementById('sendReceiptBtn').addEventListener('click', function() {
+        const saleId = document.getElementById('receiptSaleSelect').value;
+        const phone = document.getElementById('receiptPhone').value;
+        const email = document.getElementById('receiptEmail').value;
+        const channel = document.getElementById('receiptChannel').value;
+
+        if (!saleId) {
+            showToast('Please select a sale', false);
+            return;
+        }
+
+        this.disabled = true;
+        this.innerHTML = '<i class="fas fa-spinner fa-spin me-2"></i>Sending...';
+
+        fetch('/api/messages/sale/' + saleId + '/send-receipt', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({
+                phone: phone || null,
+                email: email || null,
+                channel: channel
+            })
+        })
+        .then(res => res.json())
+        .then(data => {
+            if (data.success) {
+                showToast('Receipt sent successfully!');
+            } else {
+                showToast(data.error || 'Failed to send receipt', false);
+            }
+        })
+        .catch(err => {
+            console.error(err);
+            showToast('Error sending receipt', false);
+        })
+        .finally(() => {
+            this.disabled = false;
+            this.innerHTML = '<i class="fas fa-receipt me-2"></i>Send Receipt';
+        });
+    });
+
+    // ==================== Payment Reminders ====================
+    
+    function renderReminderTable(customers) {
+        const tbody = document.getElementById('reminderBody');
+        tbody.innerHTML = customers.map(c => `
+            <tr>
+                <td>${c.name}</td>
+                <td>${c.phone || '-'}</td>
+                <td>${c.email || '-'}</td>
+                <td><span class="text-danger fw-bold">${formatCurrency(c.current_balance)}</span></td>
+                <td>
+                    <button class="btn btn-sm btn-warning send-reminder-btn" data-id="${c.id}" data-name="${c.name}">
+                        <i class="fas fa-bell"></i> Send
+                    </button>
+                </td>
+            </tr>
+        `).join('');
+
+        tbody.querySelectorAll('.send-reminder-btn').forEach(btn => {
+            btn.addEventListener('click', function() {
+                sendPaymentReminder(this.dataset.id, this.dataset.name);
+            });
+        });
+    }
+
+    document.getElementById('reminderSearch').addEventListener('input', function() {
+        const query = this.value.toLowerCase();
+        fetch('/api/messages/customers?with_balance=true')
+            .then(res => res.json())
+            .then(data => {
+                const filtered = data.filter(c => 
+                    c.name.toLowerCase().includes(query) || 
+                    (c.phone && c.phone.includes(query))
+                );
+                renderReminderTable(filtered);
+            });
+    });
+
+    function sendPaymentReminder(customerId, customerName) {
+        if (!confirm(`Send payment reminder to ${customerName}?`)) return;
+
+        fetch('/api/messages/customer/' + customerId + '/payment-reminder', {
+            method: 'POST'
+        })
+        .then(res => res.json())
+        .then(data => {
+            if (data.success) {
+                showToast('Payment reminder sent!');
+            } else {
+                showToast(data.error || 'Failed to send reminder', false);
+            }
+        })
+        .catch(err => {
+            console.error(err);
+            showToast('Error sending reminder', false);
+        });
+    }
+
+    document.getElementById('sendAllRemindersBtn').addEventListener('click', function() {
+        if (!confirm('Send payment reminders to ALL customers with outstanding balances?')) return;
+
+        this.disabled = true;
+        this.innerHTML = '<i class="fas fa-spinner fa-spin me-1"></i>Sending...';
+
+        fetch('/api/messages/payment-reminders/send-all', {
+            method: 'POST'
+        })
+        .then(res => res.json())
+        .then(data => {
+            if (data.success) {
+                showToast(data.message);
+            } else {
+                showToast(data.error || 'Failed to send reminders', false);
+            }
+        })
+        .catch(err => {
+            console.error(err);
+            showToast('Error sending reminders', false);
+        })
+        .finally(() => {
+            this.disabled = false;
+            this.innerHTML = '<i class="fas fa-bell me-1"></i>Send to All with Balance';
+        });
+    });
+
+    // ==================== Self Reminder ====================
+    
+    document.getElementById('sendSelfBtn').addEventListener('click', function() {
+        const message = document.getElementById('selfMessageText').value;
+        const channel = document.querySelector('input[name="selfChannel"]:checked').value;
+
+        if (!message.trim()) {
+            showToast('Please enter a reminder message', false);
+            return;
+        }
+
+        this.disabled = true;
+        this.innerHTML = '<i class="fas fa-spinner fa-spin me-2"></i>Sending...';
+
+        fetch('/api/messages/self', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ message: message, channel: channel })
+        })
+        .then(res => res.json())
+        .then(data => {
+            if (data.success) {
+                showToast('Self reminder sent!');
+                document.getElementById('selfMessageText').value = '';
+            } else {
+                showToast(data.error || 'Failed to send reminder', false);
+            }
+        })
+        .catch(err => {
+            console.error(err);
+            showToast('Error sending reminder', false);
+        })
+        .finally(() => {
+            this.disabled = false;
+            this.innerHTML = '<i class="fas fa-bookmark me-2"></i>Send to My Number';
+        });
+    });
+
+    document.getElementById('saveAdminContactBtn').addEventListener('click', function() {
+        const phone = document.getElementById('adminPhone').value;
+        const email = document.getElementById('adminEmail').value;
+
+        fetch('/api/messages/settings', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({
+                admin_phone: phone,
+                admin_email: email
+            })
+        })
+        .then(res => res.json())
+        .then(data => {
+            if (data.success) {
+                showToast('Admin contact saved!');
+            } else {
+                showToast('Failed to save', false);
+            }
+        })
+        .catch(err => {
+            console.error(err);
+            showToast('Error saving', false);
+        });
+    });
+
+    // ==================== Auto Settings ====================
+    
+    document.getElementById('saveAutoSettingsBtn').addEventListener('click', function() {
+        const settings = {
+            auto_send_receipt: document.getElementById('autoSendReceipt').checked ? 'true' : 'false',
+            auto_order_alert: document.getElementById('autoOrderAlert').checked ? 'true' : 'false',
+            auto_payment_reminder: document.getElementById('autoPaymentReminder').checked ? 'true' : 'false',
+            auto_delivery_alert: document.getElementById('autoDeliveryAlert').checked ? 'true' : 'false'
+        };
+
+        fetch('/api/messages/settings', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify(settings)
+        })
+        .then(res => res.json())
+        .then(data => {
+            if (data.success) {
+                showToast('Auto settings saved!');
+            } else {
+                showToast('Failed to save settings', false);
+            }
+        })
+        .catch(err => {
+            console.error(err);
+            showToast('Error saving settings', false);
+        });
+    });
+
+});
+</script>
+{% endblock %}

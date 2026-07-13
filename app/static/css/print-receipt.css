@@ -1,0 +1,211 @@
+/* Print Receipt Styles - Optimized for Thermal (80mm) & A4 */
+
+/* Base print styles */
+@media print {
+    body * {
+        visibility: hidden;
+    }
+    
+    .receipt-container, 
+    .receipt-container * {
+        visibility: visible;
+    }
+    
+    .receipt-container {
+        position: absolute;
+        left: 0;
+        top: 0;
+        width: 100%;
+        max-width: 80mm; /* 576px ≈ 76.2mm at 96dpi, use 80mm for thermal */
+        font-family: 'Courier New', Courier, monospace !important;
+        font-size: 12pt;
+        line-height: 1.2;
+        color: black !important;
+        background: white !important;
+        text-align: left;
+        margin: 0 !important;
+        padding: 10mm !important;
+        box-shadow: none !important;
+        border: none !important;
+    }
+    
+    /* Hide all non-receipt elements */
+    nav, header, footer, .sidebar, button, input, .modal {
+        display: none !important;
+    }
+    
+    /* Remove backgrounds, shadows, colors */
+    * {
+        background: white !important;
+        color: black !important;
+        box-shadow: none !important;
+        border-color: black !important;
+        text-shadow: none !important;
+    }
+    
+    /* Monospace font everywhere */
+    * {
+        font-family: 'Courier New', Courier, monospace !important;
+        font-weight: normal !important;
+        font-size: 12pt !important;
+    }
+    
+    /* Precise alignment for receipt columns */
+    .receipt-row {
+        display: table-row;
+        width: 100%;
+    }
+    
+    .receipt-col {
+        display: table-cell;
+        vertical-align: top;
+        padding: 1px 0;
+        white-space: nowrap;
+        overflow: hidden;
+        text-overflow: ellipsis;
+    }
+    
+    .receipt-col.name {
+        width: 45%;
+        padding-right: 8px;
+    }
+    
+    .receipt-col.qty {
+        width: 12%;
+        text-align: right;
+        padding-right: 4px;
+    }
+    
+    .receipt-col.price {
+        width: 18%;
+        text-align: right;
+        padding-right: 4px;
+    }
+    
+    .receipt-col.total {
+        width: 25%;
+        text-align: right;
+        font-weight: bold;
+        padding-right: 0;
+    }
+    
+    /* Amount alignment */
+    .amount-right {
+        text-align: right !important;
+    }
+    
+    /* Headers bold */
+    .receipt-header {
+        font-weight: bold !important;
+        font-size: 14pt !important;
+        text-align: center;
+        padding-bottom: 4px;
+    }
+    
+    .receipt-subheader {
+        font-weight: bold !important;
+        font-size: 11pt !important;
+        text-align: center;
+        margin: 2px 0;
+    }
+    
+    /* Lines and separators */
+    .receipt-line {
+        border-bottom: 1px dashed black;
+        margin: 4px 0;
+        height: 1px;
+    }
+    
+    .receipt-line-solid {
+        border-bottom: 2px solid black;
+        margin: 6px 0;
+    }
+    
+    /* Logo handling */
+    .receipt-logo {
+        max-height: 20mm !important;
+        max-width: 100% !important;
+        height: auto !important;
+        width: auto !important;
+        margin: 0 auto 8px;
+        display: block;
+        -webkit-print-color-adjust: exact;
+        color-adjust: exact;
+    }
+    
+    /* Hide page breaks on first page */
+    .receipt-container .page-break {
+        page-break-before: always;
+    }
+    
+    /* No page margins */
+    @page {
+        margin: 5mm !important;
+        size: auto;
+    }
+    
+    /* Force black text */
+    h1, h2, h3, h4, h5, h6, p, span, div {
+        color: black !important;
+    }
+}
+
+/* A4 fallback - use full width */
+@media print and (min-width: 600px) {
+    .receipt-container {
+        max-width: 210mm !important;
+        padding: 15mm !important;
+    }
+}
+
+/* Specific thermal printer optimization (58mm) */
+@media print and (max-width: 220px) {
+    .receipt-container {
+        max-width: 58mm !important;
+        font-size: 10pt !important;
+        padding: 4mm !important;
+    }
+    
+    .receipt-col.name {
+        width: 50%;
+    }
+    
+    .receipt-col.qty {
+        width: 10%;
+    }
+    
+    .receipt-col.price {
+        width: 20%;
+    }
+    
+    .receipt-col.total {
+        width: 20%;
+    }
+}
+
+/* Landscape orientation for A4 */
+@media print and (orientation: landscape) {
+    .receipt-container {
+        max-width: 297mm !important;
+        padding: 10mm !important;
+    }
+}
+
+/* High DPI printers */
+@media print and (-webkit-min-device-pixel-ratio: 2), print and (min-resolution: 192dpi) {
+    .receipt-container {
+        font-size: 11pt !important;
+    }
+}
+
+/* Ensure no scaling issues */
+.receipt-container img {
+    image-rendering: -webkit-optimize-contrast;
+    image-rendering: crisp-edges;
+}
+
+/* Remove hyperlinks */
+a[href]:after {
+    content: none !important;
+}
+

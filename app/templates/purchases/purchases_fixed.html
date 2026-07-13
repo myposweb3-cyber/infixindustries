@@ -1,0 +1,411 @@
+{% extends "base.html" %}
+
+{% block title %}Purchases - {{ super() }}{% endblock %}
+
+{% block content %}
+<div class="container-fluid">
+    <div class="d-flex justify-content-between align-items-center mb-4">
+        <h1 class="h3 mb-0 text-gray-800">Manage Purchases</h1>
+        <button type="button" class="btn btn-primary" data-bs-toggle="modal" data-bs-target="#newPurchaseModal">
+            <i class="fas fa-plus me-2"></i>New Purchase
+        </button>
+    </div>
+
+    <!-- Filter Form -->
+    <div class="card shadow mb-4">
+        <div class="card-header py-3">
+            <h6 class="m-0 font-weight-bold text-primary">Filter Purchases</h6>
+        </div>
+        <div class="card-body">
+            <form method="get" action="{{ url_for('purchases.purchases') }}">
+                <div class="row">
+                    <div class="col-md-3 mb-3">
+                        <label for="start_date" class="form-label">Start Date</label>
+                        <input type="date" class="form-control" id="start_date" name="start_date" value="{{ start_date or '' }}">
+                    </div>
+                    <div class="col-md-3 mb-3">
+                        <label for="end_date" class="form-label">End Date</label>
+                        <input type="date" class="form-control" id="end_date" name="end_date" value="{{ end_date or '' }}">
+                    </div>
+                    <div class="col-md-3 mb-3">
+                        <label for="supplier" class="form-label">Supplier</label>
+                        <select class="form-select" id="supplier" name="supplier">
+                            <option value="">All Suppliers</option>
+                            {% for s in suppliers %}
+                            <option value="{{ s.id }}" {% if s.id|string == supplier_filter %}selected{% endif %}>{{ s.name }}</option>
+                            {% endfor %}
+                        </select>
+                    </div>
+                    <div class="col-md-3 mb-3">
+                        <label for="status" class="form-label">Status</label>
+                        <select class="form-select" id="status" name="status">
+                            <option value="">All Statuses</option>
+                            <option value="pending" {% if status_filter == 'pending' %}selected{% endif %}>Pending</option>
+                            <option value="paid" {% if status_filter == 'paid' %}selected{% endif %}>Paid</option>
+                            <option value="partial" {% if status_filter == 'partial' %}selected{% endif %}>Partial</option>
+                        </select>
+                    </div>
+                </div>
+                <div class="row">
+                    <div class="col-md-12">
+                        <button type="submit" class="btn btn-primary">Filter</button>
+                        <a href="{{ url_for('purchases.purchases') }}" class="btn btn-secondary">Reset</a>
+                    </div>
+                </div>
+            </form>
+        </div>
+    </div>
+
+    <!-- Purchase List -->
+    <div class="card shadow mb-4">
+        <div class="card-header py-3 d-flex justify-content-between align-items-center">
+            <h6 class="m-0 font-weight-bold text-primary">Purchase List</h6>
+            <div class="d-flex gap-3">
+                <span class="fw-bold">Total: <span class="text-primary">{{ "%.2f"|format(total_amount) }}</span></span>
+                <span class="fw-bold">Paid: <span class="text-success">{{ "%.2f"|format(total_paid) }}</span></span>
+                <span class="fw-bold">Balance: <span class="text-danger">{{ "%.2f"|format(total_balance) }}</span></span>
+            </div>
+        </div>
+        <div class="card-body">
+            <div class="table-responsive">
+                <table class="table table-bordered table-hover" id="purchasesTable" width="100%" cellspacing="0">
+                    <thead>
+                        <tr>
+                            <th>ID</th>
+                            <th>Date</th>
+                            <th>Invoice #</th>
+                            <th>Supplier</th>
+                            <th>Status</th>
+                            <th class="text-end">Total Amount</th>
+                            <th class="text-end">Amount Paid</th>
+                            <th class="text-end">Balance</th>
+                            <th>Actions</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        {% for purchase in purchases %}
+                        <tr>
+                            <td>{{ purchase.id }}</td>
+                            <td>{{ purchase.date.strftime('%Y-%m-%d') }}</td>
+                            <td>{{ purchase.invoice_number or 'N/A' }}</td>
+                            <td>{{ purchase.supplier.name }}</td>
+                            <td>
+                                {% if purchase.status == 'paid' %}
+                                <span class="badge bg-success text-capitalize">{{ purchase.status }}</span>
+                                {% elif purchase.status == 'partial' %}
+                                <span class="badge bg-warning text-capitalize">{{ purchase.status }}</span>
+                                {% else %}
+                                <span class="badge bg-danger text-capitalize">{{ purchase.status }}</span>
+                                {% endif %}
+                            </td>
+                            <td class="text-end">{{ "%.2f"|format(purchase.total_amount or 0) }}</td>
+                            <td class="text-end">{{ "%.2f"|format(purchase.amount_paid or 0) }}</td>
+                            <td class="text-end">{{ "%.2f"|format((purchase.total_amount or 0) - (purchase.amount_paid or 0)) }}</td>
+                            <td>
+                                <button class="btn btn-sm btn-info" title="View Details" onclick="viewPurchase({{ purchase.id }})"><i class="fas fa-eye"></i></button>
+                            </td>
+                        </tr>
+                        {% else %}
+                        <tr>
+                            <td colspan="9" class="text-center">No purchases found for the selected filters.</td>
+                        </tr>
+                        {% endfor %}
+                    </tbody>
+                </table>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- New Purchase Modal -->
+<div class="modal fade" id="newPurchaseModal" tabindex="-1" aria-labelledby="newPurchaseModalLabel" aria-hidden="true">
+    <div class="modal-dialog modal-xl">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title" id="newPurchaseModalLabel">Create New Purchase</h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+            </div>
+            <div class="modal-body">
+                <form method="post" id="purchaseForm" action="{{ url_for('purchases.new_purchase') }}">
+                    <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+                    <input type="hidden" name="items_json" id="items_json">
+
+                    <div class="card shadow mb-4">
+                        <div class="card-header py-3">
+                            <h6 class="m-0 font-weight-bold text-primary">Purchase Details</h6>
+                        </div>
+                        <div class="card-body">
+                            <div class="row">
+                                <div class="col-md-4 mb-3">
+                                    <label for="date" class="form-label">Date</label>
+                                    <input type="date" class="form-control" id="date" name="date" value="{{ now.strftime('%Y-%m-%d') }}" required>
+                                </div>
+                                <div class="col-md-4 mb-3">
+                                    <label for="supplier_id" class="form-label">Supplier</label>
+                                    <select class="form-select" id="supplier_id" name="supplier_id" required>
+                                        <option value="" disabled selected>Select a supplier</option>
+                                        {% for supplier in suppliers %}
+                                        <option value="{{ supplier.id }}">{{ supplier.name }}</option>
+                                        {% endfor %}
+                                    </select>
+                                </div>
+                                <div class="col-md-4 mb-3">
+                                    <label for="invoice_number" class="form-label">Invoice Number</label>
+                                    <input type="text" class="form-control" id="invoice_number" name="invoice_number">
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+
+                    <div class="card shadow mb-4">
+                        <div class="card-header py-3">
+                            <h6 class="m-0 font-weight-bold text-primary">Items</h6>
+                        </div>
+                        <div class="card-body">
+                            <div class="row mb-3">
+                                <div class="col-md-6">
+                                    <label for="product_search" class="form-label">Add Product</label>
+                                    <select class="form-select" id="product_search">
+                                        <option value="" disabled selected>Search for a product to add</option>
+                                        {% for product in products %}
+                                        <option value="{{ product.id }}" data-name="{{ product.name }}" data-cost="{{ product.cost_price or 0 }}">{{ product.name }}</option>
+                                        {% endfor %}
+                                    </select>
+                                </div>
+                            </div>
+                            <div class="table-responsive">
+                                <table class="table table-bordered" id="itemsTable">
+                                    <thead>
+                                        <tr>
+                                            <th>Product</th>
+                                            <th style="width: 15%;">Quantity</th>
+                                            <th style="width: 15%;">Cost Price</th>
+                                            <th style="width: 15%;">Total</th>
+                                            <th style="width: 5%;">Action</th>
+                                        </tr>
+                                    </thead>
+                                    <tbody></tbody>
+                                </table>
+                            </div>
+                        </div>
+                    </div>
+
+                    <div class="card shadow mb-4">
+                        <div class="card-header py-3">
+                            <h6 class="m-0 font-weight-bold text-primary">Summary</h6>
+                        </div>
+                        <div class="card-body">
+                            <div class="row">
+                                <div class="col-md-4 mb-3">
+                                    <label for="total_amount" class="form-label">Total Amount</label>
+                                    <input type="number" class="form-control" id="total_amount" name="total_amount" readonly required>
+                                </div>
+                                <div class="col-md-4 mb-3">
+                                    <label for="amount_paid" class="form-label">Amount Paid</label>
+                                    <input type="number" step="0.01" class="form-control" id="amount_paid" name="amount_paid" value="0.00" required>
+                                </div>
+                                <div class="col-md-4 mb-3">
+                                    <label for="status" class="form-label">Status</label>
+                                    <select class="form-select" id="status" name="status" required>
+                                        <option value="pending">Pending</option>
+                                        <option value="partial">Partial</option>
+                                        <option value="paid">Paid</option>
+                                    </select>
+                                </div>
+                            </div>
+                            <button type="submit" class="btn btn-primary">Create Purchase</button>
+                            <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancel</button>
+                        </div>
+                    </div>
+                </form>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- View Purchase Modal -->
+<div class="modal fade" id="viewPurchaseModal" tabindex="-1" aria-labelledby="viewPurchaseModalLabel" aria-hidden="true">
+    <div class="modal-dialog modal-lg">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title" id="viewPurchaseModalLabel">Purchase Details</h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+            </div>
+            <div class="modal-body">
+                <div class="row mb-3">
+                    <div class="col-md-6">
+                        <p><strong>Purchase ID:</strong> <span id="viewPurchaseId"></span></p>
+                        <p><strong>Date:</strong> <span id="viewPurchaseDate"></span></p>
+                    </div>
+                    <div class="col-md-6">
+                        <p><strong>Invoice #:</strong> <span id="viewInvoiceNumber"></span></p>
+                        <p><strong>Supplier:</strong> <span id="viewSupplierName"></span></p>
+                    </div>
+                </div>
+                <div class="row mb-3">
+                    <div class="col-md-4">
+                        <p><strong>Total Amount:</strong> <span id="viewTotalAmount"></span></p>
+                    </div>
+                    <div class="col-md-4">
+                        <p><strong>Amount Paid:</strong> <span id="viewAmountPaid"></span></p>
+                    </div>
+                    <div class="col-md-4">
+                        <p><strong>Status:</strong> <span id="viewStatus"></span></p>
+                    </div>
+                </div>
+                <h6>Items Purchased</h6>
+                <div class="table-responsive">
+                    <table class="table table-sm table-bordered">
+                        <thead>
+                            <tr>
+                                <th>Product</th>
+                                <th>Quantity</th>
+                                <th>Unit Cost</th>
+                                <th>Total</th>
+                            </tr>
+                        </thead>
+                        <tbody id="viewItemsBody"></tbody>
+                    </table>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block scripts %}
+<script>
+function viewPurchase(purchaseId) {
+    fetch('/api/purchases/' + purchaseId)
+        .then(response => response.json())
+        .then(data => {
+            document.getElementById('viewPurchaseId').textContent = data.id;
+            document.getElementById('viewPurchaseDate').textContent = data.date || 'N/A';
+            document.getElementById('viewInvoiceNumber').textContent = data.invoice_number || 'N/A';
+            document.getElementById('viewSupplierName').textContent = data.supplier_name || 'N/A';
+            document.getElementById('viewTotalAmount').textContent = parseFloat(data.total_amount || 0).toFixed(2);
+            document.getElementById('viewAmountPaid').textContent = parseFloat(data.amount_paid || 0).toFixed(2);
+            document.getElementById('viewStatus').textContent = data.status || 'N/A';
+            
+            const itemsBody = document.getElementById('viewItemsBody');
+            itemsBody.innerHTML = '';
+            if (data.items && data.items.length > 0) {
+                data.items.forEach(item => {
+                    const row = '<tr><td>' + item.product_name + '</td><td>' + item.quantity + '</td><td>' + parseFloat(item.cost_price).toFixed(2) + '</td><td>' + parseFloat(item.total_cost).toFixed(2) + '</td></tr>';
+                    itemsBody.innerHTML += row;
+                });
+            } else {
+                itemsBody.innerHTML = '<tr><td colspan="4" class="text-center">No items found</td></tr>';
+            }
+            
+            new bootstrap.Modal(document.getElementById('viewPurchaseModal')).show();
+        })
+        .catch(error => {
+            alert('Error loading purchase details: ' + error);
+        });
+}
+
+document.addEventListener('DOMContentLoaded', function() {
+    const modal = document.getElementById('newPurchaseModal');
+    const productSearch = document.getElementById('product_search');
+    const itemsTableBody = document.querySelector('#itemsTable tbody');
+    const totalAmountInput = document.getElementById('total_amount');
+    const itemsJsonInput = document.getElementById('items_json');
+    let items = [];
+
+    if (!productSearch || !itemsTableBody || !totalAmountInput || !itemsJsonInput) {
+        console.error('Required elements not found in the DOM');
+        return;
+    }
+
+    productSearch.addEventListener('change', function() {
+        const selectedOption = this.options[this.selectedIndex];
+        
+        if (!selectedOption || !selectedOption.value) {
+            console.warn('No option selected or empty value');
+            return;
+        }
+
+        const productId = selectedOption.value;
+        const productName = selectedOption.getAttribute('data-name') || selectedOption.textContent;
+        const costPrice = parseFloat(selectedOption.getAttribute('data-cost') || 0);
+
+        console.log('Selected product:', { productId, productName, costPrice });
+
+        if (items.some(item => item.product_id === productId)) {
+            alert('Product already added.');
+            return;
+        }
+
+        const item = { product_id: productId, name: productName, quantity: 1, cost_price: costPrice };
+        items.push(item);
+        console.log('Item added, total items:', items.length);
+        renderTable();
+        this.value = '';
+    });
+
+    function escapeHtml(text) {
+        const map = {
+            '&': '&amp;',
+            '<': '&lt;',
+            '>': '&gt;',
+            '"': '&quot;',
+            "'": '&#039;'
+        };
+        return text.replace(/[&<>"']/g, m => map[m]);
+    }
+
+    function renderTable() {
+        itemsTableBody.innerHTML = '';
+        let totalAmount = 0;
+
+        if (items.length === 0) {
+            itemsTableBody.innerHTML = '<tr><td colspan="5" class="text-center">No items added yet</td></tr>';
+        } else {
+            items.forEach((item, index) => {
+                const total = item.quantity * item.cost_price;
+                totalAmount += total;
+
+                const row = '<tr><td>' + escapeHtml(item.name) + '</td><td><input type="number" class="form-control quantity" value="' + item.quantity + '" data-index="' + index + '" min="1"></td><td><input type="number" step="0.01" class="form-control cost_price" value="' + item.cost_price.toFixed(2) + '" data-index="' + index + '"></td><td class="text-end">' + total.toFixed(2) + '</td><td><button type="button" class="btn btn-sm btn-danger remove-item" data-index="' + index + '">&times;</button></td></tr>';
+                itemsTableBody.insertAdjacentHTML('beforeend', row);
+            });
+        }
+
+        totalAmountInput.value = totalAmount.toFixed(2);
+        itemsJsonInput.value = JSON.stringify(items);
+    }
+
+    itemsTableBody.addEventListener('input', function(e) {
+        if (e.target.classList.contains('quantity') || e.target.classList.contains('cost_price')) {
+            const index = parseInt(e.target.dataset.index);
+            if (index >= 0 && index < items.length) {
+                items[index].quantity = parseFloat(e.target.closest('tr').querySelector('.quantity').value) || 0;
+                items[index].cost_price = parseFloat(e.target.closest('tr').querySelector('.cost_price').value) || 0;
+                renderTable();
+            }
+        }
+    });
+
+    itemsTableBody.addEventListener('click', function(e) {
+        if (e.target.classList.contains('remove-item')) {
+            const index = parseInt(e.target.dataset.index);
+            if (index >= 0 && index < items.length) {
+                items.splice(index, 1);
+                renderTable();
+            }
+        }
+    });
+
+    modal.addEventListener('hidden.bs.modal', function () {
+        document.getElementById('purchaseForm').reset();
+        items = [];
+        renderTable();
+    });
+
+    const urlParams = new URLSearchParams(window.location.search);
+    if (urlParams.get('open_modal') === 'new_purchase') {
+        new bootstrap.Modal(modal).show();
+    }
+});
+</script>
+{% endblock %}

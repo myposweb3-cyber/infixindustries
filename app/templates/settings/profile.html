@@ -1,0 +1,359 @@
+{% extends "base.html" %}
+
+{% block title %}My Profile - {{ super() }}{% endblock %}
+
+{% block head %}
+<!-- Cropper.js CSS -->
+<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/cropperjs/1.5.13/cropper.min.css">
+
+<style>
+    /* Profile Picture Container */
+    .profile-picture-container {
+        padding: 2rem 1rem;
+        border: 2px dashed #e8ecf1;
+        border-radius: 12px;
+        background: #f9fbfd;
+        transition: all 0.3s ease;
+    }
+    
+    .profile-picture-container:hover {
+        border-color: #4F46E5;
+        background: #f0f4f8;
+    }
+    
+    #profileImg {
+        box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);
+        transition: transform 0.3s ease;
+    }
+    
+    #profileImg:hover {
+        transform: scale(1.02);
+    }
+    
+    .profile-info .form-control-plaintext {
+        padding: 0.5rem 0;
+        font-size: 0.95rem;
+        border-bottom: 1px solid #e8ecf1;
+        padding-bottom: 1rem;
+    }
+    
+    /* Image Cropper Modal Styles */
+    .cropper-container {
+        max-height: 500px;
+        margin: 1rem auto;
+    }
+    
+    #imageToCrop {
+        max-width: 100%;
+        max-height: 400px;
+    }
+    
+    .crop-preview {
+        display: flex;
+        gap: 1rem;
+        margin-top: 1rem;
+    }
+    
+    .crop-preview-container {
+        flex: 1;
+    }
+    
+    .crop-preview-label {
+        font-size: 0.85rem;
+        color: #64748B;
+        margin-bottom: 0.5rem;
+        font-weight: 500;
+    }
+    
+    #previewCanvas {
+        max-width: 100%;
+        border: 1px solid #e8ecf1;
+        border-radius: 8px;
+    }
+    
+    .cropper-guide:nth-child(2n + 1) {
+        border-color: rgba(255, 255, 255, 0.5);
+    }
+</style>
+{% endblock %}
+
+{% block content %}
+<div class="container-fluid py-4">
+    <div class="row mb-4">
+        <div class="col-12">
+            <div class="d-flex justify-content-between align-items-center">
+                <h1 class="h3 mb-0">
+                    <i class="fas fa-user-circle me-2"></i>My Profile
+                </h1>
+            </div>
+        </div>
+    </div>
+
+    <div class="row">
+        <div class="col-12">
+            <div class="card shadow-sm">
+                <div class="card-body">
+                    <div class="row">
+                        <!-- Profile Picture -->
+                        <div class="col-md-4 text-center">
+                            <div class="profile-picture-container mb-4">
+                                <div id="profilePictureDisplay" class="mb-3">
+                                    {% if current_user.profile_picture %}
+                                        <img id="profileImg" src="{{ '/' + current_user.profile_picture }}" alt="Profile Picture" class="rounded-circle" style="width: 200px; height: 200px; object-fit: cover; border: 3px solid #4F46E5;">
+                                    {% else %}
+                                        <div id="profileImg" class="rounded-circle d-flex align-items-center justify-content-center text-white fw-bold" style="width: 200px; height: 200px; background: linear-gradient(135deg, #4F46E5 0%, #7C3AED 100%); font-size: 80px; margin: 0 auto;">
+                                            {{ current_user.username[:1].upper() }}
+                                        </div>
+                                    {% endif %}
+                                </div>
+                                <input type="file" id="profilePictureInput" accept="image/*" style="display: none;">
+                                <button type="button" class="btn btn-primary btn-sm" id="uploadBtn" title="Upload Profile Picture">
+                                    <i class="fas fa-camera me-1"></i>Upload Picture
+                                </button>
+                                {% if current_user.profile_picture %}
+                                <button type="button" class="btn btn-outline-danger btn-sm ms-2" id="deleteBtn" title="Delete Profile Picture">
+                                    <i class="fas fa-trash me-1"></i>Delete
+                                </button>
+                                {% endif %}
+                                <small class="d-block mt-2 text-muted">Crop and optimize to 500×500px</small>
+                            </div>
+                        </div>
+
+                        <!-- Profile Information -->
+                        <div class="col-md-8">
+                            <div class="profile-info">
+                                <div class="mb-3">
+                                    <label class="form-label fw-bold">Username</label>
+                                    <div class="form-control-plaintext">{{ current_user.username }}</div>
+                                </div>
+                                <div class="mb-3">
+                                    <label class="form-label fw-bold">Email</label>
+                                    <div class="form-control-plaintext">{{ current_user.email or 'Not set' }}</div>
+                                </div>
+                                <div class="mb-3">
+                                    <label class="form-label fw-bold">Role</label>
+                                    <div class="form-control-plaintext">
+                                        <span class="badge bg-primary">{{ current_user.role }}</span>
+                                    </div>
+                                </div>
+                                <div class="mb-3">
+                                    <label class="form-label fw-bold">Last Login</label>
+                                    <div class="form-control-plaintext">
+                                        {% if current_user.last_login %}
+                                            {{ current_user.last_login.strftime('%Y-%m-%d %H:%M:%S') }}
+                                        {% else %}
+                                            Never
+                                        {% endif %}
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Image Crop Modal -->
+<div class="modal fade" id="cropModal" tabindex="-1" role="dialog" aria-labelledby="cropModalLabel" aria-hidden="true">
+    <div class="modal-dialog modal-lg" role="document">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title" id="cropModalLabel">Crop Profile Picture</h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+            </div>
+            <div class="modal-body">
+                <div class="row">
+                    <div class="col-md-8">
+                        <div class="cropper-container">
+                            <img id="imageToCrop" src="" style="width: 100%;">
+                        </div>
+                        <div class="mt-3">
+                            <label class="form-label">Rotation</label>
+                            <div class="d-flex gap-2">
+                                <button type="button" class="btn btn-sm btn-outline-secondary" onclick="rotateCropper(-90)">
+                                    <i class="fas fa-redo-alt"></i> Rotate Left
+                                </button>
+                                <button type="button" class="btn btn-sm btn-outline-secondary" onclick="rotateCropper(90)">
+                                    <i class="fas fa-undo-alt"></i> Rotate Right
+                                </button>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="col-md-4">
+                        <div class="crop-preview">
+                            <div class="crop-preview-container">
+                                <div class="crop-preview-label">Preview (500×500)</div>
+                                <canvas id="previewCanvas" style="width: 150px; height: 150px;"></canvas>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancel</button>
+                <button type="button" class="btn btn-primary" id="saveCropBtn">Save & Upload</button>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Cropper.js Script -->
+<script src="https://cdnjs.cloudflare.com/ajax/libs/cropperjs/1.5.13/cropper.min.js"></script>
+<script src="{{ url_for('static', filename='js/app.js', v='1.0.0') }}"></script>
+<script>
+    let cropper = null;
+    let currentRotation = 0;
+    const CSRF_TOKEN = document.querySelector('meta[name="csrf-token"]').getAttribute('content');
+
+    // Upload button click
+    document.getElementById('uploadBtn').addEventListener('click', function() {
+        document.getElementById('profilePictureInput').click();
+    });
+
+    // File input change
+    document.getElementById('profilePictureInput').addEventListener('change', function(e) {
+        const file = e.target.files[0];
+        if (file) {
+            const reader = new FileReader();
+            reader.onload = function(event) {
+                const imageToCrop = document.getElementById('imageToCrop');
+                imageToCrop.src = event.target.result;
+                
+                // Destroy existing cropper if any
+                if (cropper) {
+                    cropper.destroy();
+                }
+                
+                // Initialize new cropper
+                cropper = new Cropper(imageToCrop, {
+                    aspectRatio: 1,
+                    viewMode: 1,
+                    autoCropArea: 1,
+                    responsive: true,
+                    guides: true,
+                    center: true,
+                    highlight: true,
+                    cropBoxMovable: true,
+                    cropBoxResizable: true,
+                    toggleDragModeOnDblclick: true
+                });
+                
+                // Show modal
+                new bootstrap.Modal(document.getElementById('cropModal')).show();
+                currentRotation = 0;
+                updatePreview();
+            };
+            reader.readAsDataURL(file);
+        }
+    });
+
+    // Delete button click
+    if (document.getElementById('deleteBtn')) {
+        document.getElementById('deleteBtn').addEventListener('click', function() {
+            if (confirm('Are you sure you want to delete your profile picture?')) {
+                fetch('/api/profile/delete-picture', {
+                    method: 'POST',
+                    headers: {
+                        'X-CSRFToken': CSRF_TOKEN,
+                        'Content-Type': 'application/json'
+                    }
+                })
+                .then(response => response.json())
+                .then(data => {
+                    if (data.success) {
+                        location.reload();
+                    } else {
+                        alert('Error: ' + data.error);
+                    }
+                })
+                .catch(error => {
+                    console.error('Error:', error);
+                    alert('An error occurred while deleting the profile picture');
+                });
+            }
+        });
+    }
+
+    // Save crop button
+    document.getElementById('saveCropBtn').addEventListener('click', function() {
+        if (!cropper) return;
+        
+        const canvas = cropper.getCroppedCanvas({
+            maxWidth: 500,
+            maxHeight: 500,
+            imageSmoothingEnabled: true,
+            imageSmoothingQuality: 'high'
+        });
+        
+        canvas.toBlob(function(blob) {
+            const formData = new FormData();
+            formData.append('profile_picture', blob, 'profile_picture.jpg');
+            formData.append('rotation', currentRotation);
+            
+            fetch('/api/profile/upload-picture', {
+                method: 'POST',
+                headers: {
+                    'X-CSRFToken': CSRF_TOKEN
+                },
+                body: formData
+            })
+            .then(response => response.json())
+            .then(data => {
+                if (data.success) {
+                    location.reload();
+                } else {
+                    alert('Error: ' + data.error);
+                }
+            })
+            .catch(error => {
+                console.error('Error:', error);
+                alert('An error occurred while uploading the profile picture');
+            });
+        }, 'image/jpeg', 0.95);
+    });
+
+    // Rotation functions
+    function rotateCropper(degree) {
+        if (cropper) {
+            currentRotation += degree;
+            cropper.rotate(degree);
+            updatePreview();
+        }
+    }
+
+    function updatePreview() {
+        if (cropper) {
+            try {
+                const canvas = cropper.getCroppedCanvas({
+                    maxWidth: 150,
+                    maxHeight: 150,
+                    imageSmoothingEnabled: true
+                });
+                const previewCanvas = document.getElementById('previewCanvas');
+                
+                // Validate canvas and previewCanvas exist and are valid
+                if (!canvas || !previewCanvas) {
+                    return;
+                }
+                
+                const ctx = previewCanvas.getContext('2d');
+                if (!ctx) {
+                    return;
+                }
+                
+                previewCanvas.width = 150;
+                previewCanvas.height = 150;
+                
+                // Ensure canvas is a valid image element before drawing
+                if (canvas instanceof HTMLCanvasElement) {
+                    ctx.drawImage(canvas, 0, 0, 150, 150);
+                }
+            } catch (error) {
+                console.error('Error updating preview:', error);
+            }
+        }
+    }
+</script>
+{% endblock %}

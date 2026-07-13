@@ -1,0 +1,168 @@
+{% extends "base.html" %}
+
+{% block title %}New Purchase Return - {{ super() }}{% endblock %}
+
+{% block content %}
+<div class="container-fluid">
+    <h1 class="h3 mb-4 text-gray-800">Create New Purchase Return</h1>
+
+    <form method="post" id="purchaseReturnForm">
+        <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+        <input type="hidden" name="items_json" id="items_json">
+        <input type="hidden" name="total_refund_amount" id="total_refund_amount">
+
+        <!-- Main Return Details -->
+        <div class="card shadow mb-4">
+            <div class="card-header py-3">
+                <h6 class="m-0 font-weight-bold text-primary">Return Details</h6>
+            </div>
+            <div class="card-body">
+                <div class="row">
+                    <div class="col-md-4 mb-3">
+                        <label for="date" class="form-label">Return Date</label>
+                        <input type="date" class="form-control" id="date" name="date" value="{{ now.strftime('%Y-%m-%d') }}" required>
+                    </div>
+                    <div class="col-md-4 mb-3">
+                        <label for="original_purchase_id" class="form-label">Original Purchase</label>
+                        <select class="form-select" id="original_purchase_id" name="original_purchase_id" required>
+                            <option value="" disabled selected>Select a purchase to return from</option>
+                            {% for p in purchases %}
+                            <option value="{{ p.id }}">#{{ p.id }} - {{ p.invoice_number or 'N/A' }} ({{ p.supplier.name }})</option>
+                            {% endfor %}
+                        </select>
+                    </div>
+                    <div class="col-md-4 mb-3">
+                        <label for="return_reason" class="form-label">Reason for Return</label>
+                        <input type="text" class="form-control" id="return_reason" name="return_reason">
+                    </div>
+                </div>
+                 <div class="row">
+                    <div class="col-md-12 mb-3">
+                        <label for="notes" class="form-label">Notes</label>
+                        <textarea class="form-control" id="notes" name="notes" rows="2"></textarea>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Return Items -->
+        <div class="card shadow mb-4">
+            <div class="card-header py-3 d-flex justify-content-between align-items-center">
+                <h6 class="m-0 font-weight-bold text-primary">Items to Return</h6>
+                <h6 class="m-0 font-weight-bold text-danger">Total Refund: <span id="totalRefundDisplay">0.00</span></h6>
+            </div>
+            <div class="card-body">
+                <div class="table-responsive">
+                    <table class="table table-bordered" id="itemsTable">
+                        <thead>
+                            <tr>
+                                <th>Product</th>
+                                <th>Purchased Qty</th>
+                                <th>Return Qty</th>
+                                <th>Unit Cost</th>
+                                <th>Total</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            <!-- Items will be loaded here by JS -->
+                            <tr><td colspan="5" class="text-center">Select a purchase to see items.</td></tr>
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+        </div>
+
+        <button type="submit" class="btn btn-primary">Create Purchase Return</button>
+        <a href="{{ url_for('purchases.purchase_returns') }}" class="btn btn-secondary">Cancel</a>
+    </form>
+</div>
+{% endblock %}
+
+{% block scripts %}
+<script>
+document.addEventListener('DOMContentLoaded', function() {
+    const purchaseSelect = document.getElementById('original_purchase_id');
+    const itemsTableBody = document.querySelector('#itemsTable tbody');
+    const itemsJsonInput = document.getElementById('items_json');
+    const totalRefundInput = document.getElementById('total_refund_amount');
+    const totalRefundDisplay = document.getElementById('totalRefundDisplay');
+    let returnItems = [];
+
+    purchaseSelect.addEventListener('change', async function() {
+        const purchaseId = this.value;
+        if (!purchaseId) {
+            itemsTableBody.innerHTML = '<tr><td colspan="5" class="text-center">Select a purchase to see items.</td></tr>';
+            return;
+        }
+
+        const response = await fetch(`/api/purchases/${purchaseId}/items`);
+        if (!response.ok) {
+            alert('Failed to fetch purchase items.');
+            return;
+        }
+
+        const data = await response.json();
+        renderTable(data.items);
+    });
+
+    function renderTable(purchaseItems) {
+        itemsTableBody.innerHTML = '';
+        returnItems = [];
+
+        if (!purchaseItems || purchaseItems.length === 0) {
+            itemsTableBody.innerHTML = '<tr><td colspan="5" class="text-center">No items found for this purchase.</td></tr>';
+            return;
+        }
+
+        purchaseItems.forEach(item => {
+            const row = `
+                <tr data-product-id="${item.product_id}" data-unit-cost="${item.cost_price}">
+                    <td>${item.product_name}</td>
+                    <td>${item.quantity_purchased}</td>
+                    <td><input type="number" class="form-control return-qty" value="0" min="0" max="${item.quantity_purchased}"></td>
+                    <td class="text-end">${item.cost_price.toFixed(2)}</td>
+                    <td class="text-end line-total">0.00</td>
+                </tr>
+            `;
+            itemsTableBody.insertAdjacentHTML('beforeend', row);
+        });
+    }
+
+    itemsTableBody.addEventListener('input', function(e) {
+        if (e.target.classList.contains('return-qty')) {
+            updateSummary();
+        }
+    });
+
+    function updateSummary() {
+        returnItems = [];
+        let totalRefund = 0;
+
+        itemsTableBody.querySelectorAll('tr').forEach(row => {
+            const returnQtyInput = row.querySelector('.return-qty');
+            if (!returnQtyInput) return;
+
+            const returnQty = parseFloat(returnQtyInput.value) || 0;
+            if (returnQty > 0) {
+                const unitCost = parseFloat(row.dataset.unitCost);
+                const lineTotal = returnQty * unitCost;
+                row.querySelector('.line-total').textContent = lineTotal.toFixed(2);
+
+                returnItems.push({
+                    product_id: row.dataset.productId,
+                    quantity: returnQty,
+                    unit_cost: unitCost
+                });
+                totalRefund += lineTotal;
+            } else {
+                row.querySelector('.line-total').textContent = '0.00';
+            }
+        });
+
+        totalRefundDisplay.textContent = totalRefund.toFixed(2);
+        totalRefundInput.value = totalRefund.toFixed(2);
+        itemsJsonInput.value = JSON.stringify(returnItems);
+    }
+});
+</script>
+{% endblock %}

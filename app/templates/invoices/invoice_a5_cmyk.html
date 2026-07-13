@@ -1,0 +1,605 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta name="description" content="Professional A5 Invoice - Print Ready 300 DPI CMYK">
+    <title>Professional Invoice - A5 (CMYK 300 DPI)</title>
+    <style>
+        /* ============================================
+           PROFESSIONAL A5 INVOICE - PRINT READY
+           ============================================
+           
+           SPECIFICATIONS:
+           - Paper: A5 (148mm × 210mm)
+           - DPI: 300 (high-resolution quality)
+           - Color Mode: CMYK optimized (grayscale compatible)
+           - Margins: 10mm all sides
+           - Compact efficient layout
+           - Optimized for printing multiple invoices
+        */
+
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        @page {
+            size: A5;
+            margin: 10mm;
+        }
+
+        html, body {
+            width: 148mm;
+            height: 210mm;
+            background: white;
+            font-family: 'Segoe UI', 'Helvetica Neue', Arial, sans-serif;
+            color: #000000;
+            line-height: 1.3;
+            -webkit-font-smoothing: antialiased;
+            -moz-osx-font-smoothing: grayscale;
+            text-rendering: optimizeLegibility;
+        }
+
+        body {
+            display: flex;
+            justify-content: center;
+            align-items: flex-start;
+            padding: 0;
+            margin: 0;
+        }
+
+        .invoice-container {
+            width: 128mm;
+            min-height: 190mm;
+            background: white;
+            position: relative;
+            display: flex;
+            flex-direction: column;
+            padding: 10mm;
+            box-shadow: 0 0 0 1pt #e0e0e0;
+        }
+
+        .watermark {
+            position: fixed;
+            top: 50%;
+            left: 50%;
+            transform: translate(-50%, -50%) rotate(-45deg);
+            font-size: 80px;
+            font-weight: 100;
+            color: rgba(0, 0, 0, 0.02);
+            white-space: nowrap;
+            pointer-events: none;
+            z-index: 0;
+            letter-spacing: 10px;
+        }
+
+        .content {
+            position: relative;
+            z-index: 1;
+            display: flex;
+            flex-direction: column;
+            flex: 1;
+        }
+
+        /* ===== COMPACT HEADER ===== */
+        .header {
+            display: flex;
+            justify-content: space-between;
+            align-items: flex-start;
+            margin-bottom: 8mm;
+            padding-bottom: 6mm;
+            border-bottom: 2px solid #000000;
+        }
+
+        .company-block {
+            flex: 1;
+        }
+
+        .company-logo {
+            width: 25mm;
+            height: 25mm;
+            background: #2d2d2d;
+            border: 1.5px solid #000000;
+            border-radius: 2px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            color: white;
+            font-size: 14pt;
+            font-weight: 700;
+            margin-bottom: 3mm;
+            text-align: center;
+        }
+
+        .company-name {
+            font-size: 14pt;
+            font-weight: 700;
+            color: #000000;
+            margin-bottom: 2mm;
+            letter-spacing: 0.3pt;
+        }
+
+        .company-details {
+            font-size: 7pt;
+            color: #000000;
+            line-height: 1.5;
+        }
+
+        .company-details p {
+            margin-bottom: 0.8mm;
+        }
+
+        .invoice-meta {
+            text-align: right;
+            flex-shrink: 0;
+            min-width: 60mm;
+        }
+
+        .invoice-title {
+            font-size: 16pt;
+            font-weight: 700;
+            color: #000000;
+            margin-bottom: 3mm;
+            letter-spacing: 1.5pt;
+        }
+
+        .meta-details {
+            font-size: 8pt;
+            color: #000000;
+            line-height: 1.6;
+        }
+
+        .meta-row {
+            display: flex;
+            justify-content: space-between;
+            margin-bottom: 1mm;
+            gap: 6mm;
+        }
+
+        .meta-label {
+            font-weight: 700;
+            font-size: 7pt;
+            text-transform: uppercase;
+        }
+
+        .meta-value {
+            font-family: 'Courier New', monospace;
+            font-weight: 600;
+        }
+
+        /* ===== COMPACT BILLING ===== */
+        .billing-sections {
+            display: flex;
+            gap: 8mm;
+            margin-bottom: 8mm;
+        }
+
+        .billing-block {
+            flex: 1;
+        }
+
+        .section-title {
+            font-size: 7pt;
+            font-weight: 700;
+            text-transform: uppercase;
+            color: #000000;
+            letter-spacing: 0.8pt;
+            margin-bottom: 1.5mm;
+            padding-bottom: 1mm;
+            border-bottom: 1px solid #000000;
+        }
+
+        .section-content {
+            font-size: 8pt;
+            color: #000000;
+            line-height: 1.5;
+        }
+
+        .section-content p {
+            margin-bottom: 1mm;
+        }
+
+        .section-content strong {
+            font-weight: 700;
+        }
+
+        /* ===== COMPACT ITEMS TABLE ===== */
+        .items-table {
+            width: 100%;
+            border-collapse: collapse;
+            margin-bottom: 6mm;
+            font-size: 7.5pt;
+            margin-top: 6mm;
+        }
+
+        .items-table thead {
+            background: #e0e0e0;
+            border-top: 1.5px solid #000000;
+            border-bottom: 1.5px solid #000000;
+        }
+
+        .items-table th {
+            padding: 2.5mm;
+            text-align: left;
+            font-weight: 700;
+            color: #000000;
+            font-size: 6.5pt;
+            text-transform: uppercase;
+            letter-spacing: 0.5pt;
+            border: none;
+        }
+
+        .items-table td {
+            padding: 2.5mm;
+            border: none;
+            border-bottom: 0.5px solid #d3d3d3;
+            color: #000000;
+        }
+
+        .items-table tbody tr:nth-child(odd) {
+            background: #fafafa;
+        }
+
+        .items-table tbody tr:last-child td {
+            border-bottom: 1.5px solid #000000;
+        }
+
+        .col-code {
+            font-weight: 700;
+            font-family: 'Courier New', monospace;
+            font-size: 6pt;
+            width: 12%;
+        }
+
+        .col-description {
+            font-weight: 500;
+            width: 40%;
+        }
+
+        .col-qty {
+            text-align: center;
+            width: 10%;
+        }
+
+        .col-price {
+            text-align: right;
+            font-family: 'Courier New', monospace;
+            width: 13%;
+        }
+
+        .col-discount {
+            text-align: right;
+            font-family: 'Courier New', monospace;
+            width: 12%;
+        }
+
+        .col-total {
+            text-align: right;
+            font-family: 'Courier New', monospace;
+            font-weight: 700;
+            width: 13%;
+        }
+
+        /* ===== COMPACT TOTALS ===== */
+        .totals-wrapper {
+            display: flex;
+            justify-content: flex-end;
+            margin-bottom: 6mm;
+        }
+
+        .totals {
+            width: 60mm;
+            border-collapse: collapse;
+            font-size: 8pt;
+        }
+
+        .totals tr {
+            border: none;
+        }
+
+        .totals td {
+            padding: 2mm 2.5mm;
+            border: none;
+        }
+
+        .totals .label-col {
+            text-align: left;
+            font-weight: 600;
+            width: 35mm;
+            color: #000000;
+        }
+
+        .totals .value-col {
+            text-align: right;
+            font-family: 'Courier New', monospace;
+            color: #000000;
+            font-weight: 600;
+            width: 25mm;
+        }
+
+        .totals .subtotal-row td {
+            padding-top: 2.5mm;
+            border-bottom: 0.5px solid #d3d3d3;
+        }
+
+        .totals .tax-row td {
+            border-bottom: 0.5px solid #d3d3d3;
+        }
+
+        .totals .total-row {
+            background: #000000;
+            color: white;
+            font-weight: 700;
+            font-size: 9pt;
+        }
+
+        .totals .total-row td {
+            padding: 2.5mm;
+        }
+
+        .totals .balance-row .label-col {
+            font-weight: 700;
+        }
+
+        .totals .balance-row .value-col {
+            font-weight: 700;
+            font-size: 9pt;
+        }
+
+        /* ===== COMPACT FOOTER ===== */
+        .footer {
+            display: flex;
+            gap: 6mm;
+            padding-top: 6mm;
+            margin-top: auto;
+            border-top: 1.5px solid #000000;
+        }
+
+        .footer-col {
+            flex: 1;
+            display: flex;
+            flex-direction: column;
+        }
+
+        .footer-title {
+            font-size: 6.5pt;
+            font-weight: 700;
+            text-transform: uppercase;
+            color: #000000;
+            letter-spacing: 0.5pt;
+            margin-bottom: 1.5mm;
+            padding-bottom: 0.8mm;
+            border-bottom: 0.5px solid #666666;
+        }
+
+        .footer-content {
+            font-size: 7pt;
+            color: #000000;
+            line-height: 1.4;
+        }
+
+        .terms-box {
+            background: #f5f5f5;
+            padding: 2mm;
+            border: 0.5px solid #cccccc;
+            font-size: 6pt;
+            line-height: 1.4;
+        }
+
+        .thank-you-section {
+            text-align: center;
+        }
+
+        .thank-you-text {
+            font-size: 11pt;
+            font-weight: 700;
+            color: #000000;
+            line-height: 1.3;
+        }
+
+        .signature-area {
+            text-align: center;
+        }
+
+        .sig-line {
+            width: 24mm;
+            margin: 2.5mm auto 1mm auto;
+            border-top: 0.75px solid #000000;
+            font-size: 6pt;
+            padding-top: 0.8mm;
+            font-weight: 600;
+        }
+
+        .stamp-box {
+            width: 20mm;
+            height: 20mm;
+            border: 1.5px dashed #666666;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 6pt;
+            font-weight: 700;
+            color: #333333;
+            text-align: center;
+            margin: 1.5mm auto;
+        }
+
+        /* ===== PRINT OPTIMIZATION ===== */
+        @media print {
+            html, body {
+                width: 148mm;
+                height: 210mm;
+                margin: 0;
+                padding: 0;
+                background: white;
+            }
+
+            @page {
+                size: A5;
+                margin: 10mm;
+            }
+
+            .invoice-container {
+                width: 128mm;
+                height: 190mm;
+                margin: 0;
+                padding: 10mm;
+                page-break-after: always;
+                box-shadow: none;
+            }
+
+            * {
+                color: #000000 !important;
+                background: white !important;
+            }
+
+            .items-table thead {
+                background: #e0e0e0 !important;
+            }
+
+            .totals .total-row {
+                background: #cccccc !important;
+                color: #000000 !important;
+            }
+
+            .no-print {
+                display: none !important;
+            }
+        }
+    </style>
+</head>
+<body>
+    <div class="invoice-container">
+        <div class="watermark">INVOICE</div>
+        <div class="content">
+            
+            <!-- ===== HEADER ===== -->
+            <div class="header">
+                <div class="company-block">
+                    <div class="company-logo">{{ company.code or 'LGO' }}</div>
+                    <div class="company-name">{{ company.name }}</div>
+                    <div class="company-details">
+                        <p><strong>{{ company.address }}</strong></p>
+                        <p>Ph: {{ company.phone }}</p>
+                        <p>{{ company.email }}</p>
+                        <p>Tax: {{ company.tax_id }}</p>
+                    </div>
+                </div>
+                <div class="invoice-meta">
+                    <div class="invoice-title">INVOICE</div>
+                    <div class="meta-details">
+                        <div class="meta-row">
+                            <span class="meta-label">Inv #</span>
+                            <span class="meta-value">{{ invoice.invoice_number }}</span>
+                        </div>
+                        <div class="meta-row">
+                            <span class="meta-label">Date</span>
+                            <span class="meta-value">{{ invoice.date|default('') }}</span>
+                        </div>
+                        <div class="meta-row">
+                            <span class="meta-label">Due</span>
+                            <span class="meta-value">{{ invoice.due_date|default('') }}</span>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- ===== BILLING ===== -->
+            <div class="billing-sections">
+                <div class="billing-block">
+                    <div class="section-title">BILL TO</div>
+                    <div class="section-content">
+                        <p><strong>{{ customer.name }}</strong></p>
+                        <p>{{ customer.address|default('') }}</p>
+                        <p>{{ customer.phone }}</p>
+                        <p>{{ customer.email }}</p>
+                    </div>
+                </div>
+                <div class="billing-block">
+                    <div class="section-title">SHIP TO</div>
+                    <div class="section-content">
+                        <p><strong>{{ customer.company|default(customer.name) }}</strong></p>
+                        <p>{{ customer.address|default('') }}</p>
+                        <p>Receiving Dept.</p>
+                    </div>
+                </div>
+            </div>
+
+            <!-- ===== ITEMS TABLE ===== -->
+            <table class="items-table">
+                <thead>
+                    <tr>
+                        <th class="col-code">Code</th>
+                        <th class="col-description">Description</th>
+                        <th class="col-qty">Qty</th>
+                        <th class="col-price">Price</th>
+                        <th class="col-discount">Disc.</th>
+                        <th class="col-total">Total</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    {% for item in invoice.items %}
+                    <tr>
+                        <td class="col-code">{{ item.product.code|default('N/A') }}</td>
+                        <td class="col-description">{{ item.product.name }}</td>
+                        <td class="col-qty">{{ item.quantity }}</td>
+                        <td class="col-price">{{ '${:,.2f}'.format(item.unit_price) }}</td>
+                        <td class="col-discount">{{ '${:,.2f}'.format(item.discount|default(0)) }}</td>
+                        <td class="col-total">{{ '${:,.2f}'.format(item.total) }}</td>
+                    </tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+
+            <!-- ===== TOTALS ===== -->
+            <div class="totals-wrapper">
+                <table class="totals">
+                    <tr class="subtotal-row">
+                        <td class="label-col">Subtotal:</td>
+                        <td class="value-col">{{ '${:,.2f}'.format(invoice.subtotal|default(0)) }}</td>
+                    </tr>
+                    <tr class="tax-row">
+                        <td class="label-col">Tax:</td>
+                        <td class="value-col">{{ '${:,.2f}'.format(invoice.tax|default(0)) }}</td>
+                    </tr>
+                    <tr class="total-row">
+                        <td class="label-col">TOTAL:</td>
+                        <td class="value-col">{{ '${:,.2f}'.format(invoice.total|default(0)) }}</td>
+                    </tr>
+                    <tr>
+                        <td class="label-col">Paid:</td>
+                        <td class="value-col">{{ '${:,.2f}'.format(invoice.paid_amount|default(0)) }}</td>
+                    </tr>
+                    <tr class="balance-row">
+                        <td class="label-col">DUE:</td>
+                        <td class="value-col">{{ '${:,.2f}'.format(invoice.balance|default(invoice.total)) }}</td>
+                    </tr>
+                </table>
+            </div>
+
+            <!-- ===== FOOTER ===== -->
+            <div class="footer">
+                <div class="footer-col thank-you-section">
+                    <div class="thank-you-text">Thank You!</div>
+                </div>
+                <div class="footer-col">
+                    <div class="footer-title">Terms</div>
+                    <div class="terms-box">
+                        <p><strong>Net 30</strong></p>
+                        <p>1.5% monthly</p>
+                    </div>
+                </div>
+                <div class="footer-col">
+                    <div class="footer-title">Signature</div>
+                    <div class="signature-area">
+                        <div class="sig-line">__________</div>
+                    </div>
+                </div>
+            </div>
+
+        </div>
+    </div>
+</body>
+</html>

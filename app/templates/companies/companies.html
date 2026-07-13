@@ -1,0 +1,479 @@
+{% extends "base.html" %}
+
+{% block title %}Companies - {{ app_name }}{% endblock %}
+
+{% block content %}
+<div class="container-fluid">
+    <div class="d-flex justify-content-between align-items-center mb-4">
+        <h2><i class="fas fa-building me-2"></i>Companies</h2>
+        <button class="btn btn-primary" data-bs-toggle="modal" data-bs-target="#addCompanyModal">
+            <i class="fas fa-plus me-1"></i> Add Company
+        </button>
+    </div>
+
+    <div class="card shadow-sm">
+        <div class="card-body">
+            <div class="table-responsive">
+                <table class="table table-hover">
+                    <thead>
+                        <tr>
+                            <th>Name</th>
+                            <th>Business Name</th>
+                            <th>Phone</th>
+                            <th>Email</th>
+                            <th>Status</th>
+                            <th>Actions</th>
+                        </tr>
+                    </thead>
+                    <tbody id="companiesTableBody">
+                        {% for company in companies %}
+                        <tr>
+                            <td>{{ company.name }}</td>
+                            <td>{{ company.business_name or '-' }}</td>
+                            <td>{{ company.phone or '-' }}</td>
+                            <td>{{ company.email or '-' }}</td>
+                            <td>
+                                {% if company.is_active %}
+                                <span class="badge bg-success">Active</span>
+                                {% else %}
+                                <span class="badge bg-secondary">Inactive</span>
+                                {% endif %}
+                            </td>
+                            <td>
+                                <button class="btn btn-sm btn-outline-primary" onclick="editCompany({{ company.id }})">
+                                    <i class="fas fa-edit"></i>
+                                </button>
+                                <button class="btn btn-sm btn-outline-info" onclick="manageCompanyUsers({{ company.id }})">
+                                    <i class="fas fa-users"></i>
+                                </button>
+                            </td>
+                        </tr>
+                        {% else %}
+                        <tr>
+                            <td colspan="6" class="text-center text-muted">No companies found</td>
+                        </tr>
+                        {% endfor %}
+                    </tbody>
+                </table>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Add Company Modal -->
+<div class="modal fade" id="addCompanyModal" tabindex="-1">
+    <div class="modal-dialog">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title">Add New Company</h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+            </div>
+            <div class="modal-body">
+                <form id="addCompanyForm">
+                    <div class="mb-3">
+                        <label class="form-label">Company Name *</label>
+                        <input type="text" class="form-control" name="name" required>
+                    </div>
+                    <div class="mb-3">
+                        <label class="form-label">Business Name</label>
+                        <input type="text" class="form-control" name="business_name">
+                    </div>
+                    <div class="mb-3">
+                        <label class="form-label">Address</label>
+                        <textarea class="form-control" name="address" rows="2"></textarea>
+                    </div>
+                    <div class="row">
+                        <div class="col-md-6 mb-3">
+                            <label class="form-label">Phone</label>
+                            <input type="text" class="form-control" name="phone">
+                        </div>
+                        <div class="col-md-6 mb-3">
+                            <label class="form-label">Email</label>
+                            <input type="email" class="form-control" name="email">
+                        </div>
+                    </div>
+                    <div class="mb-3">
+                        <label class="form-label">Tax ID</label>
+                        <input type="text" class="form-control" name="tax_id">
+                    </div>
+                    <div class="row">
+                        <div class="col-md-6 mb-3">
+                            <label class="form-label">Currency</label>
+                            <select class="form-select" name="default_currency">
+                                <option value="LKR" selected>LKR (Sri Lankan Rupee)</option>
+                                <option value="USD">USD (US Dollar)</option>
+                                <option value="EUR">EUR (Euro)</option>
+                                <option value="GBP">GBP (British Pound)</option>
+                                <option value="INR">INR (Indian Rupee)</option>
+                            </select>
+                        </div>
+                        <div class="col-md-6 mb-3">
+                            <label class="form-label">Timezone</label>
+                            <select class="form-select" name="timezone">
+                                <option value="Asia/Colombo" selected>Asia/Colombo</option>
+                                <option value="UTC">UTC</option>
+                                <option value="Asia/Kolkata">Asia/Kolkata</option>
+                            </select>
+                        </div>
+                    </div>
+                </form>
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancel</button>
+                <button type="button" class="btn btn-primary" onclick="saveCompany()">Save Company</button>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Edit Company Modal -->
+<div class="modal fade" id="editCompanyModal" tabindex="-1">
+    <div class="modal-dialog">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title">Edit Company</h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+            </div>
+            <div class="modal-body">
+                <form id="editCompanyForm">
+                    <input type="hidden" name="id" id="editCompanyId">
+                    <div class="mb-3">
+                        <label class="form-label">Company Name *</label>
+                        <input type="text" class="form-control" name="name" id="editCompanyName" required>
+                    </div>
+                    <div class="mb-3">
+                        <label class="form-label">Business Name</label>
+                        <input type="text" class="form-control" name="business_name" id="editBusinessName">
+                    </div>
+                    <div class="mb-3">
+                        <label class="form-label">Address</label>
+                        <textarea class="form-control" name="address" id="editAddress" rows="2"></textarea>
+                    </div>
+                    <div class="row">
+                        <div class="col-md-6 mb-3">
+                            <label class="form-label">Phone</label>
+                            <input type="text" class="form-control" name="phone" id="editPhone">
+                        </div>
+                        <div class="col-md-6 mb-3">
+                            <label class="form-label">Email</label>
+                            <input type="email" class="form-control" name="email" id="editEmail">
+                        </div>
+                    </div>
+                    <div class="mb-3">
+                        <label class="form-label">Tax ID</label>
+                        <input type="text" class="form-control" name="tax_id" id="editTaxId">
+                    </div>
+                    <div class="mb-3 form-check">
+                        <input type="checkbox" class="form-check-input" name="is_active" id="editIsActive">
+                        <label class="form-check-label" for="editIsActive">Active</label>
+                    </div>
+                </form>
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="btn btn-danger" onclick="deleteCompany()" style="margin-right: auto;">Delete Company</button>
+                <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancel</button>
+                <button type="button" class="btn btn-primary" onclick="updateCompany()">Update Company</button>
+            </div>
+        </div>
+    </div>
+</div>
+    </div>
+</div>
+
+{% include 'companies/company_users_modal.html' %}
+
+{% endblock %}
+
+{% block scripts %}
+
+
+{{ super() }}
+<script>
+var csrfToken = '{{ csrf_token() }}';
+
+function saveCompany() {
+    var form = document.getElementById('addCompanyForm');
+    var formData = new FormData(form);
+    var data = Object.fromEntries(formData.entries());
+    
+    fetch('/companies/api/companies', {
+        method: 'POST',
+        headers: {
+            'Content-Type': 'application/json',
+            'X-CSRFToken': csrfToken
+        },
+        body: JSON.stringify(data)
+    })
+    .then(response => response.json())
+    .then(data => {
+        if (data.success) {
+            location.reload();
+        } else {
+            alert(data.error || 'Failed to create company');
+        }
+    })
+    .catch(error => {
+        alert('Error: ' + error);
+    });
+}
+
+function editCompany(id) {
+    fetch('/companies/api/companies/' + id)
+    .then(response => response.json())
+    .then(data => {
+        document.getElementById('editCompanyId').value = data.id;
+        document.getElementById('editCompanyName').value = data.name;
+        document.getElementById('editBusinessName').value = data.business_name || '';
+        document.getElementById('editAddress').value = data.address || '';
+        document.getElementById('editPhone').value = data.phone || '';
+        document.getElementById('editEmail').value = data.email || '';
+        document.getElementById('editTaxId').value = data.tax_id || '';
+        document.getElementById('editIsActive').checked = data.is_active;
+        
+        var modal = new bootstrap.Modal(document.getElementById('editCompanyModal'));
+        modal.show();
+    });
+}
+
+function updateCompany() {
+    var id = document.getElementById('editCompanyId').value;
+    var form = document.getElementById('editCompanyForm');
+    var formData = new FormData(form);
+    var data = Object.fromEntries(formData.entries());
+    
+    // Convert is_active to boolean
+    data.is_active = document.getElementById('editIsActive').checked;
+    
+    fetch('/companies/api/companies/' + id, {
+        method: 'PUT',
+        headers: {
+            'Content-Type': 'application/json',
+            'X-CSRFToken': csrfToken
+        },
+        body: JSON.stringify(data)
+    })
+    .then(response => response.json())
+    .then(data => {
+        if (data.success) {
+            location.reload();
+        } else {
+            alert(data.error || 'Failed to update company');
+        }
+    })
+    .catch(error => {
+        alert('Error: ' + error);
+    });
+}
+
+function deleteCompany() {
+    var id = document.getElementById('editCompanyId').value;
+    var name = document.getElementById('editCompanyName').value;
+    
+    if (!confirm(`Are you sure you want to delete the company "${name}"? This action will deactivate the company.`)) {
+        return;
+    }
+    
+    // Ask if they want permanent deletion
+    const hardDelete = confirm('Do you want to PERMANENTLY DELETE this company and all its data?\n\nClick OK for permanent deletion, Cancel for deactivation only.');
+    
+    if (hardDelete) {
+        // Prompt for admin password for hard delete
+        const password = prompt('Enter your admin password to confirm permanent deletion:');
+        if (!password) {
+            alert('Deletion cancelled - no password provided');
+            return;
+        }
+        
+        fetch('/companies/api/companies/' + id, {
+            method: 'DELETE',
+            headers: {
+                'Content-Type': 'application/json',
+                'X-CSRFToken': csrfToken
+            },
+            body: JSON.stringify({
+                hard_delete: true,
+                password: password
+            })
+        })
+        .then(response => response.json())
+        .then(data => {
+            if (data.success) {
+                alert(data.message || 'Company deleted successfully');
+                location.reload();
+            } else {
+                alert(data.error || 'Failed to delete company');
+            }
+        })
+        .catch(error => {
+            alert('Error: ' + error);
+        });
+    } else {
+        // Soft delete (deactivation only)
+        fetch('/companies/api/companies/' + id, {
+            method: 'DELETE',
+            headers: {
+                'Content-Type': 'application/json',
+                'X-CSRFToken': csrfToken
+            }
+        })
+        .then(response => response.json())
+        .then(data => {
+            if (data.success) {
+                alert(data.message || 'Company deactivated successfully');
+                location.reload();
+            } else {
+                alert(data.error || 'Failed to deactivate company');
+            }
+        })
+        .catch(error => {
+            alert('Error: ' + error);
+        });
+    }
+}
+
+function manageCompanyUsers(companyId) {
+    const modal = new bootstrap.Modal(document.getElementById('companyUsersModal'));
+    document.getElementById('currentCompanyId').value = companyId;
+    document.getElementById('modalCompanyName').textContent = 'Loading...';
+    loadCompanyUsers(companyId);
+    loadAvailableUsers(companyId);
+    modal.show();
+}
+
+function loadCompanyUsers(companyId) {
+    fetch(`/companies/api/companies/${companyId}/users`)
+    .then(response => response.json())
+    .then(users => {
+        const tbody = document.getElementById('modalUsersTableBody');
+        const companyNameEl = document.getElementById('modalCompanyName');
+        tbody.innerHTML = '';
+        companyNameEl.textContent = 'Company ID ' + companyId;
+        if (users && users.length === 0) {
+            tbody.innerHTML = '<tr><td colspan="5" class="text-center text-muted">No users assigned</td></tr>';
+            return;
+        }
+        if (users.error) {
+            tbody.innerHTML = '<tr><td colspan="5" class="text-center text-danger">Error: ' + users.error + '</td></tr>';
+            return;
+        }
+        users.forEach(user => {
+            tbody.innerHTML += `
+                <tr>
+                    <td>${user.username}</td>
+                    <td>${user.email}</td>
+                    <td><span class="badge bg-${user.role === 'admin' || user.role === 'Super Admin' ? 'danger' : 'primary'}">${user.role}</span></td>
+                    <td>${user.is_admin ? '<span class="badge bg-success">Yes</span>' : '<span class="badge bg-secondary">No</span>'}</td>
+                    <td>
+                        <button class="btn btn-sm btn-outline-danger" onclick="removeUserFromCompany(${companyId}, ${user.id})">
+                            <i class="fas fa-trash"></i>
+                        </button>
+                    </td>
+                </tr>
+            `;
+        });
+    })
+    .catch(error => {
+        document.getElementById('modalUsersTableBody').innerHTML = '<tr><td colspan="5" class="text-center text-danger">Error loading users</td></tr>';
+        console.error('Error:', error);
+    });
+}
+
+// Load available users not yet assigned to the company
+function loadAvailableUsers(companyId) {
+    fetch('/api/settings/users')
+    .then(response => {
+        if (!response.ok) {
+            throw new Error('Failed to load users: ' + response.status);
+        }
+        return response.json();
+    })
+    .then(allUsers => {
+        // Get current company users
+        fetch(`/companies/api/companies/${companyId}/users`)
+        .then(response => response.json())
+        .then(companyUsers => {
+            const companyUserIds = companyUsers.map(u => u.id);
+            const availableUsers = allUsers.filter(u => !companyUserIds.includes(u.id));
+            
+            const select = document.getElementById('availableUsersSelect');
+            select.innerHTML = '<option value="">Choose a user...</option>';
+            
+            availableUsers.forEach(user => {
+                const option = document.createElement('option');
+                option.value = user.id;
+                option.textContent = user.username + ' (' + user.email + ')';
+                select.appendChild(option);
+            });
+            
+            if (availableUsers.length === 0) {
+                select.innerHTML = '<option value="">All users are already assigned</option>';
+                select.disabled = true;
+            } else {
+                select.disabled = false;
+            }
+        });
+    })
+    .catch(error => {
+        console.error('Error loading available users:', error);
+        document.getElementById('availableUsersSelect').innerHTML = '<option value="">Error loading users</option>';
+    });
+}
+
+// Add user to company
+function addUserToCompany() {
+    const companyId = document.getElementById('currentCompanyId').value;
+    const select = document.getElementById('availableUsersSelect');
+    const userId = select.value;
+    
+    if (!userId) {
+        alert('Please select a user');
+        return;
+    }
+    
+    fetch(`/companies/api/companies/${companyId}/users`, {
+        method: 'POST',
+        headers: {
+            'Content-Type': 'application/json',
+            'X-CSRFToken': csrfToken
+        },
+        body: JSON.stringify({ user_id: userId, is_admin: false })
+    })
+    .then(response => response.json())
+    .then(data => {
+        if (data.success) {
+            // Reload both lists
+            loadCompanyUsers(companyId);
+            loadAvailableUsers(companyId);
+            alert('User added successfully!');
+        } else {
+            alert(data.error || 'Failed to add user');
+        }
+    })
+    .catch(error => {
+        console.error('Error:', error);
+        alert('Error adding user: ' + error);
+    });
+}
+
+function removeUserFromCompany(companyId, userId) {
+    if (!confirm('Remove this user from the company?')) return;
+    fetch(`/companies/api/companies/${companyId}/users/${userId}`, {
+        method: 'DELETE',
+        headers: {
+            'X-CSRFToken': csrfToken
+        }
+    })
+    .then(response => response.json())
+    .then(data => {
+        if (data.success) {
+            // Reload table
+            loadCompanyUsers(companyId);
+        } else {
+            alert(data.error || 'Failed to remove user');
+        }
+    })
+    .catch(error => alert('Error: ' + error));
+}
+</script>
+{% endblock %}
+

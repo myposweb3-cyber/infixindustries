@@ -1,0 +1,640 @@
+{% extends "base.html" %}
+
+{% block title %}Dashboard - {{ app_name }}{% endblock %}
+
+{% block content %}
+<div class="row">
+    <!-- Today's Net Sales Card -->
+    <div class="col-md-3 mb-4">
+        <div class="card bg-success text-white">
+            <div class="card-body">
+                <div class="d-flex justify-content-between">
+                    <div>
+                        <h5 class="card-title">Today's Net Sales</h5>
+                        <h3 class="mb-0">₨ {{ "%.2f"|format(today_net_sales) }}</h3>
+                        <small>{{ today_sales_count }} transactions</small>
+                    </div>
+                    <div class="align-self-center">
+                        <i class="fas fa-shopping-cart fa-2x opacity-75"></i>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Today's Returns Card -->
+    <div class="col-md-3 mb-4">
+        <div class="card bg-danger text-white">
+            <div class="card-body">
+                <div class="d-flex justify-content-between">
+                    <div>
+                        <h5 class="card-title">Today's Returns</h5>
+                        <h3 class="mb-0">₨ {{ "%.2f"|format(today_returns_total) }}</h3>
+                        <small>Refunds given</small>
+                    </div>
+                    <div class="align-self-center">
+                        <i class="fas fa-undo fa-2x opacity-75"></i>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Monthly Net Sales Card -->
+    <div class="col-md-3 mb-4">
+        <div class="card bg-primary text-white">
+            <div class="card-body">
+                <div class="d-flex justify-content-between">
+                    <div>
+                        <h5 class="card-title">Monthly Net Sales</h5>
+                        <h3 class="mb-0">₨ {{ "%.2f"|format(month_net_sales) }}</h3>
+                        <small>{{ month_orders_count }} orders</small>
+                    </div>
+                    <div class="align-self-center">
+                        <i class="fas fa-calendar-alt fa-2x opacity-75"></i>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Monthly Returns Card -->
+    <div class="col-md-3 mb-4">
+        <div class="card bg-danger text-white">
+            <div class="card-body">
+                <div class="d-flex justify-content-between">
+                    <div>
+                        <h5 class="card-title">Monthly Returns</h5>
+                        <h3 class="mb-0">₨ {{ "%.2f"|format(month_returns_total) }}</h3>
+                        <small>Refunds given</small>
+                    </div>
+                    <div class="align-self-center">
+                        <i class="fas fa-undo fa-2x opacity-75"></i>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<div class="row">
+    <!-- Today's Gross Sales Card -->
+    <div class="col-md-3 mb-4">
+        <div class="card bg-info text-white">
+            <div class="card-body">
+                <div class="d-flex justify-content-between">
+                    <div>
+                        <h5 class="card-title">Today's Gross Sales</h5>
+                        <h3 class="mb-0">₨ {{ "%.2f"|format(today_total) }}</h3>
+                        <small>Before returns</small>
+                    </div>
+                    <div class="align-self-center">
+                        <i class="fas fa-money-bill-wave fa-2x opacity-75"></i>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Monthly Gross Sales Card -->
+    <div class="col-md-3 mb-4">
+        <div class="card bg-info text-white">
+            <div class="card-body">
+                <div class="d-flex justify-content-between">
+                    <div>
+                        <h5 class="card-title">Monthly Gross Sales</h5>
+                        <h3 class="mb-0">₨ {{ "%.2f"|format(month_total) }}</h3>
+                        <small>Before returns</small>
+                    </div>
+                    <div class="align-self-center">
+                        <i class="fas fa-money-bill-wave fa-2x opacity-75"></i>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Profit Card -->
+    <div class="col-md-3 mb-4">
+        <div class="card bg-warning text-white">
+            <div class="card-body">
+                <div class="d-flex justify-content-between">
+                    <div>
+                        <h5 class="card-title">Monthly Profit</h5>
+                        <h3 class="mb-0">₨ {{ "%.2f"|format(month_profit) }}</h3>
+                        <small>This month</small>
+                    </div>
+                    <div class="align-self-center">
+                        <i class="fas fa-chart-line fa-2x opacity-75"></i>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Low Stock Alert -->
+    <div class="col-md-3 mb-4">
+        <div class="card bg-secondary text-white">
+            <div class="card-body">
+                <div class="d-flex justify-content-between">
+                    <div>
+                        <h5 class="card-title">Low Stock Items</h5>
+                        <h3 class="mb-0">{{ low_stock_count }}</h3>
+                        <small>Need attention</small>
+                    </div>
+                    <div class="align-self-center">
+                        <i class="fas fa-exclamation-triangle fa-2x opacity-75"></i>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<div class="row">
+    <!-- Sales Chart -->
+    <div class="col-md-8 mb-4">
+        <div class="card">
+            <div class="card-header d-flex justify-content-between align-items-center">
+                <h5 class="mb-0"><i class="fas fa-chart-bar me-2"></i>Sales Analytics</h5>
+                <div class="ms-2">
+                    <button type="button" class="btn btn-sm btn-outline-secondary chart-period-btn" data-period="day" title="Last 24 hours" style="margin-right: 4px;">Day</button>
+                    <button type="button" class="btn btn-sm btn-outline-secondary chart-period-btn active" data-period="week" title="Last 7 days" style="margin-right: 4px;">Week</button>
+                    <button type="button" class="btn btn-sm btn-outline-secondary chart-period-btn" data-period="month" title="Current month" style="margin-right: 4px;">Month</button>
+                    <button type="button" class="btn btn-sm btn-outline-secondary chart-period-btn" data-period="year" title="Last 12 months">Year</button>
+                </div>
+            </div>
+            <div class="card-body">
+                <div class="row mb-3">
+                    <div class="col-md-6">
+                        <label for="chartMetric" class="form-label">Metric:</label>
+                        <select id="chartMetric" class="form-select form-select-sm">
+                            <option value="total">Gross Sales</option>
+                            <option value="net">Net Sales (After Returns)</option>
+                            <option value="count">Transaction Count</option>
+                            <option value="profit">Profit</option>
+                        </select>
+                    </div>
+                    <div class="col-md-6">
+                        <label for="chartStyle" class="form-label">Chart Style:</label>
+                        <div class="btn-group w-100" role="group">
+                            <input type="radio" class="btn-check chart-style-btn" name="chartStyle" id="chartStyleBar" value="bar" checked>
+                            <label class="btn btn-outline-primary btn-sm" for="chartStyleBar"><i class="fas fa-chart-bar me-1"></i>Bar</label>
+
+                            <input type="radio" class="btn-check chart-style-btn" name="chartStyle" id="chartStyleLine" value="line">
+                            <label class="btn btn-outline-primary btn-sm" for="chartStyleLine"><i class="fas fa-chart-line me-1"></i>Line</label>
+
+                            <input type="radio" class="btn-check chart-style-btn" name="chartStyle" id="chartStyleArea" value="area">
+                            <label class="btn btn-outline-primary btn-sm" for="chartStyleArea"><i class="fas fa-chart-area me-1"></i>Area</label>
+
+                            <input type="radio" class="btn-check chart-style-btn" name="chartStyle" id="chartStyleDoughnut" value="doughnut">
+                            <label class="btn btn-outline-primary btn-sm" for="chartStyleDoughnut"><i class="fas fa-ring me-1"></i>Doughnut</label>
+                        </div>
+                    </div>
+                </div>
+                <div class="position-relative" style="height: 400px;">
+                    <canvas id="salesChart"></canvas>
+                </div>
+                <div class="mt-2 text-center" id="chartSummary" style="font-size: 0.9rem; color: #666;"></div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Low Stock Alert -->
+    <div class="col-md-4 mb-4">
+        <div class="card">
+            <div class="card-header">
+                <h6 class="mb-0"><i class="fas fa-exclamation-triangle me-1"></i>Low Stock Alert</h6>
+            </div>
+            <div class="card-body">
+                {% for product in low_stock_products %}
+                <div class="d-flex justify-content-between align-items-center mb-2">
+                    <div>
+                        <strong>{{ product.name }}</strong>
+                        <br><small class="text-muted">{{ product.stock }} {{ product.unit_type }}</small>
+                    </div>
+                    <span class="badge bg-danger">{{ product.stock }}</span>
+                </div>
+                {% if not loop.last %}<hr class="my-2">{% endif %}
+                {% endfor %}
+                {% if not low_stock_products %}
+                <p class="text-muted mb-0">All products are well stocked!</p>
+                {% endif %}
+            </div>
+        </div>
+    </div>
+</div>
+
+<div class="row">
+    <!-- Recent Sales -->
+    <div class="col-md-8 mb-4">
+        <div class="card">
+            <div class="card-header">
+                <h5 class="mb-0"><i class="fas fa-history me-2"></i>Recent Sales</h5>
+            </div>
+            <div class="card-body">
+                <div class="table-responsive">
+                    <table class="table table-hover">
+                        <thead>
+                            <tr>
+                                <th>Date</th>
+                                <th>Customer</th>
+                                <th>Total</th>
+                                <th>Payment</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            {% for sale in recent_sales %}
+                            <tr>
+                                <td>{{ sale.date | to_local_time }}</td>
+                                <td>{{ sale.customer }}</td>
+                                <td>₨ {{ "%.2f"|format(sale.total) }}</td>
+                                <td>
+                                    <span class="badge bg-{{ 'success' if sale.payment == 'Cash' else 'primary' }}">
+                                        {{ sale.payment }}
+                                    </span>
+                                </td>
+                            </tr>
+                            {% endfor %}
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Top Customers -->
+    <div class="col-md-4 mb-4">
+        <div class="card">
+            <div class="card-header">
+                <h6 class="mb-0"><i class="fas fa-star me-1"></i>Top Customers</h6>
+            </div>
+            <div class="card-body">
+                {% for customer in top_customers %}
+                <div class="d-flex justify-content-between align-items-center mb-2">
+                    <div>
+                        <strong>{{ customer[0] }}</strong>
+                        <br><small class="text-muted">{{ customer[2] }} orders</small>
+                    </div>
+                    <span class="badge bg-success">₨ {{ "%.0f"|format(customer[1]) }}</span>
+                </div>
+                {% if not loop.last %}<hr class="my-2">{% endif %}
+                {% endfor %}
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block scripts %}
+<!-- Chart.js -->
+<script src="https://cdn.jsdelivr.net/npm/chart.js@3.9.1/dist/chart.min.js"></script>
+<script>
+let currencySymbol = '₨';
+let salesChart = null;
+let currentPeriod = 'week';
+let currentMetric = 'total';
+let currentStyle = 'bar';
+let allChartData = {};
+
+// Color palette for different metrics
+const colorPalettes = {
+    'bar': {
+        backgroundColor: 'rgba(40, 167, 69, 0.7)',
+        borderColor: 'rgba(40, 167, 69, 1)',
+        hoverBackgroundColor: 'rgba(40, 167, 69, 0.9)'
+    },
+    'line': {
+        borderColor: 'rgba(40, 167, 69, 1)',
+        backgroundColor: 'rgba(40, 167, 69, 0.1)',
+        pointBackgroundColor: 'rgba(40, 167, 69, 1)',
+        pointBorderColor: '#fff',
+        pointHoverBackgroundColor: '#fff',
+        pointHoverBorderColor: 'rgba(40, 167, 69, 1)'
+    },
+    'area': {
+        borderColor: 'rgba(40, 167, 69, 1)',
+        backgroundColor: 'rgba(40, 167, 69, 0.3)',
+        pointBackgroundColor: 'rgba(40, 167, 69, 1)',
+        fill: true
+    },
+    'doughnut': {
+        backgroundColor: [
+            'rgba(40, 167, 69, 0.8)',
+            'rgba(23, 162, 184, 0.8)',
+            'rgba(255, 193, 7, 0.8)',
+            'rgba(220, 53, 69, 0.8)',
+            'rgba(111, 66, 193, 0.8)',
+            'rgba(0, 123, 255, 0.8)',
+            'rgba(108, 117, 125, 0.8)',
+            'rgba(253, 126, 20, 0.8)'
+        ],
+        borderColor: '#fff',
+        borderWidth: 2
+    }
+};
+
+const metricLabels = {
+    'total': 'Gross Sales',
+    'net': 'Net Sales',
+    'count': 'Transactions',
+    'profit': 'Profit'
+};
+
+// Load currency symbol
+function loadCurrencySymbol() {
+    console.log('Loading currency symbol...');
+    
+    fetch('/api/currency-symbol')
+        .then(response => response.json())
+        .then(data => {
+            console.log('Currency symbol data received:', data);
+            
+            if (data && data.currency_symbol) {
+                currencySymbol = data.currency_symbol;
+                console.log('✓ Currency symbol loaded:', currencySymbol);
+            } else {
+                currencySymbol = '₨';
+                console.log('Using default currency symbol: ₨');
+            }
+            
+            console.log('Calling fetchAndRenderChart for initial chart...');
+            fetchAndRenderChart();
+        })
+        .catch(error => {
+            console.error('Error loading currency symbol:', error);
+            currencySymbol = '₨';
+            console.log('Using default currency symbol on error: ₨');
+            fetchAndRenderChart();
+        });
+}
+
+function fetchChartData(period, metric) {
+    const cacheKey = `${period}_${metric}`;
+    
+    console.log(`Checking cache for: ${cacheKey}`);
+    
+    // Return cached data if available
+    if (allChartData[cacheKey]) {
+        console.log(`Using cached data for: ${cacheKey}`);
+        return Promise.resolve(allChartData[cacheKey]);
+    }
+    
+    console.log(`Fetching from API: /api/sales-chart-data?period=${period}&metric=${metric}`);
+    
+    return fetch(`/api/sales-chart-data?period=${period}&metric=${metric}`)
+        .then(response => {
+            console.log(`API response status: ${response.status}`);
+            if (!response.ok) {
+                throw new Error(`HTTP error! status: ${response.status}`);
+            }
+            return response.json();
+        })
+        .then(data => {
+            console.log(`API data received:`, data);
+            allChartData[cacheKey] = data;
+            return data;
+        })
+        .catch(error => {
+            console.error(`Error fetching data for ${cacheKey}:`, error);
+            throw error;
+        });
+}
+
+function getChartConfig(data) {
+    const metricLabel = metricLabels[currentMetric] || currentMetric;
+    const baseConfig = {
+        responsive: true,
+        maintainAspectRatio: false,
+        plugins: {
+            legend: {
+                display: currentStyle === 'doughnut',
+                position: 'bottom'
+            },
+            tooltip: {
+                callbacks: {
+                    label: function(context) {
+                        let label = '';
+                        if (currentStyle === 'doughnut') {
+                            const value = context.parsed;
+                            const total = context.dataset.data.reduce((a, b) => a + b, 0);
+                            const percentage = ((value / total) * 100).toFixed(1);
+                            label = `${context.label}: ${currencySymbol} ${value.toFixed(2)} (${percentage}%)`;
+                        } else {
+                            const value = context.parsed.y;
+                            label = `${context.label}: ${currencySymbol} ${value.toFixed(2)}`;
+                        }
+                        return label;
+                    }
+                }
+            }
+        }
+    };
+
+    let config = {
+        type: currentStyle === 'area' ? 'line' : currentStyle,
+        data: {
+            labels: data.labels,
+            datasets: [{
+                label: metricLabel,
+                data: data.data,
+                fill: currentStyle === 'area',
+                tension: 0.4,
+                ...colorPalettes[currentStyle]
+            }]
+        },
+        options: {
+            ...baseConfig,
+            scales: currentStyle !== 'doughnut' ? {
+                y: {
+                    beginAtZero: true,
+                    ticks: {
+                        callback: function(value) {
+                            return currencySymbol + ' ' + formatNumber(value);
+                        }
+                    }
+                }
+            } : undefined
+        }
+    };
+
+    return config;
+}
+
+function formatNumber(num) {
+    if (num >= 1000000) {
+        return (num / 1000000).toFixed(1) + 'M';
+    } else if (num >= 1000) {
+        return (num / 1000).toFixed(1) + 'K';
+    }
+    return num.toFixed(0);
+}
+
+function updateChartSummary(data) {
+    const total = data.data.reduce((a, b) => a + b, 0);
+    const avg = (total / data.data.length).toFixed(2);
+    const max = Math.max(...data.data).toFixed(2);
+    
+    let summaryText = `Total: ${currencySymbol} ${formatNumber(total)} | Average: ${currencySymbol} ${avg} | Peak: ${currencySymbol} ${max}`;
+    
+    if (data.data.length > 0) {
+        const period = currentPeriod === 'day' ? 'hour' : 
+                      currentPeriod === 'week' ? 'day' : 
+                      currentPeriod === 'month' ? 'week' : 'month';
+        summaryText += ` | Data points: ${data.data.length} ${period}${data.data.length > 1 ? 's' : ''}`;
+    }
+    
+    document.getElementById('chartSummary').textContent = summaryText;
+}
+
+function fetchAndRenderChart() {
+    console.log(`Fetching chart data for: period=${currentPeriod}, metric=${currentMetric}, style=${currentStyle}`);
+    
+    fetchChartData(currentPeriod, currentMetric)
+        .then(data => {
+            console.log('Chart data received:', data);
+            
+            if (salesChart) {
+                console.log('Destroying existing chart');
+                salesChart.destroy();
+            }
+            
+            const chartCanvas = document.getElementById('salesChart');
+            if (!chartCanvas) {
+                console.error('Sales chart canvas not found');
+                return;
+            }
+            
+            const ctx = chartCanvas.getContext('2d');
+            if (!ctx) {
+                console.error('Could not get 2d context from canvas');
+                return;
+            }
+            
+            try {
+                console.log('Creating chart config with style:', currentStyle);
+                const config = getChartConfig(data);
+                console.log('Chart config created:', config);
+                
+                salesChart = new Chart(ctx, config);
+                updateChartSummary(data);
+                console.log(`✓ Chart rendered successfully: ${currentStyle} - ${currentPeriod} - ${currentMetric}`);
+            } catch (error) {
+                console.error('Error initializing chart:', error);
+                console.error('Error stack:', error.stack);
+            }
+        })
+        .catch(error => {
+            console.error('Error fetching chart data:', error);
+        });
+}
+
+// Event listeners for controls
+function setupChartControls() {
+    console.log('Setting up chart controls...');
+    
+    // =============== PERIOD BUTTONS - DIRECT LISTENERS ===============
+    // Attach listeners directly to period buttons without interfering with other elements
+    document.querySelectorAll('[data-period]').forEach(btn => {
+        btn.addEventListener('click', function(e) {
+            e.preventDefault();
+            e.stopPropagation();
+            
+            const newPeriod = this.dataset.period;
+            console.log(`✓✓✓ PERIOD BUTTON CLICKED: ${newPeriod}`);
+            
+            if (currentPeriod !== newPeriod) {
+                currentPeriod = newPeriod;
+                console.log(`✓ Updated currentPeriod to: ${currentPeriod}`);
+                
+                // Manually update all buttons' active class
+                document.querySelectorAll('[data-period]').forEach(b => {
+                    if (b.dataset.period === newPeriod) {
+                        b.classList.add('active');
+                    } else {
+                        b.classList.remove('active');
+                    }
+                });
+                
+                console.log(`✓ Fetching chart for period: ${currentPeriod}`);
+                fetchAndRenderChart();
+            }
+        }, false); // Bubble phase
+    });
+    
+    console.log('Period button listeners registered');
+    
+    // =============== POLLING BACKUP - All three controls ===============
+    console.log('Starting polling as backup mechanism...');
+    let lastPeriod = currentPeriod;
+    let lastMetric = currentMetric;
+    let lastStyle = currentStyle;
+    
+    const stateCheckInterval = setInterval(() => {
+        // Check PERIOD
+        const activePeriodBtn = document.querySelector('[data-period].active');
+        if (activePeriodBtn) {
+            const btnPeriod = activePeriodBtn.dataset.period;
+            if (btnPeriod !== lastPeriod) {
+                console.log(`✓ POLLING: Period changed: ${btnPeriod}`);
+                currentPeriod = btnPeriod;
+                lastPeriod = btnPeriod;
+                fetchAndRenderChart();
+            }
+        }
+        
+        // Check METRIC
+        const metricSelect = document.getElementById('chartMetric');
+        if (metricSelect) {
+            const selectedMetric = metricSelect.value;
+            if (selectedMetric !== lastMetric) {
+                console.log(`✓ POLLING: Metric changed: ${selectedMetric}`);
+                currentMetric = selectedMetric;
+                lastMetric = selectedMetric;
+                fetchAndRenderChart();
+            }
+        }
+        
+        // Check STYLE
+        const checkedStyle = document.querySelector('input[type="radio"][name="chartStyle"]:checked');
+        if (checkedStyle) {
+            const radioStyle = checkedStyle.value;
+            if (radioStyle !== lastStyle) {
+                console.log(`✓ POLLING: Style changed: ${radioStyle}`);
+                currentStyle = radioStyle;
+                lastStyle = radioStyle;
+                fetchAndRenderChart();
+            }
+        }
+    }, 300);
+    
+    console.log('✓ Chart controls setup complete - document delegation + polling');
+}
+
+document.addEventListener('DOMContentLoaded', function() {
+    console.log('DOM loaded, initializing chart dashboard...');
+    
+    setupChartControls();
+    console.log('Chart controls initialized');
+    
+    if (typeof Chart === 'undefined') {
+        console.error('Chart.js not loaded');
+        let attempts = 0;
+        const waitForChart = setInterval(() => {
+            attempts++;
+            if (typeof Chart !== 'undefined') {
+                clearInterval(waitForChart);
+                console.log('Chart.js finally loaded');
+                loadCurrencySymbol();
+            } else if (attempts > 20) {
+                clearInterval(waitForChart);
+                console.error('Chart.js failed to load after 20 attempts');
+            }
+        }, 100);
+    } else {
+        console.log('Chart.js is loaded');
+        loadCurrencySymbol();
+    }
+});
+</script>
+{% endblock %}

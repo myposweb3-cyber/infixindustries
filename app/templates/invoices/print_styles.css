@@ -1,0 +1,486 @@
+/* Professional Invoice & Receipt Print Styles
+   Optimized for 300 DPI printing, CMYK color mode
+   Compatible with all laser and thermal printers
+*/
+
+/* ============================================
+   PRINT MEDIA QUERIES
+   ============================================ */
+
+@media print {
+    * {
+        margin: 0 !important;
+        padding: 0 !important;
+        border-collapse: collapse !important;
+        border-spacing: 0 !important;
+    }
+
+    html, body {
+        width: 100%;
+        height: 100%;
+        margin: 0;
+        padding: 0;
+        background: white;
+    }
+
+    body {
+        font-smoothing: antialiased;
+        -webkit-font-smoothing: antialiased;
+        -moz-osx-font-smoothing: grayscale;
+    }
+
+    /* Prevent page breaks inside elements */
+    .invoice-container,
+    .receipt-container,
+    .items-table,
+    .totals-section,
+    .billing-section {
+        page-break-inside: avoid !important;
+    }
+
+    /* Allow page breaks before major sections */
+    .page-break-before {
+        page-break-before: always;
+    }
+
+    .page-break-after {
+        page-break-after: always;
+    }
+
+    /* Hide non-printable elements */
+    .no-print,
+    .screen-only,
+    .button,
+    .web-only {
+        display: none !important;
+    }
+
+    /* Colors for print */
+    body {
+        color: #000000;
+        background-color: #ffffff;
+    }
+
+    a[href]:after {
+        content: "" !important;
+    }
+
+    abbr[title]:after {
+        content: "" !important;
+    }
+
+    /* Optimize text for printing */
+    body {
+        font-size: 11pt;
+        line-height: 1.5;
+    }
+
+    h1, h2, h3, h4, h5, h6 {
+        page-break-after: avoid;
+        page-break-inside: avoid;
+    }
+
+    img {
+        max-width: 100%;
+        page-break-inside: avoid;
+    }
+
+    table, pre {
+        page-break-inside: avoid;
+    }
+
+    tr {
+        page-break-inside: avoid;
+    }
+
+    /* Remove background colors and images for better print quality */
+    .invoice-container,
+    .receipt-container {
+        background: white !important;
+        color: black !important;
+    }
+
+    .company-logo {
+        background: white !important;
+        border: 1pt solid black !important;
+        color: black !important;
+    }
+
+    /* Ensure borders are visible in print */
+    .invoice-header,
+    .items-table thead,
+    .items-table tbody tr,
+    .totals-section,
+    .invoice-footer,
+    .receipt-header,
+    .receipt-footer {
+        border-color: #000000 !important;
+    }
+
+    /* Print margin adjustment */
+    @page {
+        margin: 0.5in;
+    }
+}
+
+/* ============================================
+   HIGH DPI OPTIMIZATION (300 DPI)
+   ============================================ */
+
+@media print and (resolution: 300dpi) {
+    body {
+        font-size: 11pt;
+    }
+
+    .invoice-container,
+    .receipt-container {
+        -webkit-print-color-adjust: exact;
+        color-adjust: exact;
+        print-color-adjust: exact;
+    }
+
+    /* Optimize line weights for 300 DPI */
+    .invoice-header,
+    .items-table thead,
+    .items-table tbody tr,
+    .divider {
+        border-width: 1.5pt;
+    }
+
+    .divider-dashed {
+        border-style: dashed;
+        border-width: 1pt;
+    }
+
+    /* High-quality text rendering */
+    * {
+        -webkit-text-size-adjust: 100%;
+        text-rendering: optimizeLegibility;
+        font-feature-settings: "liga" 1, "dlig" 1;
+    }
+}
+
+/* ============================================
+   THERMAL PRINTER OPTIMIZATION
+   ============================================ */
+
+@media print and (device-width: 80mm) {
+    body {
+        font-family: 'Courier New', monospace;
+        font-size: 10pt;
+    }
+
+    .receipt-container {
+        width: 80mm;
+        max-width: 80mm;
+        margin: 0;
+    }
+
+    /* Thermal printers handle monospace better */
+    .items-table,
+    .totals-table,
+    .receipt-header,
+    .receipt-footer {
+        font-family: 'Courier New', monospace;
+    }
+
+    /* Optimize spacing for thermal */
+    .divider-dashed {
+        border-style: dotted;
+    }
+
+    /* Single-column layout for 80mm */
+    .billing-section {
+        display: block !important;
+    }
+
+    .billing-block {
+        width: 100% !important;
+        margin-bottom: 2mm;
+    }
+}
+
+/* ============================================
+   GRAYSCALE OPTIMIZATION
+   ============================================ */
+
+@media print and (color-gamut: srgb) {
+    /* CMYK-friendly color conversion for web display */
+    body {
+        color: #000000;
+        background: #ffffff;
+    }
+
+    .company-logo {
+        background: linear-gradient(135deg, #404040 0%, #1a1a1a 100%) !important;
+        color: #ffffff !important;
+    }
+
+    /* Ensure good contrast for black and white */
+    .invoice-header,
+    .items-table thead,
+    .receipt-header {
+        background: #f5f5f5 !important;
+    }
+
+    .total-row,
+    .grand-total {
+        background: #f0f0f0 !important;
+    }
+
+    .total-row.total-row-major {
+        background: #000000 !important;
+        color: #ffffff !important;
+    }
+}
+
+/* ============================================
+   BLACK & WHITE PRINT COMPATIBILITY
+   ============================================ */
+
+@media print and (prefers-color-scheme: dark) {
+    /* Force light colors for printing */
+    * {
+        background-color: white !important;
+        color: black !important;
+        border-color: black !important;
+    }
+}
+
+/* ============================================
+   LOW INK MODE SUPPORT
+   ============================================ */
+
+@media print {
+    /* Reduce ink usage while maintaining readability */
+    .invoice-watermark {
+        display: none !important;
+    }
+
+    /* Use simple borders instead of filled areas */
+    .invoice-header {
+        background: white !important;
+        border-bottom: 2pt solid black;
+    }
+
+    .items-table thead {
+        background: white !important;
+        border: 1pt solid black;
+    }
+
+    .items-table tbody tr:nth-child(odd) {
+        background: white !important;
+    }
+
+    .total-row {
+        background: white !important;
+    }
+
+    .grand-total {
+        background: white !important;
+        border: 2pt solid black;
+    }
+
+    /* Reduce shadow and decoration ink usage */
+    .company-logo {
+        background: white !important;
+        border: 2pt solid black;
+        color: black;
+    }
+
+    .stamp-area {
+        background: white !important;
+        border: 1pt dashed black;
+    }
+}
+
+/* ============================================
+   PAPER SIZE SPECIFIC STYLES
+   ============================================ */
+
+/* A4 Invoice */
+@media print and (size: A4) {
+    @page {
+        size: A4;
+        margin: 0.5in;
+    }
+
+    .invoice-container {
+        width: 210mm;
+        height: 297mm;
+    }
+}
+
+/* A5 Invoice */
+@media print and (size: A5) {
+    @page {
+        size: A5;
+        margin: 0.3in;
+    }
+
+    .invoice-container {
+        width: 148mm;
+        height: 210mm;
+    }
+}
+
+/* Letter Size */
+@media print and (size: letter) {
+    @page {
+        size: letter;
+        margin: 0.5in;
+    }
+}
+
+/* ============================================
+   PRINT PREVIEW STYLES
+   ============================================ */
+
+.print-preview-container {
+    background: #f0f0f0;
+    padding: 20px;
+    display: flex;
+    justify-content: center;
+    align-items: flex-start;
+    min-height: 100vh;
+}
+
+.print-preview-wrapper {
+    background: white;
+    box-shadow: 0 10px 40px rgba(0, 0, 0, 0.2);
+    margin: 20px auto;
+}
+
+/* Print control buttons */
+.print-controls {
+    position: fixed;
+    top: 0;
+    right: 0;
+    background: white;
+    border: 1px solid #ddd;
+    padding: 10px;
+    border-radius: 4px;
+    box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
+    z-index: 1000;
+}
+
+.print-controls button {
+    padding: 8px 16px;
+    margin: 4px;
+    border: 1px solid #0051ba;
+    background: #0051ba;
+    color: white;
+    border-radius: 4px;
+    cursor: pointer;
+    font-size: 12px;
+    transition: background-color 0.2s;
+}
+
+.print-controls button:hover {
+    background: #003d82;
+}
+
+/* ============================================
+   COLOR MODE SETTINGS FOR CMYK
+   ============================================ */
+
+/* Use these colors that are CMYK-friendly */
+:root {
+    /* Black for text */
+    --text-color: #000000;
+    /* Dark blue - converts well to CMYK */
+    --primary-color: #0051ba;
+    --primary-dark: #003d82;
+    /* Light gray for backgrounds */
+    --bg-light: #f5f5f5;
+    /* White */
+    --bg-white: #ffffff;
+    /* Red for warnings */
+    --warning-color: #d32f2f;
+    /* Divider color */
+    --border-color: #cccccc;
+}
+
+/* ============================================
+   ACCESSIBILITY FOR PRINTING
+   ============================================ */
+
+/* Ensure sufficient contrast ratio (4.5:1 for normal text) */
+body {
+    color: #000000;
+    background: #ffffff;
+    /* Ratio: 21:1 - exceeds WCAG AAA */
+}
+
+/* Monospace for numbers and codes */
+.invoice-details-value,
+.item-code,
+.barcode,
+.totals-table .value {
+    font-family: 'Courier New', monospace;
+    font-size: 0.95em;
+}
+
+/* ============================================
+   ERROR STATES & EDGE CASES
+   ============================================ */
+
+/* Handle long text */
+.item-description,
+.billing-content {
+    word-wrap: break-word;
+    overflow-wrap: break-word;
+}
+
+/* Handle empty areas */
+.stamp-area:empty::before {
+    content: 'COMPANY STAMP';
+    opacity: 0.5;
+}
+
+.signature-area:empty::before {
+    content: 'Authorized Signature';
+    opacity: 0.5;
+}
+
+/* ============================================
+   PERFORMANCE OPTIMIZATIONS
+   ============================================ */
+
+/* GPU acceleration for print rendering */
+.invoice-container,
+.receipt-container {
+    transform: translateZ(0);
+    -webkit-font-smoothing: antialiased;
+}
+
+/* Disable animations in print mode */
+@media print {
+    * {
+        animation: none !important;
+        transition: none !important;
+    }
+}
+
+/* ============================================
+   DEBUGGING PRINT STYLESHEET
+   (Comment out in production)
+   ============================================ */
+
+/* Uncomment to visualize print areas during development */
+/*
+@media print {
+    .invoice-container,
+    .receipt-container {
+        border: 1px solid red;
+    }
+
+    .page-break-before {
+        background: #fff3cd;
+    }
+
+    .page-break-after {
+        background: #f8d7da;
+    }
+}
+*/

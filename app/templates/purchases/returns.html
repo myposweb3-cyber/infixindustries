@@ -1,0 +1,507 @@
+{% extends "base.html" %}
+
+{% block title %}Purchase Returns - {{ super() }}{% endblock %}
+
+{% block content %}
+<div class="container-fluid">
+    <div class="d-flex justify-content-between align-items-center mb-4">
+        <h1 class="h3 mb-0 text-gray-800">Manage Purchase Returns</h1>
+        <button type="button" class="btn btn-primary" data-bs-toggle="modal" data-bs-target="#newPurchaseReturnModal">
+            <i class="fas fa-plus me-2"></i>New Purchase Return
+        </button>
+    </div>
+
+    <!-- Purchase Return List -->
+    <div class="card shadow mb-4">
+        <div class="card-header py-3 d-flex justify-content-between align-items-center">
+            <h6 class="m-0 font-weight-bold text-primary">Purchase Return List</h6>
+            <span class="fw-bold">Total Refunds: <span class="text-primary">{{ "%.2f"|format(total_refunds) }}</span></span>
+        </div>
+        <div class="card-body">
+            <div class="table-responsive">
+                <table class="table table-bordered table-hover" id="purchaseReturnsTable" width="100%" cellspacing="0">
+                    <thead>
+                        <tr>
+                            <th>Return ID</th>
+                            <th>Date</th>
+                            <th>Original Purchase ID</th>
+                            <th>Supplier</th>
+                            <th>Reason</th>
+                            <th class="text-end">Refund Amount</th>
+                            <th>Actions</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        {% for pr in purchase_returns %}
+                        <tr>
+                            <td>{{ pr.id }}</td>
+                            <td>{{ pr.date.strftime('%Y-%m-%d') }}</td>
+                            <td><a href="#">#{{ pr.original_purchase_id }}</a></td>
+                            <td>{{ pr.supplier.name }}</td>
+                            <td>{{ pr.return_reason or 'N/A' }}</td>
+                            <td class="text-end">{{ "%.2f"|format(pr.refund_amount or 0) }}</td>
+                            <td>
+                                <button class="btn btn-sm btn-info" title="View Details" onclick="viewPurchaseReturn({{ pr.id }})"><i class="fas fa-eye"></i></button>
+                                <button class="btn btn-sm btn-danger" title="Delete Return" onclick="deletePurchaseReturn({{ pr.id }})"><i class="fas fa-trash"></i></button>
+                            </td>
+                        </tr>
+                        {% else %}
+                        <tr>
+                            <td colspan="7" class="text-center">No purchase returns found.</td>
+                        </tr>
+                        {% endfor %}
+                    </tbody>
+                </table>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- New Purchase Return Modal -->
+<div class="modal fade" id="newPurchaseReturnModal" tabindex="-1" aria-labelledby="newPurchaseReturnModalLabel" aria-hidden="true">
+    <div class="modal-dialog modal-xl">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title" id="newPurchaseReturnModalLabel">Create New Purchase Return</h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+            </div>
+            <div class="modal-body">
+                <form method="post" id="purchaseReturnForm" action="{{ url_for('purchases.new_purchase_return') }}">
+                    <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+                    <input type="hidden" name="items_json" id="items_json">
+                    <input type="hidden" name="total_refund_amount" id="total_refund_amount">
+
+                    <!-- Main Return Details -->
+                    <div class="card shadow mb-4">
+                        <div class="card-header py-3">
+                            <h6 class="m-0 font-weight-bold text-primary">Return Details</h6>
+                        </div>
+                        <div class="card-body">
+                            <div class="row">
+                                <div class="col-md-4 mb-3">
+                                    <label for="date" class="form-label">Return Date</label>
+                                    <input type="date" class="form-control" id="date" name="date" value="{{ now.strftime('%Y-%m-%d') }}" required>
+                                </div>
+                                <div class="col-md-4 mb-3">
+                                    <label for="original_purchase_id" class="form-label">Original Purchase</label>
+                                    <select class="form-select" id="original_purchase_id" name="original_purchase_id" required>
+                                        <option value="" disabled selected>Select a purchase to return from</option>
+                                        {% for p in purchases %}
+                                        <option value="{{ p.id }}">#{{ p.id }} - {{ p.invoice_number or 'N/A' }} ({{ p.supplier.name }})</option>
+                                        {% endfor %}
+                                    </select>
+                                </div>
+                                <div class="col-md-4 mb-3">
+                                    <label for="return_reason" class="form-label">Reason for Return</label>
+                                    <input type="text" class="form-control" id="return_reason" name="return_reason">
+                                </div>
+                            </div>
+                             <div class="row">
+                                <div class="col-md-12 mb-3">
+                                    <label for="notes" class="form-label">Notes</label>
+                                    <textarea class="form-control" id="notes" name="notes" rows="2"></textarea>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Return Items -->
+                    <div class="card shadow mb-4">
+                        <div class="card-header py-3 d-flex justify-content-between align-items-center">
+                            <h6 class="m-0 font-weight-bold text-primary">Items to Return</h6>
+                            <h6 class="m-0 font-weight-bold text-danger">Total Refund: <span id="totalRefundDisplay">0.00</span></h6>
+                        </div>
+                        <div class="card-body">
+                            <div class="table-responsive">
+                                <table class="table table-bordered" id="itemsTable">
+                                    <thead>
+                                        <tr>
+                                            <th>Product</th>
+                                            <th>Purchased Qty</th>
+                                            <th>Return Qty</th>
+                                            <th>Unit Cost</th>
+                                            <th>Total</th>
+                                        </tr>
+                                    </thead>
+                                    <tbody>
+                                        <!-- Items will be loaded here by JS -->
+                                        <tr><td colspan="5" class="text-center">Select a purchase to see items.</td></tr>
+                                    </tbody>
+                                </table>
+                            </div>
+                        </div>
+                    </div>
+
+                    <button type="submit" class="btn btn-primary">Create Purchase Return</button>
+                    <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancel</button>
+                </form>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- View Purchase Return Details Modal -->
+<div class="modal fade" id="viewPurchaseReturnModal" tabindex="-1" aria-labelledby="viewPurchaseReturnModalLabel" aria-hidden="true">
+    <div class="modal-dialog modal-lg">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title" id="viewPurchaseReturnModalLabel">Purchase Return Details</h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+            </div>
+            <div class="modal-body">
+                <div class="row mb-3">
+                    <div class="col-md-6">
+                        <p><strong>Return ID:</strong> <span id="viewReturnId"></span></p>
+                        <p><strong>Date:</strong> <span id="viewReturnDate"></span></p>
+                    </div>
+                    <div class="col-md-6">
+                        <p><strong>Original Purchase ID:</strong> <span id="viewOriginalPurchaseId"></span></p>
+                        <p><strong>Supplier:</strong> <span id="viewSupplier"></span></p>
+                    </div>
+                </div>
+                <div class="row mb-3">
+                    <div class="col-md-6">
+                        <p><strong>Reason:</strong> <span id="viewReturnReason"></span></p>
+                    </div>
+                    <div class="col-md-6">
+                        <p><strong>Refund Amount:</strong> <span id="viewRefundAmount"></span></p>
+                    </div>
+                </div>
+                <div class="mb-3">
+                    <p><strong>Notes:</strong> <span id="viewNotes"></span></p>
+                </div>
+                <h6>Items Returned</h6>
+                <div class="table-responsive">
+                    <table class="table table-sm table-bordered">
+                        <thead>
+                            <tr>
+                                <th>Product</th>
+                                <th>Quantity</th>
+                                <th>Unit Cost</th>
+                                <th>Total</th>
+                            </tr>
+                        </thead>
+                        <tbody id="viewItemsBody">
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block scripts %}
+<script>
+function viewPurchaseReturn(returnId) {
+    fetch('/api/purchase-returns/' + returnId)
+        .then(response => response.json())
+        .then(data => {
+            document.getElementById('viewReturnId').textContent = data.id;
+            document.getElementById('viewReturnDate').textContent = data.date || 'N/A';
+            document.getElementById('viewOriginalPurchaseId').textContent = data.original_purchase_id || 'N/A';
+            document.getElementById('viewSupplier').textContent = data.supplier_name || 'N/A';
+            document.getElementById('viewReturnReason').textContent = data.return_reason || 'N/A';
+            document.getElementById('viewRefundAmount').textContent = parseFloat(data.refund_amount || 0).toFixed(2);
+            document.getElementById('viewNotes').textContent = data.notes || 'N/A';
+            
+            const itemsBody = document.getElementById('viewItemsBody');
+            itemsBody.innerHTML = '';
+            if (data.items && data.items.length > 0) {
+                data.items.forEach(item => {
+                    const row = '<tr><td>' + item.product_name + '</td><td>' + item.quantity + '</td><td>' + parseFloat(item.unit_cost).toFixed(2) + '</td><td>' + parseFloat(item.total_cost).toFixed(2) + '</td></tr>';
+                    itemsBody.innerHTML += row;
+                });
+            } else {
+                itemsBody.innerHTML = '<tr><td colspan="4" class="text-center">No items found</td></tr>';
+            }
+            
+            new bootstrap.Modal(document.getElementById('viewPurchaseReturnModal')).show();
+        })
+        .catch(error => {
+            alert('Error loading purchase return details: ' + error);
+        });
+}
+
+function showDeleteConfirmPasswordModal(type) {
+    const html = `
+    <div class="modal fade" id="deletePasswordModal" tabindex="-1" data-bs-backdrop="static" data-bs-keyboard="false">
+        <div class="modal-dialog modal-dialog-centered">
+            <div class="modal-content">
+                <div class="modal-header bg-danger text-white">
+                    <h5 class="modal-title">CONFIRM DELETION</h5>
+                    <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal"></button>
+                </div>
+                <div class="modal-body">
+                    <div class="alert alert-danger mb-3">
+                        <strong>Warning!</strong><br>
+                        <small>Admin password verification required to delete this ${type}.</small>
+                    </div>
+                    <div class="form-group">
+                        <label for="deletePassword" class="form-label">Admin Password:</label>
+                        <div class="input-group">
+                            <input type="password" id="deletePassword" class="form-control form-control-lg" 
+                                   placeholder="Enter your password" autocomplete="off" 
+                                   style="font-size: 1.1rem; letter-spacing: 0.2em;" />
+                            <button class="btn btn-outline-secondary" type="button" id="toggleDeletePassword" tabindex="-1"
+                                    title="Show/Hide password">
+                                <i class="fas fa-eye"></i>
+                            </button>
+                        </div>
+                    </div>
+                    <div id="deletePasswordError" class="alert alert-danger mt-2" style="display: none;\"></div>
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancel</button>
+                    <button type="button" class="btn btn-danger" id="confirmDeleteBtn">Confirm Delete</button>
+                </div>
+            </div>
+        </div>
+    </div>
+    `;
+    const ex = document.getElementById('deletePasswordModal');
+    if (ex) ex.remove();
+    document.body.insertAdjacentHTML('beforeend', html);
+    
+    const modalElement = document.getElementById('deletePasswordModal');
+    const m = new bootstrap.Modal(modalElement);
+    
+    modalElement.addEventListener('shown.bs.modal', function() {
+        const pwdInput = document.getElementById('deletePassword');
+        const toggleBtn = document.getElementById('toggleDeletePassword');
+        const confirmBtn = document.getElementById('confirmDeleteBtn');
+        const errDiv = document.getElementById('deletePasswordError');
+        
+        if (pwdInput) {
+            pwdInput.focus();
+            pwdInput.select();
+        }
+        
+        if (toggleBtn) {
+            toggleBtn.addEventListener('click', function(e) {
+                e.preventDefault();
+                if (pwdInput) {
+                    const isPassword = pwdInput.type === 'password';
+                    pwdInput.type = isPassword ? 'text' : 'password';
+                    toggleBtn.innerHTML = isPassword ? '<i class="fas fa-eye-slash"></i>' : '<i class="fas fa-eye"></i>';
+                    pwdInput.focus();
+                }
+            });
+        }
+        
+        if (confirmBtn) {
+            confirmBtn.addEventListener('click', function() {
+                const pwd = pwdInput.value;
+                if (!pwd) {
+                    errDiv.textContent = 'Please enter your password';
+                    errDiv.style.display = 'block';
+                    return;
+                }
+                
+                confirmBtn.disabled = true;
+                confirmBtn.innerHTML = '<i class="fas fa-spinner fa-spin"></i> Verifying...';
+                
+                const csrfToken = document.querySelector('meta[name="csrf-token"]')?.getAttribute('content') || '';
+                
+                fetch('/auth/verify-admin-password', {
+                    method: 'POST',
+                    headers: {'Content-Type': 'application/json', 'X-CSRFToken': csrfToken},
+                    body: JSON.stringify({password: pwd})
+                })
+                .then(r => r.json())
+                .then(d => {
+                    if (d.success) {
+                        window.verifiedDeletePassword = pwd;
+                        m.hide();
+                        setTimeout(() => {
+                            document.getElementById('deletePasswordModal').remove();
+                            proceedWithDelete(window.pendingDeleteData.id);
+                        }, 300);
+                    } else {
+                        errDiv.textContent = d.error || 'Invalid password';
+                        errDiv.style.display = 'block';
+                        confirmBtn.disabled = false;
+                        confirmBtn.innerHTML = 'Confirm Delete';
+                        pwdInput.value = '';
+                        pwdInput.focus();
+                    }
+                })
+                .catch(e => {
+                    errDiv.textContent = 'Error: ' + e.message;
+                    errDiv.style.display = 'block';
+                    confirmBtn.disabled = false;
+                    confirmBtn.innerHTML = 'Confirm Delete';
+                });
+            });
+        }
+        
+        if (pwdInput) {
+            pwdInput.addEventListener('keydown', function(e) {
+                if (e.key === 'Enter') {
+                    e.preventDefault();
+                    confirmBtn.click();
+                }
+            });
+        }
+    }, { once: true });
+    
+    m.show();
+}
+
+function deletePurchaseReturn(returnId) {
+    if (!confirm('Are you sure you want to delete this purchase return? This will reverse the stock adjustments.')) {
+        return;
+    }
+    
+    window.pendingDeleteData = {id: returnId};
+    showDeleteConfirmPasswordModal('return');
+}
+
+function proceedWithDelete(returnId) {
+    // Get CSRF token from meta tag
+    const csrfToken = document.querySelector('meta[name="csrf-token"]')?.getAttribute('content') || '';
+    const adminPassword = window.verifiedDeletePassword;
+    
+    fetch('/api/purchase-returns/' + returnId, {
+        method: 'DELETE',
+        headers: {
+            'Content-Type': 'application/json',
+            'X-CSRFToken': csrfToken
+        },
+        body: JSON.stringify({
+            admin_password: adminPassword
+        })
+    })
+    .then(response => {
+        return response.text().then(text => {
+            try {
+                const data = JSON.parse(text);
+                return { ok: response.ok, status: response.status, data };
+            } catch (e) {
+                return { ok: response.ok, status: response.status, data: { error: 'Invalid server response', raw: text } };
+            }
+        });
+    })
+    .then(result => {
+        const { ok, status, data } = result;
+        
+        if (ok || (status >= 200 && status < 300)) {
+            alert(data.message || 'Purchase return deleted successfully!');
+            location.reload();
+        } else {
+            alert('Error deleting purchase return: ' + (data.error || data.message || 'Unknown error'));
+        }
+    })
+    .catch(error => {
+        console.error('Delete error:', error);
+        alert('Error deleting purchase return: ' + error.message);
+    });
+}
+}
+
+document.addEventListener('DOMContentLoaded', function() {
+    const modal = document.getElementById('newPurchaseReturnModal');
+    const purchaseSelect = modal.querySelector('#original_purchase_id');
+    const itemsTableBody = modal.querySelector('#itemsTable tbody');
+    const itemsJsonInput = modal.querySelector('#items_json');
+    const totalRefundInput = modal.querySelector('#total_refund_amount');
+    const totalRefundDisplay = modal.querySelector('#totalRefundDisplay');
+    let returnItems = [];
+
+    purchaseSelect.addEventListener('change', async function() {
+        const purchaseId = this.value;
+        if (!purchaseId) {
+            itemsTableBody.innerHTML = '<tr><td colspan="5" class="text-center">Select a purchase to see items.</td></tr>';
+            return;
+        }
+
+        const response = await fetch(`/api/purchases/${purchaseId}/items`);
+        if (!response.ok) {
+            alert('Failed to fetch purchase items.');
+            return;
+        }
+
+        const data = await response.json();
+        renderTable(data.items);
+    });
+
+    function renderTable(purchaseItems) {
+        itemsTableBody.innerHTML = '';
+        returnItems = [];
+
+        if (!purchaseItems || purchaseItems.length === 0) {
+            itemsTableBody.innerHTML = '<tr><td colspan="5" class="text-center">No items found for this purchase.</td></tr>';
+            return;
+        }
+
+        purchaseItems.forEach(item => {
+            const row = `
+                <tr data-product-id="${item.product_id}" data-unit-cost="${item.cost_price}">
+                    <td>${item.product_name}</td>
+                    <td>${item.quantity_purchased}</td>
+                    <td><input type="number" class="form-control return-qty" value="0" min="0" max="${item.quantity_purchased}"></td>
+                    <td class="text-end">${item.cost_price.toFixed(2)}</td>
+                    <td class="text-end line-total">0.00</td>
+                </tr>
+            `;
+            itemsTableBody.insertAdjacentHTML('beforeend', row);
+        });
+        updateSummary();
+    }
+
+    itemsTableBody.addEventListener('input', function(e) {
+        if (e.target.classList.contains('return-qty')) {
+            updateSummary();
+        }
+    });
+
+    function updateSummary() {
+        returnItems = [];
+        let totalRefund = 0;
+
+        itemsTableBody.querySelectorAll('tr').forEach(row => {
+            const returnQtyInput = row.querySelector('.return-qty');
+            if (!returnQtyInput) return;
+
+            let returnQty = parseFloat(returnQtyInput.value) || 0;
+            const maxQty = parseFloat(returnQtyInput.max);
+
+            if (returnQty > maxQty) {
+                returnQtyInput.value = maxQty;
+                returnQty = maxQty;
+            }
+
+            if (returnQty > 0) {
+                const unitCost = parseFloat(row.dataset.unitCost);
+                const lineTotal = returnQty * unitCost;
+                row.querySelector('.line-total').textContent = lineTotal.toFixed(2);
+
+                returnItems.push({
+                    product_id: row.dataset.productId,
+                    quantity: returnQty,
+                    unit_cost: unitCost
+                });
+                totalRefund += lineTotal;
+            } else {
+                row.querySelector('.line-total').textContent = '0.00';
+            }
+        });
+
+        totalRefundDisplay.textContent = totalRefund.toFixed(2);
+        totalRefundInput.value = totalRefund.toFixed(2);
+        itemsJsonInput.value = JSON.stringify(returnItems);
+    }
+
+    modal.addEventListener('hidden.bs.modal', function () {
+        document.getElementById('purchaseReturnForm').reset();
+        itemsTableBody.innerHTML = '<tr><td colspan="5" class="text-center">Select a purchase to see items.</td></tr>';
+        updateSummary();
+    });
+
+    const urlParams = new URLSearchParams(window.location.search);
+    if (urlParams.get('open_modal') === 'new_purchase_return') {
+        new bootstrap.Modal(modal).show();
+    }
+});
+</script>
+{% endblock %}

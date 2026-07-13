@@ -1,0 +1,1488 @@
+{% extends "base.html" %}
+
+{% block title %}Customer Management{% endblock %}
+
+{% block head %}
+<style>
+    .customer-card {
+        transition: transform 0.2s;
+    }
+    .customer-card:hover {
+        transform: translateY(-2px);
+        box-shadow: 0 4px 8px rgba(0,0,0,0.1);
+    }
+    .badge.loyalty-badge {
+        background: linear-gradient(45deg, #ffd700, #ffed4e) !important;
+        color: #000000 !important;
+    }
+    .badge.loyalty-badge::after,
+    .badge.loyalty-badge::before,
+    span.badge.loyalty-badge {
+        color: #000000 !important;
+    }
+    .credit-indicator {
+        display: inline-block;
+        width: 8px;
+        height: 8px;
+        border-radius: 50%;
+        margin-right: 5px;
+    }
+    .credit-good { background-color: #28a745; }
+    
+    /* Simple label styling */
+    label[for="showInactive"] {
+        margin-bottom: 0;
+        cursor: pointer;
+        user-select: none;
+    }
+    
+    #showInactive {
+        display: none !important;
+    }
+    
+    /* Visual checkbox indicator - COMPLETE REDESIGN */
+    #showInactive {
+        display: none !important;
+    }
+    
+    #inactiveLabel {
+        position: relative;
+        margin-bottom: 0;
+        cursor: pointer;
+        user-select: none;
+        display: inline-flex;
+        align-items: center;
+        padding: 8px 12px;
+        border-radius: 4px;
+        background-color: #f0f0f0;
+        border: 2px solid #ccc;
+        transition: all 0.3s ease;
+    }
+    
+    /* UNCHECKED: Label styling */
+    #inactiveLabel {
+        background-color: #f0f0f0;
+        border-color: #999;
+        color: #333;
+    }
+    
+    /* CHECKED: Label turns blue with green background */
+    #inactiveLabel.checkbox-checked {
+        background-color: #d1ecf1 !important;
+        border-color: #0d6efd !important;
+        color: #0d6efd !important;
+        font-weight: bold;
+    }
+    
+    /* Checkbox box - visible empty by default */
+    #inactiveLabel::before {
+        content: '';
+        position: relative;
+        display: inline-block;
+        width: 22px;
+        height: 22px;
+        border: 2px solid #999999;
+        background-color: #ffffff;
+        border-radius: 3px;
+        margin-right: 10px;
+        flex-shrink: 0;
+        transition: all 0.3s ease;
+        box-sizing: border-box;
+    }
+    
+    /* CHECKED: Box turns blue */
+    #inactiveLabel.checkbox-checked::before {
+        background-color: #0d6efd !important;
+        border-color: #0d6efd !important;
+    }
+    
+    /* Checkmark text inside */
+    .checkbox-checkmark {
+        position: absolute;
+        left: 5px;
+        top: 50%;
+        transform: translateY(-50%);
+        color: white;
+        font-weight: bold;
+        font-size: 16px;
+        line-height: 1;
+        display: none !important;
+        width: 14px;
+        text-align: center;
+        pointer-events: none;
+        z-index: 2;
+    }
+    
+    /* Show checkmark when checked */
+    #inactiveLabel.checkbox-checked .checkbox-checkmark {
+        display: inline !important;
+    }
+    
+    /* Inactive customer row styling - ULTIMATE OVERRIDE */
+    tbody tr.inactive-customer {
+        background-color: #ff9999 !important;
+    }
+    
+    tbody tr.inactive-customer td {
+        background-color: #ff9999 !important;
+        color: #660000 !important;
+        border-left: 6px solid #ff0000 !important;
+        font-weight: bold;
+    }
+    
+    tbody tr.inactive-customer th {
+        background-color: #ff9999 !important;
+    }
+    
+    tbody tr.inactive-customer strong {
+        color: #660000 !important;
+    }
+    
+    tbody tr.inactive-customer .badge.inactive-badge {
+        background-color: #ff0000 !important;
+        color: white !important;
+    }
+    
+    /* Extra specificity for Bootstrap override */
+    .table tbody tr.inactive-customer td {
+        background-color: #ff9999 !important;
+        color: #660000 !important;
+    }
+    
+    /* Outstanding Aging Styles */
+    .aging-card {
+        border-left: 4px solid;
+    }
+    .aging-0-30 { border-left-color: #28a745; }
+    .aging-30-60 { border-left-color: #17a2b8; }
+    .aging-60-90 { border-left-color: #ffc107; }
+    .aging-90-plus { border-left-color: #dc3545; }
+    
+    .supply-stopped {
+        background-color: #f8d7da;
+        opacity: 0.7;
+    }
+    .supply-stopped-badge {
+        background-color: #dc3545;
+        color: white;
+        padding: 2px 8px;
+        border-radius: 4px;
+        font-size: 0.75rem;
+    }
+    
+    .nav-tabs .nav-link.active {
+        font-weight: bold;
+    }
+</style>
+{% endblock %}
+
+{% block content %}
+<div class="row">
+    <div class="col-12">
+        <div class="d-flex justify-content-between align-items-center mb-4">
+            <h2><i class="fas fa-users me-2"></i>Customer Management</h2>
+            <button class="btn btn-primary" data-bs-toggle="modal" data-bs-target="#addCustomerModal">
+                <i class="fas fa-plus me-1"></i>Add Customer
+            </button>
+        </div>
+    </div>
+</div>
+
+<!-- Tabs -->
+<ul class="nav nav-tabs mb-4" id="customerTabs" role="tablist">
+    <li class="nav-item" role="presentation">
+        <button class="nav-link active" id="customers-tab" data-bs-toggle="tab" data-bs-target="#customers-content" type="button">
+            <i class="fas fa-users me-1"></i>All Customers
+        </button>
+    </li>
+    <li class="nav-item" role="presentation">
+        <button class="nav-link" id="outstanding-tab" data-bs-toggle="tab" data-bs-target="#outstanding-content" type="button">
+            <i class="fas fa-money-bill-wave me-1"></i>Outstanding Aging
+        </button>
+    </li>
+</ul>
+
+<!-- Tab Content -->
+<div class="tab-content" id="customerTabsContent">
+    <!-- All Customers Tab -->
+    <div class="tab-pane fade show active" id="customers-content" role="tabpanel">
+        
+<!-- Customer Analytics Cards -->
+<div class="row mb-4">
+    <div class="col-md-3">
+        <div class="card customer-card">
+            <div class="card-body text-center">
+                <i class="fas fa-users fa-2x text-primary mb-2"></i>
+                <h4 id="totalCustomers">-</h4>
+                <small class="text-muted">Total Customers</small>
+            </div>
+        </div>
+    </div>
+    <div class="col-md-3">
+        <div class="card customer-card">
+            <div class="card-body text-center">
+                <i class="fas fa-user-check fa-2x text-success mb-2"></i>
+                <h4 id="activeCustomers">-</h4>
+                <small class="text-muted">Active (30 days)</small>
+            </div>
+        </div>
+    </div>
+    <div class="col-md-3">
+        <div class="card customer-card">
+            <div class="card-body text-center">
+                <i class="fas fa-rupee-sign fa-2x text-info mb-2"></i>
+                <h4 id="avgOrderValue">₨ -</h4>
+                <small class="text-muted">Avg Order Value</small>
+            </div>
+        </div>
+    </div>
+    <div class="col-md-3">
+        <div class="card customer-card">
+            <div class="card-body text-center">
+                <i class="fas fa-chart-line fa-2x text-warning mb-2"></i>
+                <h4 id="totalRevenue">₨ -</h4>
+                <small class="text-muted">Total Revenue</small>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Search and Filters -->
+<div class="row mb-4">
+    <div class="col-md-8">
+        <div class="input-group">
+            <input type="text" id="searchInput" class="form-control" placeholder="Search customers by name, phone, or email...">
+            <button class="btn btn-outline-secondary" type="button" id="clearSearch">
+                <i class="fas fa-times"></i>
+            </button>
+        </div>
+    </div>
+    <div class="col-md-4">
+        <div class="d-flex gap-2">
+            <select id="sortBy" class="form-select">
+                <option value="name">Sort by Name</option>
+                <option value="total_purchases">Sort by Total Purchases</option>
+                <option value="last_purchase_date">Sort by Last Purchase</option>
+                <option value="loyalty_points">Sort by Loyalty Points</option>
+            </select>
+            <button type="button" id="inactiveCheckboxBtn" onclick="window.toggleInactive()" style="
+                display: inline-flex;
+                align-items: center;
+                gap: 8px;
+                padding: 10px 15px;
+                border-radius: 5px;
+                border: 2px solid #999;
+                background-color: #f0f0f0;
+                color: #333;
+                font-weight: normal;
+                cursor: pointer;
+                transition: all 0.3s ease;
+                font-size: 14px;
+            ">
+                <span id="checkboxBox" style="
+                    display: inline-block;
+                    width: 20px;
+                    height: 20px;
+                    border: 2px solid #999;
+                    background-color: white;
+                    border-radius: 3px;
+                    flex-shrink: 0;
+                    display: flex;
+                    align-items: center;
+                    justify-content: center;
+                    transition: all 0.3s ease;
+                "></span>
+                📋 Show Inactive
+            </button>
+            <input type="hidden" id="showInactive" value="false">
+        </div>
+    </div>
+</div>
+
+<!-- Customers Table -->
+<div class="row">
+    <div class="col-12">
+        <div class="card">
+            <div class="card-header">
+                <h5 class="mb-0">Customers</h5>
+            </div>
+            <div class="card-body">
+                <div class="table-responsive">
+                    <table class="table table-striped table-hover" id="customersTable">
+                        <thead>
+                            <tr>
+                                <th>Name</th>
+                                <th>Contact</th>
+                                <th>Loyalty Points</th>
+                                <th>Total Purchases</th>
+                                <th>Credit Balance</th>
+                                <th>Last Purchase</th>
+                                <th>Actions</th>
+                            </tr>
+                        </thead>
+                        <tbody id="customersTableBody">
+                            <!-- Customers will be loaded here -->
+                        </tbody>
+                    </table>
+                </div>
+
+                <!-- Pagination -->
+                <nav id="paginationNav" class="mt-3" aria-label="Customers pagination">
+                    <ul class="pagination justify-content-center" id="pagination">
+                        <!-- Pagination will be loaded here -->
+                    </ul>
+                </nav>
+            </div>
+        </div>
+    </div>
+</div>
+
+    </div>
+    
+    <!-- Outstanding Aging Tab -->
+    <div class="tab-pane fade" id="outstanding-content" role="tabpanel">
+        
+        <!-- Outstanding Summary Cards -->
+        <div class="row mb-4">
+            <div class="col-md-3">
+                <div class="card customer-card aging-card aging-0-30">
+                    <div class="card-body text-center">
+                        <i class="fas fa-calendar-check fa-2x text-success mb-2"></i>
+                        <h4 id="outstanding0_30">₨ 0.00</h4>
+                        <small class="text-muted">0-30 Days</small>
+                        <div class="mt-2"><span class="badge bg-success" id="count0_30">0 customers</span></div>
+                    </div>
+                </div>
+            </div>
+            <div class="col-md-3">
+                <div class="card customer-card aging-card aging-30-60">
+                    <div class="card-body text-center">
+                        <i class="fas fa-calendar-alt fa-2x text-info mb-2"></i>
+                        <h4 id="outstanding30_60">₨ 0.00</h4>
+                        <small class="text-muted">30-60 Days</small>
+                        <div class="mt-2"><span class="badge bg-info" id="count30_60">0 customers</span></div>
+                    </div>
+                </div>
+            </div>
+            <div class="col-md-3">
+                <div class="card customer-card aging-card aging-60-90">
+                    <div class="card-body text-center">
+                        <i class="fas fa-calendar-exclamation fa-2x text-warning mb-2"></i>
+                        <h4 id="outstanding60_90">₨ 0.00</h4>
+                        <small class="text-muted">60-90 Days</small>
+                        <div class="mt-2"><span class="badge bg-warning" id="count60_90">0 customers</span></div>
+                    </div>
+                </div>
+            </div>
+            <div class="col-md-3">
+                <div class="card customer-card aging-card aging-90-plus">
+                    <div class="card-body text-center">
+                        <i class="fas fa-exclamation-triangle fa-2x text-danger mb-2"></i>
+                        <h4 id="outstanding90_plus">₨ 0.00</h4>
+                        <small class="text-muted">90+ Days</small>
+                        <div class="mt-2"><span class="badge bg-danger" id="count90_plus">0 customers</span></div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Recalculate Button -->
+        <div class="row mb-4">
+            <div class="col-12">
+                <button class="btn btn-primary" onclick="recalculateBalances()">
+                    <i class="fas fa-sync-alt me-1"></i>Recalculate Balances
+                </button>
+                <button class="btn btn-success ms-2" onclick="loadOutstandingAging()">
+                    <i class="fas fa-redo me-1"></i>Refresh
+                </button>
+            </div>
+        </div>
+
+        <!-- Outstanding Customers Table -->
+        <div class="row">
+            <div class="col-12">
+                <div class="card">
+                    <div class="card-header bg-danger text-white">
+                        <h5 class="mb-0"><i class="fas fa-exclamation-triangle me-2"></i>Customers with Outstanding Balance</h5>
+                    </div>
+                    <div class="card-body">
+                        <div class="table-responsive">
+                            <table class="table table-striped table-hover" id="outstandingTable">
+                                <thead>
+                                    <tr>
+                                        <th>Customer</th>
+                                        <th>Contact</th>
+                                        <th>0-30 Days</th>
+                                        <th>30-60 Days</th>
+                                        <th>60-90 Days</th>
+                                        <th>90+ Days</th>
+                                        <th>Total Outstanding</th>
+                                        <th>Status</th>
+                                        <th>Actions</th>
+                                    </tr>
+                                </thead>
+                                <tbody id="outstandingTableBody">
+                                    <!-- Outstanding customers will be loaded here -->
+                                </tbody>
+                            </table>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+    </div>
+</div>
+
+<!-- Add/Edit Customer Modal -->
+<div class="modal fade" id="addCustomerModal" tabindex="-1">
+    <div class="modal-dialog modal-lg">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title" id="customerModalTitle">Add New Customer</h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+            </div>
+            <form id="customerForm">
+                <div class="modal-body">
+                    <div class="row">
+                        <div class="col-md-6">
+                            <div class="mb-3">
+                                <label for="customerName" class="form-label">Customer Name *</label>
+                                <input type="text" class="form-control" id="customerName" required>
+                            </div>
+                        </div>
+                        <div class="col-md-6">
+                            <div class="mb-3">
+                                <label for="customerPhone" class="form-label">Phone</label>
+                                <input type="tel" class="form-control" id="customerPhone">
+                            </div>
+                        </div>
+                    </div>
+
+                    <div class="row">
+                        <div class="col-md-6">
+                            <div class="mb-3">
+                                <label for="customerEmail" class="form-label">Email</label>
+                                <input type="email" class="form-control" id="customerEmail">
+                            </div>
+                        </div>
+                        <div class="col-md-6">
+                            <div class="mb-3">
+                                <label for="customerPreferredPayment" class="form-label">Preferred Payment Method</label>
+                                <select class="form-select" id="customerPreferredPayment">
+                                    <option value="">Select Method</option>
+                                    <option value="cash">Cash</option>
+                                    <option value="card">Card</option>
+                                    <option value="credit">Store Credit</option>
+                                    <option value="bank_transfer">Bank Transfer</option>
+                                </select>
+                            </div>
+                        </div>
+                    </div>
+
+                    <div class="row">
+                        <div class="col-md-6">
+                            <div class="mb-3">
+                                <label for="customerCreditLimit" class="form-label">Credit Limit</label>
+                                <input type="number" class="form-control" id="customerCreditLimit" step="0.01" min="0">
+                            </div>
+                        </div>
+                        <div class="col-md-6">
+                            <div class="mb-3">
+                                <label for="customerCurrentBalance" class="form-label">Current Balance</label>
+                                <input type="number" class="form-control" id="customerCurrentBalance" step="0.01" readonly>
+                            </div>
+                        </div>
+                    </div>
+
+                    <div class="mb-3">
+                        <label for="customerAddress" class="form-label">Address</label>
+                        <textarea class="form-control" id="customerAddress" rows="3"></textarea>
+                    </div>
+
+                    <div class="mb-3">
+                        <label for="customerNotes" class="form-label">Notes</label>
+                        <textarea class="form-control" id="customerNotes" rows="2"></textarea>
+                    </div>
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancel</button>
+                    <button type="submit" class="btn btn-primary" id="saveCustomerBtn">Save Customer</button>
+                </div>
+            </form>
+        </div>
+    </div>
+</div>
+
+<!-- Customer Details Modal -->
+<div class="modal fade" id="customerDetailsModal" tabindex="-1">
+    <div class="modal-dialog modal-xl">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title">Customer Details</h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+            </div>
+            <div class="modal-body">
+                <div class="row">
+                    <div class="col-md-6">
+                        <h6>Customer Information</h6>
+                        <div id="customerInfo">
+                            <!-- Customer info will be loaded here -->
+                        </div>
+                    </div>
+                    <div class="col-md-6">
+                        <h6>Loyalty Points</h6>
+                        <div class="d-flex align-items-center mb-3">
+                            <span class="badge loyalty-badge fs-6 me-3" id="loyaltyPoints" style="color: #000 !important;">0</span>
+                            <div class="btn-group" role="group">
+                                <button class="btn btn-sm btn-outline-success" onclick="adjustLoyaltyPoints(10)">+10</button>
+                                <button class="btn btn-sm btn-outline-success" onclick="adjustLoyaltyPoints(50)">+50</button>
+                                <button class="btn btn-sm btn-outline-danger" onclick="adjustLoyaltyPoints(-10)">-10</button>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <hr>
+
+                <h6>Purchase History</h6>
+                <div class="table-responsive">
+                    <table class="table table-striped" id="purchaseHistoryTable">
+                        <thead>
+                            <tr>
+                                <th>Date</th>
+                                <th>Items</th>
+                                <th>Total</th>
+                                <th>Payment</th>
+                            </tr>
+                        </thead>
+                        <tbody id="purchaseHistoryTableBody">
+                            <!-- Purchase history will be loaded here -->
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Payment Recording Modal -->
+<div class="modal fade" id="paymentModal" tabindex="-1" aria-labelledby="paymentModalLabel">
+    <div class="modal-dialog">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title" id="paymentModalLabel">Record Payment</h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+            </div>
+            <div class="modal-body">
+                <form id="paymentForm">
+                    <input type="hidden" id="paymentCustomerId">
+                    <div class="mb-3">
+                        <label class="form-label">Customer Name</label>
+                        <input type="text" class="form-control" id="paymentCustomerName" readonly>
+                    </div>
+                    <div class="mb-3">
+                        <label class="form-label">Outstanding Balance</label>
+                        <input type="text" class="form-control" id="paymentOutstandingBalance" readonly>
+                    </div>
+                    <div class="mb-3">
+                        <label class="form-label">Payment Amount *</label>
+                        <input type="number" class="form-control" id="paymentAmount" step="0.01" min="0.01" required>
+                    </div>
+                    <div class="mb-3">
+                        <label class="form-label">Payment Method</label>
+                        <select class="form-select" id="paymentMethod">
+                            <option value="Cash">Cash</option>
+                            <option value="Card">Card</option>
+                            <option value="Bank Transfer">Bank Transfer</option>
+                            <option value="Cheque">Cheque</option>
+                            <option value="Other">Other</option>
+                        </select>
+                    </div>
+                    <div class="mb-3">
+                        <label class="form-label">Reference Number</label>
+                        <input type="text" class="form-control" id="paymentReference" placeholder="Cheque number, transaction ID, etc.">
+                    </div>
+                    <div id="paymentChequeDetails" class="d-none">
+                        <div class="mb-3">
+                            <label class="form-label">Cheque Number</label>
+                            <input type="text" class="form-control" id="chequeNumber" placeholder="Enter cheque number">
+                        </div>
+                        <div class="mb-3">
+                            <label class="form-label">Bank Name</label>
+                            <input type="text" class="form-control" id="bankName" placeholder="Bank name">
+                        </div>
+                        <div class="mb-3">
+                            <label class="form-label">Cheque Date</label>
+                            <input type="date" class="form-control" id="chequeDate">
+                        </div>
+                    </div>
+                    <div class="mb-3">
+                        <label class="form-label">Notes</label>
+                        <textarea class="form-control" id="paymentNotes" rows="2" placeholder="Optional notes"></textarea>
+                    </div>
+                </form>
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancel</button>
+                <button type="button" class="btn btn-primary" id="savePaymentBtn">Record Payment</button>
+            </div>
+        </div>
+    </div>
+</div>
+
+{% endblock %}
+
+{% block scripts %}
+<script>
+let currentPage = 1;
+let currentCustomerId = null;
+
+var csrfToken = $('meta[name="csrf-token"]').attr('content');
+
+$.ajaxSetup({
+    headers: {
+        'X-CSRFToken': csrfToken
+    }
+});
+
+
+$(document).ready(function() {
+    
+    loadCustomerAnalytics();
+    loadCustomers();
+
+    // Search functionality
+    $('#searchInput').on('keyup', function() {
+        currentPage = 1;
+        loadCustomers();
+    });
+
+    // Clear search
+    $('#clearSearch').on('click', function() {
+        $('#searchInput').val('');
+        currentPage = 1;
+        loadCustomers();
+    });
+
+    // Sort functionality
+    $('#sortBy').on('change', function() {
+        currentPage = 1;
+        loadCustomers();
+    });
+
+    // Show inactive toggle - SIMPLE BUTTON with onclick handler
+    console.log('jQuery setup for checkbox button starting...');
+    
+    window.showInactiveState = false;
+    
+    // Global function to toggle inactive
+    window.toggleInactive = function() {
+        console.log('🔴 TOGGLE INACTIVE CALLED');
+        console.log('Current state:', window.showInactiveState);
+        
+        // Toggle state
+        window.showInactiveState = !window.showInactiveState;
+        console.log('New state:', window.showInactiveState);
+        
+        const btn = $('#inactiveCheckboxBtn');
+        const box = $('#checkboxBox');
+        
+        if (window.showInactiveState) {
+            // CHECKED - Turn blue
+            btn.css({
+                'background-color': '#d1ecf1',
+                'border-color': '#0d6efd',
+                'color': '#0d6efd',
+                'font-weight': 'bold'
+            });
+            box.css({
+                'background-color': '#0d6efd',
+                'border-color': '#0d6efd',
+                'color': 'white'
+            }).html('✓');
+            console.log('✓ CHECKED: Button turned BLUE');
+        } else {
+            // UNCHECKED - Turn gray
+            btn.css({
+                'background-color': '#f0f0f0',
+                'border-color': '#999',
+                'color': '#333',
+                'font-weight': 'normal'
+            });
+            box.css({
+                'background-color': 'white',
+                'border-color': '#999',
+                'color': '#333'
+            }).html('');
+            console.log('✓ UNCHECKED: Button turned GRAY');
+        }
+        
+        // Load customers with new state
+        currentPage = 1;
+        loadCustomers();
+    };
+    
+    console.log('✓ toggleInactive function ready');
+
+    // Customer form submission - use event delegation for modal elements
+    $(document).on('submit', '#customerForm', function(e) {
+        e.preventDefault();
+        saveCustomer();
+    });
+
+    // Also use event delegation for button click
+    $(document).on('click', '#saveCustomerBtn', function(e) {
+        console.log('Save customer button clicked');
+    });
+});
+
+function loadCustomerAnalytics() {
+    $.get('/customers/api/customers/analytics')
+        .done(function(data) {
+            $('#totalCustomers').text(data.total_customers);
+            $('#activeCustomers').text(data.active_customers);
+            $('#avgOrderValue').text('₨ ' + parseFloat(data.average_order_value).toFixed(2));
+            $('#totalRevenue').text('₨ ' + parseFloat(data.total_revenue).toFixed(2));
+        })
+        .fail(function() {
+            console.error('Failed to load customer analytics');
+        });
+}
+
+function loadCustomers() {
+    const search = $('#searchInput').val();
+    const sortBy = $('#sortBy').val();
+    
+    // Ensure state variable is initialized
+    if (window.showInactiveState === undefined) {
+        window.showInactiveState = false;
+    }
+    
+    // Use the persistent state variable
+    const showInactive = window.showInactiveState ? 'true' : 'false';
+
+    $.get('/customers/api/customers', {
+        page: currentPage,
+        per_page: 50,
+        search: search,
+        sort_by: sortBy,
+        show_inactive: showInactive
+    })
+    .done(function(data) {
+        console.log('DEBUG: Received', data.customers.length, 'customers');
+        console.log('DEBUG: Customer statuses:', data.customers.map(c => ({name: c.name, is_active: c.is_active})));
+        renderCustomers(data.customers);
+        renderPagination(data);
+    })
+    .fail(function() {
+        showAlert('Error loading customers', 'danger');
+    });
+}
+
+function renderCustomers(customers) {
+    const $tbody = $('#customersTableBody');
+    $tbody.empty();
+
+    if (customers.length === 0) {
+        $tbody.append('<tr><td colspan="7" class="text-center">No customers found</td></tr>');
+        return;
+    }
+
+    customers.forEach(customer => {
+        const creditStatus = getCreditStatus(customer);
+        const lastPurchase = customer.last_purchase_date ?
+            window.formatTimestamp(customer.last_purchase_date, false) : 'Never';
+        
+        // Add class for inactive customers
+        const inactiveClass = customer.is_active ? '' : 'inactive-customer';
+        const inactiveStyle = customer.is_active ? '' : 'style="background-color: #ff6666 !important; color: #660000 !important;"';
+        const inactiveBadge = customer.is_active ? '' : '<span class="badge" style="background-color: #ff0000 !important; color: white !important; font-size: 12px; padding: 5px 10px; margin-left: 8px; font-weight: bold;">INACTIVE</span>';
+        
+        if (!customer.is_active) {
+            console.log(`DEBUG: Adding inactive-customer class to ${customer.name}`);
+        }
+
+        const row = `
+            <tr class="${inactiveClass}" ${inactiveStyle}>
+                <td ${inactiveStyle}>
+                    <strong style="${customer.is_active ? '' : 'color: #660000 !important;'}">${customer.name}</strong>
+                    ${inactiveBadge}
+                    ${customer.email ? `<br><small class="text-muted">${customer.email}</small>` : ''}
+                </td>
+                <td ${inactiveStyle}>
+                    ${customer.phone || '-'}
+                    ${customer.address ? `<br><small class="text-muted">${customer.address.substring(0, 30)}${customer.address.length > 30 ? '...' : ''}</small>` : ''}
+                </td>
+                <td ${inactiveStyle}>
+                    <span class="badge loyalty-badge" style="color: #000 !important;">${customer.loyalty_points || 0}</span>
+                </td>
+                <td ${inactiveStyle}>₨ ${parseFloat(customer.total_purchases || 0).toFixed(2)}</td>
+                <td ${inactiveStyle}>
+                    <span class="credit-indicator ${creditStatus.class}"></span>
+                    ₨ ${parseFloat(customer.current_balance || 0).toFixed(2)}
+                    ${customer.credit_limit ? ` / ₨ ${parseFloat(customer.credit_limit).toFixed(2)}` : ''}
+                </td>
+                <td ${inactiveStyle}>${lastPurchase}</td>
+                <td ${inactiveStyle}>
+                    <div class="btn-group" role="group">
+                        <button class="btn btn-sm btn-outline-info" onclick="viewCustomerDetails(${customer.id})" title="View Details">
+                            <i class="fas fa-eye"></i>
+                        </button>
+                        ${customer.is_active ? `
+                        <button class="btn btn-sm btn-outline-secondary" onclick="editCustomer(${customer.id})" title="Edit">
+                            <i class="fas fa-edit"></i>
+                        </button>
+                        <button class="btn btn-sm btn-outline-danger" onclick="deleteCustomer(${customer.id}, '${customer.name}')" title="Archive">
+                            <i class="fas fa-archive"></i>
+                        </button>
+                        ` : `
+                        <button class="btn btn-sm btn-outline-success" onclick="restoreCustomer(${customer.id}, '${customer.name}')" title="Restore">
+                            <i class="fas fa-trash-restore"></i>
+                        </button>
+                        `}
+                    </div>
+                </td>
+            </tr>
+        `;
+        $tbody.append(row);
+    });
+    
+    // Debug: Verify inactive class was applied
+    const inactiveRows = $tbody.find('tr.inactive-customer').length;
+    console.log('DEBUG: Found', inactiveRows, 'inactive customer rows');
+}
+
+function getCreditStatus(customer) {
+    const balance = parseFloat(customer.current_balance || 0);
+    const limit = parseFloat(customer.credit_limit || 0);
+
+    if (balance === 0) return { class: 'credit-good' };
+    if (limit > 0 && balance >= limit * 0.9) return { class: 'credit-danger' };
+    if (limit > 0 && balance >= limit * 0.7) return { class: 'credit-warning' };
+    return { class: 'credit-good' };
+}
+
+function renderPagination(data) {
+    const $pagination = $('#pagination');
+    $pagination.empty();
+
+    if (data.pages <= 1) return;
+
+    // Previous button
+    if (data.current_page > 1) {
+        $pagination.append(`<li class="page-item"><a class="page-link" href="#" onclick="changePage(${data.current_page - 1})">Previous</a></li>`);
+    }
+
+    // Page numbers
+    for (let i = Math.max(1, data.current_page - 2); i <= Math.min(data.pages, data.current_page + 2); i++) {
+        const activeClass = i === data.current_page ? 'active' : '';
+        $pagination.append(`<li class="page-item ${activeClass}"><a class="page-link" href="#" onclick="changePage(${i})">${i}</a></li>`);
+    }
+
+    // Next button
+    if (data.current_page < data.pages) {
+        $pagination.append(`<li class="page-item"><a class="page-link" href="#" onclick="changePage(${data.current_page + 1})">Next</a></li>`);
+    }
+}
+
+function changePage(page) {
+    currentPage = page;
+    loadCustomers();
+}
+
+function editCustomer(customerId) {
+    $.get(`/customers/api/customers/${customerId}`)
+        .done(function(customer) {
+            currentCustomerId = customer.id;
+            $('#customerModalTitle').text('Edit Customer');
+            $('#customerName').val(customer.name);
+            $('#customerPhone').val(customer.phone || '');
+            $('#customerEmail').val(customer.email || '');
+            $('#customerAddress').val(customer.address || '');
+            $('#customerNotes').val(customer.notes || '');
+            $('#customerPreferredPayment').val(customer.preferred_payment_method || '');
+            $('#customerCreditLimit').val(customer.credit_limit || '');
+            $('#customerCurrentBalance').val(customer.current_balance || '');
+
+            $('#addCustomerModal').modal('show');
+        })
+        .fail(function() {
+            showAlert('Error loading customer details', 'danger');
+        });
+}
+
+function saveCustomer() {
+    const customerData = {
+        name: $('#customerName').val(),
+        phone: $('#customerPhone').val(),
+        email: $('#customerEmail').val(),
+        address: $('#customerAddress').val(),
+        notes: $('#customerNotes').val(),
+        preferred_payment_method: $('#customerPreferredPayment').val(),
+        credit_limit: $('#customerCreditLimit').val(),
+        current_balance: $('#customerCurrentBalance').val()
+    };
+
+    // Validate name
+    if (!customerData.name || customerData.name.trim() === '') {
+        showAlert('Customer name is required', 'danger');
+        return;
+    }
+
+    const url = currentCustomerId ? `/customers/api/customers/${currentCustomerId}` : '/customers/api/customers';
+    const method = currentCustomerId ? 'PUT' : 'POST';
+
+    $.ajax({
+        url: url,
+        method: method,
+        contentType: 'application/json',
+        headers: {
+            'X-CSRFToken': csrfToken
+        },
+        data: JSON.stringify(customerData)
+    })
+    .done(function(response) {
+        if (response.success) {
+            $('#addCustomerModal').modal('hide');
+            $('#customerForm')[0].reset();
+            currentCustomerId = null;
+            loadCustomers();
+            loadCustomerAnalytics();
+            showAlert(response.message, 'success');
+        } else {
+            showAlert(response.error || 'Error saving customer', 'danger');
+        }
+    })
+    .fail(function(jqXHR) {
+        // Handle the case when an archived customer with same name exists
+        try {
+            const response = JSON.parse(jqXHR.responseText);
+            if (response.error && response.archived_customer_id) {
+                // Show confirmation to restore the archived customer
+                const customerName = $('#customerName').val();
+                if (confirm(`A customer with name "${customerName}" already exists but is archived. Would you like to restore it?`)) {
+                    restoreAndUpdateCustomer(response.archived_customer_id, customerData);
+                }
+            } else {
+                showAlert(response.error || 'Error saving customer', 'danger');
+            }
+        } catch (e) {
+            console.error('Error parsing response:', e);
+            showAlert('Error saving customer: ' + jqXHR.status + ' ' + jqXHR.statusText, 'danger');
+        }
+    });
+}
+
+function restoreAndUpdateCustomer(archivedCustomerId, customerData) {
+    // First restore the customer
+    $.ajax({
+        url: `/customers/api/customers/${archivedCustomerId}/restore`,
+        method: 'POST',
+        headers: {
+            'X-CSRFToken': csrfToken
+        }
+    })
+    .done(function(response) {
+        if (response.success) {
+            // Then update with the new data
+            $.ajax({
+                url: `/customers/api/customers/${archivedCustomerId}`,
+                method: 'PUT',
+                contentType: 'application/json',
+                headers: {
+                    'X-CSRFToken': csrfToken
+                },
+                data: JSON.stringify(customerData)
+            })
+            .done(function(updateResponse) {
+                if (updateResponse.success) {
+                    $('#addCustomerModal').modal('hide');
+                    $('#customerForm')[0].reset();
+                    currentCustomerId = null;
+                    loadCustomers();
+                    loadCustomerAnalytics();
+                    showAlert('Customer restored and updated successfully!', 'success');
+                } else {
+                    showAlert(updateResponse.error || 'Error updating customer', 'danger');
+                }
+            })
+            .fail(function() {
+                showAlert('Error updating customer', 'danger');
+            });
+        } else {
+            showAlert(response.error || 'Error restoring customer', 'danger');
+        }
+    })
+    .fail(function() {
+        showAlert('Error restoring customer', 'danger');
+    });
+}
+
+function deleteCustomer(customerId, customerName) {
+    if (confirm(`Are you sure you want to archive "${customerName}"? The customer data will be preserved and can be restored later.`)) {
+        $.ajax({
+            url: `/customers/api/customers/${customerId}`,
+            method: 'DELETE'
+        })
+        .done(function(response) {
+            if (response.success) {
+                loadCustomers();
+                loadCustomerAnalytics();
+                showAlert(response.message, 'success');
+            } else {
+                showAlert(response.error || 'Error archiving customer', 'danger');
+            }
+        })
+        .fail(function() {
+            showAlert('Error archiving customer', 'danger');
+        });
+    }
+}
+
+function restoreCustomer(customerId, customerName) {
+    if (confirm(`Are you sure you want to restore "${customerName}"?`)) {
+        $.ajax({
+            url: `/customers/api/customers/${customerId}/restore`,
+            method: 'POST'
+        })
+        .done(function(response) {
+            if (response.success) {
+                loadCustomers();
+                loadCustomerAnalytics();
+                showAlert(response.message, 'success');
+            } else {
+                showAlert(response.error || 'Error restoring customer', 'danger');
+            }
+        })
+        .fail(function() {
+            showAlert('Error restoring customer', 'danger');
+        });
+    }
+}
+
+function viewCustomerDetails(customerId) {
+    currentCustomerId = customerId;
+
+    // Load customer info
+    $.get(`/customers/api/customers/${customerId}`)
+        .done(function(customer) {
+            const infoHtml = `
+                <p><strong>Name:</strong> ${customer.name}</p>
+                <p><strong>Phone:</strong> ${customer.phone || '-'}</p>
+                <p><strong>Email:</strong> ${customer.email || '-'}</p>
+                <p><strong>Address:</strong> ${customer.address || '-'}</p>
+                <p><strong>Total Purchases:</strong> ₨ ${parseFloat(customer.total_purchases || 0).toFixed(2)}</p>
+                <p><strong>Credit Limit:</strong> ₨ ${parseFloat(customer.credit_limit || 0).toFixed(2)}</p>
+                <p><strong>Current Balance:</strong> ₨ ${parseFloat(customer.current_balance || 0).toFixed(2)}</p>
+                <p><strong>Registration Date:</strong> ${customer.registration_date || '-'}</p>
+                <p><strong>Notes:</strong> ${customer.notes || '-'}</p>
+            `;
+            $('#customerInfo').html(infoHtml);
+            $('#loyaltyPoints').text(customer.loyalty_points || 0);
+        });
+
+    // Load purchase history
+    $.get(`/customers/api/customers/${customerId}/purchase-history`)
+        .done(function(data) {
+            const $tbody = $('#purchaseHistoryTableBody');
+            $tbody.empty();
+
+            if (data.sales.length === 0) {
+                $tbody.append('<tr><td colspan="4" class="text-center">No purchase history found</td></tr>');
+            } else {
+                data.sales.forEach(sale => {
+                    const itemsText = sale.items.map(item => `${item.product_name} (${item.quantity})`).join(', ');
+                    const row = `
+                        <tr>
+                            <td>${window.formatTimestamp(sale.date, true)}</td>
+                            <td><small>${itemsText}</small></td>
+                            <td>₨ ${parseFloat(sale.total).toFixed(2)}</td>
+                            <td>${sale.payment}</td>
+                        </tr>
+                    `;
+                    $tbody.append(row);
+                });
+            }
+        });
+
+    $('#customerDetailsModal').modal('show');
+}
+
+function adjustLoyaltyPoints(points) {
+    if (!currentCustomerId) return;
+
+    $.ajax({
+        url: `/customers/api/customers/${currentCustomerId}/loyalty`,
+        method: 'POST',
+        contentType: 'application/json',
+        data: JSON.stringify({ points: points })
+    })
+    .done(function(response) {
+        if (response.success) {
+            $('#loyaltyPoints').text(response.new_points);
+            loadCustomers(); // Refresh the table
+            showAlert(`Loyalty points updated to ${response.new_points}`, 'success');
+        } else {
+            showAlert(response.error || 'Error updating loyalty points', 'danger');
+        }
+    })
+    .fail(function() {
+        showAlert('Error updating loyalty points', 'danger');
+    });
+}
+
+function showAlert(message, type) {
+    const alertHtml = `
+        <div class="alert alert-${type} alert-dismissible fade show">
+            ${message}
+            <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
+        </div>
+    `;
+    $('.container-fluid').prepend(alertHtml);
+    setTimeout(() => $('.alert').fadeOut(), 5000);
+}
+
+// Reset modal when closed
+$('#addCustomerModal').on('hidden.bs.modal', function() {
+    $('#customerForm')[0].reset();
+    currentCustomerId = null;
+    $('#customerModalTitle').text('Add New Customer');
+});
+
+// Outstanding Aging Functions
+$('#outstanding-tab').on('click', function() {
+    loadOutstandingAging();
+});
+
+function loadOutstandingAging() {
+    $.get('/customers/api/customers/outstanding-aging')
+        .done(function(data) {
+            // Update summary cards
+            $('#outstanding0_30').text('₨ ' + parseFloat(data.totals['0_30_days'].total).toFixed(2));
+            $('#count0_30').text(data.totals['0_30_days'].count + ' customers');
+            
+            $('#outstanding30_60').text('₨ ' + parseFloat(data.totals['30_60_days'].total).toFixed(2));
+            $('#count30_60').text(data.totals['30_60_days'].count + ' customers');
+            
+            $('#outstanding60_90').text('₨ ' + parseFloat(data.totals['60_90_days'].total).toFixed(2));
+            $('#count60_90').text(data.totals['60_90_days'].count + ' customers');
+            
+            $('#outstanding90_plus').text('₨ ' + parseFloat(data.totals['90_plus_days'].total).toFixed(2));
+            $('#count90_plus').text(data.totals['90_plus_days'].count + ' customers');
+            
+            // Render customers table
+            renderOutstandingCustomers(data.customers);
+        })
+        .fail(function() {
+            showAlert('Error loading outstanding aging data', 'danger');
+        });
+}
+
+function renderOutstandingCustomers(customers) {
+    const $tbody = $('#outstandingTableBody');
+    $tbody.empty();
+
+    if (customers.length === 0) {
+        $tbody.append('<tr><td colspan="10" class="text-center">No customers with outstanding balance</td></tr>');
+        return;
+    }
+
+    customers.forEach(customer => {
+        const rowClass = customer.supply_stopped ? 'supply-stopped' : '';
+        const statusBadge = customer.supply_stopped 
+            ? '<span class="supply-stopped-badge">Supply Stopped</span>' 
+            : '<span class="badge bg-success">Active</span>';
+        
+        const row = `
+            <tr class="${rowClass}">
+                <td>
+                    <strong>${customer.name}</strong>
+                </td>
+                <td>${customer.phone || '-'}</td>
+                <td class="text-success">₨ ${parseFloat(customer.outstanding_0_30 || 0).toFixed(2)}</td>
+                <td class="text-info">₨ ${parseFloat(customer.outstanding_30_60 || 0).toFixed(2)}</td>
+                <td class="text-warning">₨ ${parseFloat(customer.outstanding_60_90 || 0).toFixed(2)}</td>
+                <td class="text-danger">₨ ${parseFloat(customer.outstanding_90_plus || 0).toFixed(2)}</td>
+                <td><strong>₨ ${parseFloat(customer.total_outstanding || 0).toFixed(2)}</strong></td>
+                <td>${statusBadge}</td>
+                <td>
+                    <div class="btn-group" role="group">
+                        <button class="btn btn-sm btn-outline-info" onclick="viewCustomerDetails(${customer.id})" title="View Details">
+                            <i class="fas fa-eye"></i>
+                        </button>
+                        ${customer.total_outstanding > 0 ? `
+                        <button class="btn btn-sm btn-success" onclick="openPaymentModal(${customer.id}, '${customer.name.replace(/'/g, "\\'")}', ${customer.total_outstanding})" title="Record Payment">
+                            <i class="fas fa-money-bill-wave"></i>
+                        </button>
+                        ` : ''}
+                        ${customer.supply_stopped ? `
+                        <button class="btn btn-sm btn-outline-success" onclick="toggleSupply(${customer.id}, false)" title="Resume Supply">
+                            <i class="fas fa-play"></i>
+                        </button>
+                        ` : `
+                        <button class="btn btn-sm btn-outline-danger" onclick="toggleSupply(${customer.id}, true)" title="Stop Supply">
+                            <i class="fas fa-ban"></i>
+                        </button>
+                        `}
+                    </div>
+                </td>
+            </tr>
+        `;
+        $tbody.append(row);
+    });
+}
+
+function recalculateBalances() {
+    if (!confirm('This will recalculate all customer balances based on their credit sales. Continue?')) {
+        return;
+    }
+    
+    $.ajax({
+        url: '/customers/api/customers/recalculate-balance',
+        method: 'POST',
+        headers: {
+            'X-CSRFToken': csrfToken
+        }
+    })
+    .done(function(response) {
+        if (response.success) {
+            showAlert(response.message, 'success');
+            loadOutstandingAging();
+        } else {
+            showAlert(response.error || 'Error recalculating balances', 'danger');
+        }
+    })
+    .fail(function() {
+        showAlert('Error recalculating balances', 'danger');
+    });
+}
+
+function toggleSupply(customerId, stop) {
+    const action = stop ? 'stop' : 'resume';
+    if (!confirm(`Are you sure you want to ${action} supply for this customer?`)) {
+        return;
+    }
+    
+    $.ajax({
+        url: `/customers/api/customers/${customerId}/stop-supply`,
+        method: 'POST',
+        contentType: 'application/json',
+        data: JSON.stringify({ stop: stop }),
+        headers: {
+            'X-CSRFToken': csrfToken
+        }
+    })
+    .done(function(response) {
+        if (response.success) {
+            showAlert(response.message, 'success');
+            loadOutstandingAging();
+        } else {
+            showAlert(response.error || 'Error updating supply status', 'danger');
+        }
+    })
+    .fail(function() {
+        showAlert('Error updating supply status', 'danger');
+    });
+}
+
+// Payment Recording Functions
+// Payment Recording - Use event delegation for modal buttons
+document.addEventListener('DOMContentLoaded', function() {
+    console.log('Payment handler setup starting...');
+    // Setup cheque field toggle for payment modal
+    function toggleChequeFieldsCustomer() {
+        try {
+            var pm = document.getElementById('paymentMethod');
+            var chequeDiv = document.getElementById('paymentChequeDetails');
+            if (!chequeDiv) return;
+            var val = pm && pm.value ? pm.value : null;
+            console.log('toggleChequeFieldsCustomer called, paymentMethod=', val);
+            if (val && val.toLowerCase() === 'cheque') {
+                chequeDiv.classList.remove('d-none');
+                chequeDiv.classList.add('d-block');
+                var cn = document.getElementById('chequeNumber');
+                var pref = document.getElementById('paymentReference');
+                if (cn && (!cn.value || cn.value.trim() === '') && pref && pref.value) cn.value = pref.value;
+            } else {
+                chequeDiv.classList.remove('d-block');
+                chequeDiv.classList.add('d-none');
+            }
+        } catch (e) { console.error('toggleChequeFieldsCustomer error', e); }
+    }
+    // Attach listeners
+    var pmElCust = document.getElementById('paymentMethod');
+    if (pmElCust) {
+        pmElCust.addEventListener('change', toggleChequeFieldsCustomer);
+        pmElCust.addEventListener('input', toggleChequeFieldsCustomer);
+    }
+    document.addEventListener('change', function(e){ if (e.target && e.target.id === 'paymentMethod') toggleChequeFieldsCustomer(); });
+    try { window.toggleChequeFieldsCustomer = toggleChequeFieldsCustomer; } catch(e) {}
+    
+    // Use event delegation on document level for modal button
+    document.addEventListener('click', function(e) {
+        // Check if the clicked element is the save payment button
+        if (e.target.id === 'savePaymentBtn' || e.target.closest('#savePaymentBtn')) {
+            console.log('==== BUTTON CLICK FIRED (via delegation) ====');
+            e.preventDefault();
+            e.stopPropagation();
+            
+            const customerId = document.getElementById('paymentCustomerId').value;
+            const amount = document.getElementById('paymentAmount').value;
+            const paymentMethod = document.getElementById('paymentMethod').value;
+            const reference = document.getElementById('paymentReference').value;
+            const notes = document.getElementById('paymentNotes').value;
+            
+            console.log('Form values:', {
+                customerId: customerId,
+                amount: amount,
+                paymentMethod: paymentMethod,
+                reference: reference,
+                notes: notes
+            });
+            
+            const amountFloat = parseFloat(amount);
+            console.log('Parsed amount:', amountFloat);
+            
+            if (!customerId) {
+                console.error('Customer ID is missing!');
+                showAlert('Customer ID is missing', 'danger');
+                return;
+            }
+            
+            if (!amountFloat || amountFloat <= 0) {
+                console.error('Invalid amount:', amountFloat);
+                showAlert('Please enter a valid payment amount', 'danger');
+                return;
+            }
+            
+            console.log('Validation passed, submitting...');
+            const savePaymentBtn = document.getElementById('savePaymentBtn');
+            if (savePaymentBtn) {
+                savePaymentBtn.disabled = true;
+                savePaymentBtn.innerHTML = '<i class="fas fa-spinner fa-spin"></i> Saving...';
+            }
+            
+            const paymentUrl = '/customers/api/customers/' + customerId + '/record-payment';
+            console.log('POST URL:', paymentUrl);
+            
+            const csrfTokenElement = document.querySelector('meta[name="csrf-token"]');
+            const csrfToken = csrfTokenElement ? csrfTokenElement.content : '';
+            console.log('CSRF Token present:', csrfToken ? 'YES (' + csrfToken.substring(0, 10) + '...)' : 'NO');
+            
+            const requestBody = {
+                amount: amountFloat,
+                payment_method: paymentMethod,
+                reference_number: reference,
+                notes: notes
+            };
+            // Include cheque details if payment method is Cheque
+            if (paymentMethod && paymentMethod.toLowerCase() === 'cheque') {
+                requestBody.cheque_number = (document.getElementById('chequeNumber') && document.getElementById('chequeNumber').value) || reference;
+                requestBody.cheque_bank = (document.getElementById('bankName') && document.getElementById('bankName').value) || '';
+                requestBody.cheque_date = (document.getElementById('chequeDate') && document.getElementById('chequeDate').value) || '';
+            }
+            console.log('Request body:', requestBody);
+            
+            fetch(paymentUrl, {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                    'X-CSRFToken': csrfToken
+                },
+                body: JSON.stringify(requestBody)
+            })
+            .then(response => {
+                console.log('==== FETCH RESPONSE RECEIVED ====');
+                console.log('Status:', response.status, response.statusText);
+                console.log('Content-Type:', response.headers.get('content-type'));
+                
+                if (!response.ok) {
+                    console.error('HTTP Error:', response.status);
+                    if (response.status === 403) {
+                        return response.json().then(data => {
+                            console.error('Permission denied (403):', data);
+                            showAlert('Permission denied: You do not have permission to record payments', 'danger');
+                            throw new Error('Permission denied');
+                        });
+                    } else if (response.status === 404) {
+                        console.error('Not found (404)');
+                        showAlert('Customer not found', 'danger');
+                        throw new Error('Customer not found');
+                    } else if (response.status >= 500) {
+                        console.error('Server error (' + response.status + ')');
+                        showAlert('Server error while recording payment. Status: ' + response.status, 'danger');
+                        throw new Error('Server error');
+                    }
+                }
+                console.log('Response OK, parsing JSON...');
+                return response.json();
+            })
+            .then(data => {
+                console.log('==== JSON PARSED SUCCESSFULLY ====');
+                console.log('Response data:', data);
+                if (data.success) {
+                    console.log('SUCCESS! Recording payment completed');
+                    showAlert('Payment recorded successfully! New balance: ₨' + data.new_balance.toFixed(2), 'success');
+                    // Properly close Bootstrap modal
+                    const modalElement = document.getElementById('paymentModal');
+                    if (modalElement) {
+                        console.log('Closing payment modal...');
+                        const bsModal = bootstrap.Modal.getInstance(modalElement) || new bootstrap.Modal(modalElement);
+                        bsModal.hide();
+                    }
+                    // Refresh data
+                    setTimeout(function() {
+                        console.log('Refreshing data...');
+                        try { 
+                            if (typeof loadOutstandingAging === 'function') loadOutstandingAging();
+                            if (typeof loadCustomers === 'function') loadCustomers();
+                            if (typeof loadCustomerAnalytics === 'function') loadCustomerAnalytics();
+                        } catch(e) { console.error('Refresh error:', e); }
+                    }, 500);
+                } else if (data.error) {
+                    console.error('API returned error:', data.error);
+                    showAlert('Error: ' + data.error, 'danger');
+                } else {
+                    console.error('Unexpected response format:', data);
+                    showAlert('Unexpected response from server', 'danger');
+                }
+            })
+            .catch(error => {
+                console.error('==== FETCH ERROR CAUGHT ====');
+                console.error('Error message:', error.message);
+                console.error('Error stack:', error.stack);
+                if (error.message !== 'Permission denied' && error.message !== 'Customer not found' && error.message !== 'Server error') {
+                    showAlert('Error recording payment: ' + error.message, 'danger');
+                }
+            })
+            .finally(() => {
+                console.log('==== PAYMENT REQUEST COMPLETED ====');
+                const savePaymentBtn = document.getElementById('savePaymentBtn');
+                if (savePaymentBtn) {
+                    savePaymentBtn.disabled = false;
+                    savePaymentBtn.innerHTML = 'Record Payment';
+                }
+            });
+        }
+    }, true); // Use capture phase to catch all clicks
+    
+    console.log('Payment event delegation setup complete');
+});
+
+
+
+
+
+function openPaymentModal(customerId, customerName, outstandingBalance) {
+    $('#paymentCustomerId').val(customerId);
+    $('#paymentCustomerName').val(customerName);
+    $('#paymentOutstandingBalance').val('₨ ' + outstandingBalance.toFixed(2));
+    $('#paymentAmount').val(outstandingBalance.toFixed(2));
+    $('#paymentReference').val('');
+    $('#paymentNotes').val('');
+    
+    $('#paymentModal').modal('show');
+}
+</script>
+{% endblock %}

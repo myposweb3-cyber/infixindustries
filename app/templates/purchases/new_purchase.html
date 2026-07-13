@@ -1,0 +1,214 @@
+{% extends "base.html" %}
+
+{% block title %}New Purchase - {{ super() }}{% endblock %}
+
+{% block content %}
+<div class="container-fluid">
+    <h1 class="h3 mb-4 text-gray-800">Create New Purchase</h1>
+
+    <form method="post" id="purchaseForm">
+        <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+        <input type="hidden" name="items_json" id="items_json">
+
+        <!-- Main Purchase Details -->
+        <div class="card shadow mb-4">
+            <div class="card-header py-3">
+                <h6 class="m-0 font-weight-bold text-primary">Purchase Details</h6>
+            </div>
+            <div class="card-body">
+                <div class="row">
+                    <div class="col-md-4 mb-3">
+                        <label for="date" class="form-label">Date</label>
+                        <input type="date" class="form-control" id="date" name="date" value="{{ now.strftime('%Y-%m-%d') }}" required>
+                    </div>
+                    <div class="col-md-4 mb-3">
+                        <label for="supplier_id" class="form-label">Supplier</label>
+                        <select class="form-select" id="supplier_id" name="supplier_id" required>
+                            <option value="" disabled selected>Select a supplier</option>
+                            {% for supplier in suppliers %}
+                            <option value="{{ supplier.id }}">{{ supplier.name }}</option>
+                            {% endfor %}
+                        </select>
+                    </div>
+                    <div class="col-md-4 mb-3">
+                        <label for="invoice_number" class="form-label">Invoice Number</label>
+                        <input type="text" class="form-control" id="invoice_number" name="invoice_number">
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Purchase Items -->
+        <div class="card shadow mb-4">
+            <div class="card-header py-3">
+                <h6 class="m-0 font-weight-bold text-primary">Items</h6>
+            </div>
+            <div class="card-body">
+                <div class="row mb-3">
+                    <div class="col-md-6">
+                        <label for="product_search" class="form-label">Add Product</label>
+                        <select class="form-select" id="product_search">
+                            <option value="" disabled selected>Search for a product to add</option>
+                            {% for product in products %}
+                            <option value="{{ product.id }}" data-name="{{ product.name }}" data-cost="{{ product.cost_price or 0 }}">{{ product.name }}</option>
+                            {% endfor %}
+                        </select>
+                    </div>
+                </div>
+                <div class="table-responsive">
+                    <table class="table table-bordered" id="itemsTable">
+                        <thead>
+                            <tr>
+                                <th>Product</th>
+                                <th style="width: 15%;">Quantity</th>
+                                <th style="width: 15%;">Cost Price</th>
+                                <th style="width: 15%;">Total</th>
+                                <th style="width: 5%;">Action</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            <!-- Items will be added here by JS -->
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+        </div>
+
+        <!-- Summary and Submission -->
+        <div class="card shadow mb-4">
+            <div class="card-header py-3">
+                <h6 class="m-0 font-weight-bold text-primary">Summary</h6>
+            </div>
+            <div class="card-body">
+                <div class="row">
+                    <div class="col-md-4 mb-3">
+                        <label for="total_amount" class="form-label">Total Amount</label>
+                        <input type="number" class="form-control" id="total_amount" name="total_amount" readonly required>
+                    </div>
+                    <div class="col-md-4 mb-3">
+                        <label for="amount_paid" class="form-label">Amount Paid</label>
+                        <input type="number" step="0.01" class="form-control" id="amount_paid" name="amount_paid" value="0.00" required>
+                    </div>
+                    <div class="col-md-4 mb-3">
+                        <label for="status" class="form-label">Status</label>
+                        <select class="form-select" id="status" name="status" required>
+                            <option value="pending">Pending</option>
+                            <option value="partial">Partial</option>
+                            <option value="paid">Paid</option>
+                        </select>
+                    </div>
+                </div>
+                <button type="submit" class="btn btn-primary">Create Purchase</button>
+                <a href="{{ url_for('purchases.purchases') }}" class="btn btn-secondary">Cancel</a>
+            </div>
+        </div>
+    </form>
+</div>
+{% endblock %}
+
+{% block scripts %}
+<script>
+document.addEventListener('DOMContentLoaded', function() {
+    const productSearch = document.getElementById('product_search');
+    const itemsTableBody = document.querySelector('#itemsTable tbody');
+    const totalAmountInput = document.getElementById('total_amount');
+    const itemsJsonInput = document.getElementById('items_json');
+    let items = [];
+
+    if (!productSearch || !itemsTableBody || !totalAmountInput || !itemsJsonInput) {
+        console.error('Required elements not found in the DOM');
+        return;
+    }
+
+    productSearch.addEventListener('change', function() {
+        const selectedOption = this.options[this.selectedIndex];
+        
+        if (!selectedOption || !selectedOption.value) {
+            console.warn('No option selected or empty value');
+            return;
+        }
+
+        const productId = selectedOption.value;
+        const productName = selectedOption.getAttribute('data-name') || selectedOption.textContent;
+        const costPrice = parseFloat(selectedOption.getAttribute('data-cost') || 0);
+
+        console.log('Selected product:', { productId, productName, costPrice });
+
+        if (items.some(item => item.product_id === productId)) {
+            alert('Product already added.');
+            return;
+        }
+
+        const item = { product_id: productId, name: productName, quantity: 1, cost_price: costPrice };
+        items.push(item);
+        console.log('Item added, total items:', items.length);
+        renderTable();
+        this.value = '';
+    });
+
+    function renderTable() {
+        itemsTableBody.innerHTML = '';
+        let totalAmount = 0;
+
+        if (items.length === 0) {
+            itemsTableBody.innerHTML = '<tr><td colspan="5" class="text-center">No items added yet</td></tr>';
+        } else {
+            items.forEach((item, index) => {
+                const total = item.quantity * item.cost_price;
+                totalAmount += total;
+
+                const row = `
+                    <tr>
+                        <td>${escapeHtml(item.name)}</td>
+                        <td><input type="number" class="form-control quantity" value="${item.quantity}" data-index="${index}" min="1"></td>
+                        <td><input type="number" step="0.01" class="form-control cost_price" value="${item.cost_price.toFixed(2)}" data-index="${index}"></td>
+                        <td class="text-end">${total.toFixed(2)}</td>
+                        <td><button type="button" class="btn btn-sm btn-danger remove-item" data-index="${index}">&times;</button></td>
+                    </tr>
+                `;
+                itemsTableBody.insertAdjacentHTML('beforeend', row);
+            });
+        }
+
+        totalAmountInput.value = totalAmount.toFixed(2);
+        itemsJsonInput.value = JSON.stringify(items);
+    }
+
+    // Helper function to escape HTML
+    function escapeHtml(text) {
+        const map = {
+            '&': '&amp;',
+            '<': '&lt;',
+            '>': '&gt;',
+            '"': '&quot;',
+            "'": '&#039;'
+        };
+        return text.replace(/[&<>"']/g, m => map[m]);
+    }
+
+    itemsTableBody.addEventListener('input', function(e) {
+        if (e.target.classList.contains('quantity') || e.target.classList.contains('cost_price')) {
+            const index = parseInt(e.target.dataset.index);
+            if (index >= 0 && index < items.length) {
+                items[index].quantity = parseFloat(e.target.closest('tr').querySelector('.quantity').value) || 0;
+                items[index].cost_price = parseFloat(e.target.closest('tr').querySelector('.cost_price').value) || 0;
+                renderTable();
+            }
+        }
+    });
+
+    itemsTableBody.addEventListener('click', function(e) {
+        if (e.target.classList.contains('remove-item')) {
+            const index = parseInt(e.target.dataset.index);
+            if (index >= 0 && index < items.length) {
+                items.splice(index, 1);
+                renderTable();
+            }
+        }
+    });
+
+    // Initial render to show empty state
+    renderTable();
+});
+</script>
+{% endblock %}

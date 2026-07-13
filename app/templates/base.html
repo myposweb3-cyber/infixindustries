@@ -1,0 +1,737 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta name="csrf-token" content="{{ csrf_token() }}">
+    <title>{% block title %}{{ app_name }}{% endblock %}</title>
+
+    <!-- Google Fonts - Inter -->
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+    
+    <!-- Bootstrap CSS -->
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.1.3/dist/css/bootstrap.min.css" rel="stylesheet">
+    <!-- Font Awesome -->
+    <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css" rel="stylesheet">
+    <!-- Chart.js for data visualization -->
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    <!-- Custom CSS -->
+    <link href="{{ url_for('static', filename='css/style.css', v='2.1.1') }}" rel="stylesheet">
+    <style>
+        /* Sticky Footer Layout */
+        .main-wrapper {
+            height: 100vh;
+            display: flex;
+            flex-direction: column;
+            overflow: hidden;
+        }
+        .main-content {
+            flex: 1;
+            overflow-y: auto;
+        }
+    </style>
+</head>
+<body>
+    <!-- Sidebar -->
+    <aside class="sidebar" id="sidebar">
+        <div class="sidebar-header">
+            <a href="{{ url_for('main.dashboard') }}" class="brand">
+                <i class="fas fa-cash-register"></i>
+                <span class="brand-text">{{ app_name }}</span>
+            </a>
+            <div class="header-actions">
+                <button class="collapse-btn" id="sidebarCollapse" title="Toggle Sidebar">
+                    <i class="fas fa-angle-left"></i>
+                </button>
+                <button class="sidebar-close d-lg-none" id="sidebarClose">
+                    <i class="fas fa-times"></i>
+                </button>
+            </div>
+        </div>
+        
+        <nav class="sidebar-nav">
+            {% if current_user.is_authenticated %}
+            <ul class="nav-list">
+                <li class="nav-item">
+                    <a href="{{ url_for('main.dashboard') }}" class="nav-link {% if request.endpoint == 'main.dashboard' %}active{% endif %}">
+                        <i class="nav-icon fas fa-tachometer-alt"></i>
+                        <span class="nav-text">Dashboard</span>
+                    </a>
+                </li>
+
+                {% if current_user.can_access_sales %}
+                <li class="nav-item">
+                    <a href="{{ url_for('sales.sales') }}" class="nav-link {% if request.endpoint == 'sales.sales' %}active{% endif %}">
+                        <i class="nav-icon fas fa-shopping-cart"></i>
+                        <span class="nav-text">Sales</span>
+                    </a>
+                </li>
+                {% endif %}
+
+                {% if current_user.can_view_sales_history %}
+                <li class="nav-item">
+                    <a href="{{ url_for('sales.sales_history') }}" class="nav-link {% if request.endpoint == 'sales.sales_history' %}active{% endif %}">
+                        <i class="nav-icon fas fa-history"></i>
+                        <span class="nav-text">Sales History</span>
+                    </a>
+                </li>
+                <li class="nav-item">
+                    <a href="{{ url_for('sales.returns') }}" class="nav-link {% if request.endpoint == 'sales.returns' %}active{% endif %}">
+                        <i class="nav-icon fas fa-undo-alt"></i>
+                        <span class="nav-text">Returns</span>
+                    </a>
+                </li>
+                {% endif %}
+
+                {% if current_user.can_view_inventory or current_user.can_access_warehouse %}
+                <li class="nav-item nav-dropdown {% if request.endpoint.startswith('inventory.') %}open{% endif %}">
+                    <a href="#" class="nav-link">
+                        <i class="nav-icon fas fa-warehouse"></i>
+                        <span class="nav-text">Inventory</span>
+                        <i class="fas fa-chevron-down nav-arrow"></i>
+                    </a>
+                    <ul class="nav-dropdown-menu">
+                        {% if current_user.can_view_inventory %}
+                        <li>
+                            <a href="{{ url_for('inventory.inventory') }}" class="nav-dropdown-link {% if request.endpoint == 'inventory.inventory' %}active{% endif %}">
+                                <i class="nav-icon fas fa-box"></i>
+                                <span class="nav-text">Products</span>
+                            </a>
+                        </li>
+                        {% endif %}
+                        {% if current_user.can_access_warehouse %}
+                        <li>
+                            <a href="{{ url_for('inventory.warehouse') }}" class="nav-dropdown-link {% if request.endpoint == 'inventory.warehouse' %}active{% endif %}">
+                                <i class="nav-icon fas fa-boxes"></i>
+                                <span class="nav-text">Warehouse Stock</span>
+                            </a>
+                        </li>
+                        <li>
+                            <a href="{{ url_for('inventory.warehouses') }}" class="nav-dropdown-link {% if request.endpoint == 'inventory.warehouses' %}active{% endif %}">
+                                <i class="nav-icon fas fa-warehouse"></i>
+                                <span class="nav-text">Manage Warehouses</span>
+                            </a>
+                        </li>
+                        {% endif %}
+                    </ul>
+                </li>
+                {% endif %}
+
+                {% if current_user.can_access_purchases %}
+                <li class="nav-item nav-dropdown {% if request.endpoint.startswith('purchases.') %}open{% endif %}">
+                    <a href="#" class="nav-link">
+                        <i class="nav-icon fas fa-dolly"></i>
+                        <span class="nav-text">Purchases</span>
+                        <i class="fas fa-chevron-down nav-arrow"></i>
+                    </a>
+                    <ul class="nav-dropdown-menu">
+                        <li>
+                            <a href="{{ url_for('purchases.purchases') }}" class="nav-dropdown-link {% if request.endpoint == 'purchases.purchases' %}active{% endif %}">
+                                <i class="nav-icon fas fa-shopping-basket"></i>
+                                <span class="nav-text">Purchases</span>
+                            </a>
+                        </li>
+                        <li>
+                            <a href="{{ url_for('purchases.purchase_returns') }}" class="nav-dropdown-link {% if request.endpoint == 'purchases.purchase_returns' %}active{% endif %}">
+                                <i class="nav-icon fas fa-truck-loading"></i>
+                                <span class="nav-text">Purchase Returns</span>
+                            </a>
+                        </li>
+                    </ul>
+                </li>
+                {% endif %}
+
+                {% if current_user.can_access_customers %}
+                <li class="nav-item">
+                    <a href="{{ url_for('customers.customers') }}" class="nav-link {% if request.endpoint == 'customers.customers' %}active{% endif %}">
+                        <i class="nav-icon fas fa-users"></i>
+                        <span class="nav-text">Customers</span>
+                    </a>
+                </li>
+                {% endif %}
+
+                {% if current_user.can_access_suppliers %}
+                <li class="nav-item">
+                    <a href="{{ url_for('suppliers.suppliers') }}" class="nav-link {% if request.endpoint == 'suppliers.suppliers' %}active{% endif %}">
+                        <i class="nav-icon fas fa-truck"></i>
+                        <span class="nav-text">Suppliers</span>
+                    </a>
+                </li>
+                {% endif %}
+
+                {% if current_user.can_view_reports %}
+                <li class="nav-item">
+                    <a href="{{ url_for('reports.reports') }}" class="nav-link {% if request.endpoint == 'reports.reports' %}active{% endif %}">
+                        <i class="nav-icon fas fa-chart-bar"></i>
+                        <span class="nav-text">Reports</span>
+                    </a>
+                </li>
+                {% endif %}
+
+                {% if current_user.can_access_expenses %}
+                <li class="nav-item">
+                    <a href="{{ url_for('expenses.expenses') }}" class="nav-link {% if request.endpoint == 'expenses.expenses' %}active{% endif %}">
+                        <i class="nav-icon fas fa-receipt"></i>
+                        <span class="nav-text">Expenses</span>
+                    </a>
+                </li>
+                {% endif %}
+
+                {% if current_user.can_access_cheques %}
+                <li class="nav-item">
+                    <a href="{{ url_for('cheques.cheques') }}" class="nav-link {% if request.endpoint == 'cheques.cheques' %}active{% endif %}">
+                        <i class="nav-icon fas fa-money-check"></i>
+                        <span class="nav-text">Cheques</span>
+                    </a>
+                </li>
+                {% endif %}
+
+                {% if current_user.can_access_settings %}
+                <li class="nav-item">
+                    <a href="{{ url_for('settings.settings') }}" class="nav-link {% if request.endpoint == 'settings.settings' %}active{% endif %}">
+                        <i class="nav-icon fas fa-cog"></i>
+                        <span class="nav-text">Settings</span>
+                    </a>
+                </li>
+                <li class="nav-item">
+                    <a href="{{ url_for('audit.audit_logs') }}" class="nav-link {% if request.endpoint == 'audit.audit_logs' %}active{% endif %}">
+                        <i class="nav-icon fas fa-history"></i>
+                        <span class="nav-text">Audit Logs</span>
+                    </a>
+                </li>
+                {% endif %}
+            </ul>
+            {% endif %}
+        </nav>
+        
+        <div class="sidebar-footer">
+            {% if current_user.is_authenticated %}
+            <div class="user-info">
+                <div class="user-avatar">
+                    {% if current_user.profile_picture %}
+                    <img src="{{ '/' + current_user.profile_picture }}" alt="{{ current_user.username }}" />
+                    {% else %}
+                    <i class="fas fa-user"></i>
+                    {% endif %}
+                </div>
+                <div class="user-details">
+                    <span class="user-name">{{ current_user.username }}</span>
+                    <span class="user-role">{{ current_user.role }}</span>
+                </div>
+            </div>
+            <a href="{{ url_for('auth.logout') }}" class="logout-btn">
+                <i class="fas fa-sign-out-alt"></i>
+                <span>Logout</span>
+            </a>
+            {% endif %}
+        </div>
+    </aside>
+
+    <!-- Main Content -->
+    <div class="main-wrapper">
+        <!-- Top Header -->
+        <header class="top-header">
+            <div class="d-flex align-items-center justify-content-between w-100">
+                <!-- Left: Toggle & Search -->
+                <div class="d-flex align-items-center gap-4">
+                    <button class="sidebar-toggle" id="sidebarToggle" title="Toggle Sidebar" onclick="toggleSidebar(event)">
+                        <i class="fas fa-bars"></i>
+                    </button>
+                    
+                    <div class="header-search d-none d-md-block position-relative">
+                        <i class="fas fa-search position-absolute top-50 start-0 translate-middle-y ms-3 text-muted"></i>
+                        <input type="text" id="headerSearchInput" class="form-control border-0 bg-light ps-5" placeholder="Search products...">
+                    </div>
+                </div>
+
+                <!-- Right: Actions & User -->
+                <div class="d-flex align-items-center gap-4">
+                    <!-- Real-time Clock -->
+                    <div class="d-none d-lg-block text-end me-2">
+                        <div id="clockTime" class="fw-bold text-dark" style="font-size: 0.9rem; line-height: 1.1; letter-spacing: 0.2px;"></div>
+                        <div id="clockDate" class="text-muted" style="font-size: 0.7rem; line-height: 1; letter-spacing: 0.1px;"></div>
+                    </div>
+
+                    <!-- Quick Nav Buttons -->
+                    <div class="d-none d-lg-flex align-items-center gap-2 quick-nav-buttons">
+                        <a href="{{ url_for('customers.customers') }}" class="btn btn-link text-secondary text-decoration-none quick-nav-btn" data-bs-toggle="tooltip" title="Customers">
+                            <i class="fas fa-users"></i>
+                        </a>
+                        <a href="{{ url_for('inventory.inventory') }}" class="btn btn-link text-secondary text-decoration-none quick-nav-btn" data-bs-toggle="tooltip" title="Inventory">
+                            <i class="fas fa-box"></i>
+                        </a>
+                        <a href="{{ url_for('reports.reports') }}" class="btn btn-link text-secondary text-decoration-none quick-nav-btn" data-bs-toggle="tooltip" title="Reports">
+                            <i class="fas fa-chart-bar"></i>
+                        </a>
+                        <button class="btn btn-link text-secondary text-decoration-none quick-nav-btn" id="calculatorBtn" data-bs-toggle="tooltip" title="Calculator">
+                            <i class="fas fa-calculator"></i>
+                        </button>
+                    </div>
+
+                    <!-- New Sale Button -->
+                    <a href="{{ url_for('sales.sales') }}" class="btn btn-primary d-none d-md-flex align-items-center gap-3 px-5" style="font-size: 15px; letter-spacing: 0.2px;">
+                        <i class="fas fa-plus"></i>
+                        <span>New Sale</span>
+                    </a>
+
+                    <div class="vr d-none d-lg-block mx-3 text-muted opacity-25"></div>
+
+                    <!-- Action Icons -->
+                    <div class="d-flex align-items-center gap-1">
+                        <button class="btn btn-link text-secondary text-decoration-none header-actions-btn" id="fullscreenBtn" title="Toggle Fullscreen">
+                            <i class="fas fa-expand" id="fullscreenIcon"></i>
+                        </button>
+                        <button class="btn btn-link text-secondary text-decoration-none header-actions-btn" id="onScreenKeyboardBtn" title="On-screen Keyboard">
+                            <i class="fas fa-keyboard"></i>
+                        </button>
+                        <button class="btn btn-link text-secondary text-decoration-none header-actions-btn" id="shortcutHelpBtn" title="Keyboard Shortcuts (?)">
+                            <i class="fas fa-question-circle"></i>
+                        </button>
+                        <!-- Notification Dropdown -->
+                        <div class="dropdown">
+                            <button class="btn btn-link text-secondary text-decoration-none header-actions-btn position-relative" id="notificationDropdown" data-bs-toggle="dropdown" aria-expanded="false" title="Notifications">
+                                <i class="fas fa-bell"></i>
+                                <span class="position-absolute top-0 start-100 translate-middle badge rounded-pill bg-danger border border-white notification-badge" style="font-size: 0.5rem; padding: 0.25em 0.4em; display: none;">0</span>
+                            </button>
+                            <ul class="dropdown-menu dropdown-menu-end dropdown-menu-notifications mt-2" aria-labelledby="notificationDropdown" style="width: 350px; max-height: 400px; overflow-y: auto;">
+                                <li class="dropdown-header">
+                                    <div class="d-flex justify-content-between align-items-center">
+                                        <strong>Notifications</strong>
+                                        <a href="#" class="small text-decoration-none" id="markAllRead">Mark all as read</a>
+                                    </div>
+                                </li>
+                                <li><hr class="dropdown-divider my-0"></li>
+                                <div id="notificationList">
+                                    <li class="notification-item text-center text-muted py-3">
+                                        <i class="fas fa-spinner fa-spin"></i> Loading...
+                                    </li>
+                                </div>
+                                <li><hr class="dropdown-divider my-0"></li>
+                                <li><a class="dropdown-item text-center small text-muted py-2" href="#">View all notifications</a></li>
+                            </ul>
+                        </div>
+                    </div>
+
+                    <!-- User Profile Dropdown -->
+                    <div class="dropdown d-none d-md-block ms-3">
+                        <a href="#" class="d-flex align-items-center text-decoration-none user-profile-trigger" id="userDropdown" data-bs-toggle="dropdown" aria-expanded="false">
+                            {% if current_user.profile_picture %}
+                                <img src="{{ '/' + current_user.profile_picture }}" alt="{{ current_user.username }}" class="rounded-circle" style="width: 40px; height: 40px; object-fit: cover; border: 2px solid #e2e8f0;">
+                            {% else %}
+                                <div class="bg-gradient rounded-circle d-flex align-items-center justify-content-center fw-bold text-white" style="width: 40px; height: 40px; background: linear-gradient(135deg, #4F46E5 0%, #7C3AED 100%); font-size: 16px; letter-spacing: 0.5px;">
+                                    {{ current_user.username[:1].upper() }}
+                                </div>
+                            {% endif %}
+                            <div class="ms-3 d-none d-lg-block text-start">
+                                <div class="text-dark fw-bold" style="font-size: 0.85rem; letter-spacing: 0.1px;">{{ current_user.username }}</div>
+                                <div class="text-muted" style="font-size: 0.7rem; letter-spacing: 0.05px;">{{ current_user.role }}</div>
+                            </div>
+                            <i class="fas fa-chevron-down ms-2 text-muted" style="font-size: 0.75rem;"></i>
+                        </a>
+                        <ul class="dropdown-menu dropdown-menu-end mt-2" aria-labelledby="userDropdown">
+                            <li><div class="dropdown-header">Signed in as <strong>{{ current_user.username }}</strong></div></li>
+                            <li><hr class="dropdown-divider"></li>
+                            <li><div class="dropdown-header">Current Company</div></li>
+                            {% if current_company %}
+                            <li>
+                                <a class="dropdown-item" href="#">
+                                    <i class="fas fa-building me-2"></i><strong>{{ current_company.name }}</strong>
+                                </a>
+                            </li>
+                            {% else %}
+                            <li>
+                                <a class="dropdown-item" href="#">
+                                    <i class="fas fa-building me-2"></i>No company selected
+                                </a>
+                            </li>
+                            {% endif %}
+                            {% if user_companies|length > 1 %}
+                            <li><div class="dropdown-header text-muted small">Switch Company</div></li>
+                            {% for company in user_companies %}
+                            <li>
+                                <a class="dropdown-item company-switch-item {% if current_company and current_company.id == company.id %}active{% endif %}" href="#" onclick="switchCompany({{ company.id }}); return false;">
+                                    <i class="fas fa-exchange-alt me-2"></i>{{ company.name }}
+                                    {% if current_company and current_company.id == company.id %}<i class="fas fa-check ms-2 text-success"></i>{% endif %}
+                                </a>
+                            </li>
+                            {% endfor %}
+                            {% endif %}
+                            <li><hr class="dropdown-divider"></li>
+                            <li><a class="dropdown-item" href="{{ url_for('settings.profile') }}"><i class="fas fa-user-circle me-2 text-muted"></i>My Profile</a></li>
+                            <li><a class="dropdown-item" href="{{ url_for('settings.settings') }}"><i class="fas fa-cog me-2 text-muted"></i>Settings</a></li>
+                            {% if current_user.role and current_user.role.lower() == 'super admin' %}
+                            <li><a class="dropdown-item" href="{{ url_for('companies.companies') }}"><i class="fas fa-building me-2 text-muted"></i>Manage Companies</a></li>
+                            {% endif %}
+                            <li><hr class="dropdown-divider"></li>
+                            <li><a class="dropdown-item text-danger" href="{{ url_for('auth.logout') }}"><i class="fas fa-sign-out-alt me-2"></i>Logout</a></li>
+                        </ul>
+                    </div>
+                    
+                    <!-- Mobile User Menu Toggle -->
+                    <div class="d-md-none position-relative">
+                        <a href="#" class="d-flex align-items-center text-decoration-none header-user" id="mobileUserDropdown" data-bs-toggle="dropdown" aria-expanded="false">
+                            <i class="fas fa-user-circle fa-lg text-secondary"></i>
+                        </a>
+                        <ul class="dropdown-menu dropdown-menu-end mt-2" aria-labelledby="mobileUserDropdown">
+                            <li><div class="dropdown-header">Signed in as <strong>{{ current_user.username }}</strong></div></li>
+                            <li><hr class="dropdown-divider"></li>
+                            <li><div class="dropdown-header">Current Company</div></li>
+                            {% if current_company %}
+                            <li>
+                                <a class="dropdown-item" href="#">
+                                    <i class="fas fa-building me-2"></i><strong>{{ current_company.name }}</strong>
+                                </a>
+                            </li>
+                            {% else %}
+                            <li>
+                                <a class="dropdown-item" href="#">
+                                    <i class="fas fa-building me-2"></i>No company selected
+                                </a>
+                            </li>
+                            {% endif %}
+                            {% if user_companies|length > 1 %}
+                            <li><div class="dropdown-header text-muted small">Switch Company</div></li>
+                            {% for company in user_companies %}
+                            <li>
+                                <a class="dropdown-item company-switch-item {% if current_company and current_company.id == company.id %}active{% endif %}" href="#" onclick="switchCompany({{ company.id }}); return false;">
+                                    <i class="fas fa-exchange-alt me-2"></i>{{ company.name }}
+                                    {% if current_company and current_company.id == company.id %}<i class="fas fa-check ms-2 text-success"></i>{% endif %}
+                                </a>
+                            </li>
+                            {% endfor %}
+                            {% endif %}
+                            <li><hr class="dropdown-divider"></li>
+                            <li><a class="dropdown-item" href="{{ url_for('settings.profile') }}"><i class="fas fa-user-circle me-2 text-muted"></i>My Profile</a></li>
+                            <li><a class="dropdown-item" href="{{ url_for('settings.settings') }}"><i class="fas fa-cog me-2 text-muted"></i>Settings</a></li>
+                            {% if current_user.role and current_user.role.lower() == 'super admin' %}
+                            <li><a class="dropdown-item" href="{{ url_for('companies.companies') }}"><i class="fas fa-building me-2 text-muted"></i>Manage Companies</a></li>
+                            {% endif %}
+                            <li><hr class="dropdown-divider"></li>
+                            <li><a class="dropdown-item text-danger" href="{{ url_for('auth.logout') }}"><i class="fas fa-sign-out-alt me-2"></i>Logout</a></li>
+                        </ul>
+                    </div>
+                </div>
+            </div>
+        </header>
+
+        <!-- Page Content -->
+        <main class="main-content">
+            {% with messages = get_flashed_messages(with_categories=true) %}
+                {% if messages %}
+                    {% for category, message in messages %}
+                        <div class="alert alert-{{ 'danger' if category == 'error' else category }} alert-dismissible fade show">
+                            {{ message }}
+                            <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
+                        </div>
+                    {% endfor %}
+                {% endif %}
+            {% endwith %}
+
+            {% block content %}{% endblock %}
+        </main>
+
+        <footer class="footer mt-auto py-2 bg-light border-top">
+            <div class="container-fluid text-center">
+                <small class="text-muted">Developed by Codilight (Pvt) Ltd</small>
+            </div>
+        </footer>
+    </div>
+
+    <!-- Sidebar Overlay (Mobile) -->
+    <div class="sidebar-overlay" id="sidebarOverlay"></div>
+
+    <!-- Shortcut Legend Modal -->
+    <div class="modal fade" id="shortcutModal" tabindex="-1" aria-labelledby="shortcutModalLabel" aria-hidden="true">
+        <div class="modal-dialog modal-sm modal-dialog-centered">
+            <div class="modal-content">
+                <div class="modal-header">
+                    <h5 class="modal-title" id="shortcutModalLabel">Keyboard Shortcuts</h5>
+                    <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+                </div>
+                <div class="modal-body">
+                    <ul class="list-unstyled shortcut-list">
+                        <li><strong>N</strong> — New Sale</li>
+                        <li><strong>C</strong> — Customers</li>
+                        <li><strong>P</strong> — Products</li>
+                        <li><strong>H</strong> — Sales History</li>
+                        <li><strong>R</strong> — Returns</li>
+                        <li><strong>B</strong> — Hold Bills</li>
+                        <li><strong>E</strong> — Expenses</li>
+                        <li><strong>T</strong> — Reports</li>
+                        <li><strong>?</strong> — Open this help</li>
+                    </ul>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Draggable Calculator -->
+    <div id="draggableCalculator" class="draggable-calculator" style="display: none;">
+        <div class="calc-header" id="calcHeader">
+            <div class="d-flex align-items-center">
+                <i class="fas fa-calculator me-2 text-primary"></i>
+                <span class="fw-bold">Calculator</span>
+            </div>
+            <button type="button" class="btn-close small" id="closeCalcBtn" aria-label="Close"></button>
+        </div>
+        <div class="calc-body">
+            <input type="text" class="form-control mb-3 text-end fs-4 fw-bold border bg-light" id="calcDisplay" readonly value="0" style="height: 50px;">
+            <div class="row g-2">
+                <div class="col-3"><button class="btn btn-danger w-100 fw-bold" onclick="calcAppend('C')">C</button></div>
+                <div class="col-3"><button class="btn btn-secondary w-100 fw-bold" onclick="calcAppend('DEL')">⌫</button></div>
+                <div class="col-3"><button class="btn btn-light w-100 fw-bold" onclick="calcAppend('%')">%</button></div>
+                <div class="col-3"><button class="btn btn-light w-100 fw-bold" onclick="calcAppend('/')">/</button></div>
+                
+                <div class="col-3"><button class="btn btn-white border w-100 fw-bold py-2" onclick="calcAppend('7')">7</button></div>
+                <div class="col-3"><button class="btn btn-white border w-100 fw-bold py-2" onclick="calcAppend('8')">8</button></div>
+                <div class="col-3"><button class="btn btn-white border w-100 fw-bold py-2" onclick="calcAppend('9')">9</button></div>
+                <div class="col-3"><button class="btn btn-light w-100 fw-bold py-2" onclick="calcAppend('*')">×</button></div>
+                
+                <div class="col-3"><button class="btn btn-white border w-100 fw-bold py-2" onclick="calcAppend('4')">4</button></div>
+                <div class="col-3"><button class="btn btn-white border w-100 fw-bold py-2" onclick="calcAppend('5')">5</button></div>
+                <div class="col-3"><button class="btn btn-white border w-100 fw-bold py-2" onclick="calcAppend('6')">6</button></div>
+                <div class="col-3"><button class="btn btn-light w-100 fw-bold py-2" onclick="calcAppend('-')">-</button></div>
+                
+                <div class="col-3"><button class="btn btn-white border w-100 fw-bold py-2" onclick="calcAppend('1')">1</button></div>
+                <div class="col-3"><button class="btn btn-white border w-100 fw-bold py-2" onclick="calcAppend('2')">2</button></div>
+                <div class="col-3"><button class="btn btn-white border w-100 fw-bold py-2" onclick="calcAppend('3')">3</button></div>
+                <div class="col-3"><button class="btn btn-light w-100 fw-bold py-2" onclick="calcAppend('+')">+</button></div>
+                
+                <div class="col-6"><button class="btn btn-white border w-100 fw-bold py-2" onclick="calcAppend('0')">0</button></div>
+                <div class="col-3"><button class="btn btn-white border w-100 fw-bold py-2" onclick="calcAppend('.')">.</button></div>
+                <div class="col-3"><button class="btn btn-primary w-100 fw-bold py-2" onclick="calcResult()">=</button></div>
+            </div>
+        </div>
+    </div>
+
+    <!-- jQuery -->
+    <script src="https://code.jquery.com/jquery-3.6.0.min.js"></script>
+    <!-- Bootstrap JS -->
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.1.3/dist/js/bootstrap.bundle.min.js"></script>
+    <!-- Custom JS -->
+    <script src="{{ url_for('static', filename='js/app.js', v='2.1.0') }}"></script>
+    
+    <script>
+        // Load and replace currency symbols globally
+        document.addEventListener('DOMContentLoaded', function() {
+            function replaceCurrencySymbols() {
+                fetch('/api/currency-symbol')
+                    .then(response => response.json())
+                    .then(data => {
+                        const newSymbol = data.currency_symbol || 'Rs. ';
+                        document.querySelectorAll('h1, h2, h3, h4, h5, h6, p, span, td, div, li').forEach(element => {
+                            if (element.textContent && element.textContent.includes('₨')) {
+                                element.innerHTML = element.innerHTML.replace(/₨/g, newSymbol);
+                            }
+                        });
+                    })
+                    .catch(error => {
+                        console.error('Error loading currency symbol:', error);
+                    });
+            }
+            replaceCurrencySymbols();
+
+            // Real-time Clock
+            function updateClock() {
+                const now = new Date();
+                const timeString = now.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit', second: '2-digit' });
+                const dateString = now.toLocaleDateString([], { weekday: 'short', year: 'numeric', month: 'short', day: 'numeric' });
+                
+                const timeEl = document.getElementById('clockTime');
+                const dateEl = document.getElementById('clockDate');
+                if (timeEl) timeEl.textContent = timeString;
+                if (dateEl) dateEl.textContent = dateString;
+            }
+            setInterval(updateClock, 1000);
+            updateClock();
+        });
+    </script>
+
+    <!-- Global Timestamp Utility Functions -->
+    <script>
+        window.formatTimestamp = function(timestamp, includeTime = true) {
+            if (!timestamp) return '-';
+            
+            try {
+                let dateStr = String(timestamp).trim();
+                if (!dateStr.endsWith('Z') && !dateStr.includes('+')) {
+                    dateStr += 'Z';
+                }
+                
+                const date = new Date(dateStr);
+                if (isNaN(date.getTime())) {
+                    console.warn('Invalid timestamp:', timestamp);
+                    return timestamp;
+                }
+                
+                const userTimezone = Intl.DateTimeFormat().resolvedOptions().timeZone;
+                
+                if (includeTime) {
+                    return date.toLocaleString('en-GB', {
+                        year: 'numeric',
+                        month: '2-digit',
+                        day: '2-digit',
+                        hour: '2-digit',
+                        minute: '2-digit',
+                        second: '2-digit',
+                        hour12: false,
+                        timeZone: userTimezone
+                    });
+                } else {
+                    return date.toLocaleDateString('en-GB', {
+                        year: 'numeric',
+                        month: '2-digit',
+                        day: '2-digit',
+                        timeZone: userTimezone
+                    });
+                }
+            } catch(error) {
+                console.error('Error formatting timestamp:', timestamp, error);
+                return timestamp;
+            }
+        };
+
+        window.formatTableTimestamps = function() {
+            document.querySelectorAll('[data-timestamp]').forEach(el => {
+                const timestamp = el.getAttribute('data-timestamp');
+                el.textContent = window.formatTimestamp(timestamp, true);
+            });
+            
+            document.querySelectorAll('[data-date]').forEach(el => {
+                const timestamp = el.getAttribute('data-date');
+                el.textContent = window.formatTimestamp(timestamp, false);
+            });
+        };
+
+        window.formatDynamicTimestamps = function(container = document) {
+            if (!container) container = document;
+            
+            const timeElements = container.querySelectorAll('[data-timestamp]');
+            timeElements.forEach(el => {
+                if (el.textContent && !el.textContent.includes('/')) {
+                    const timestamp = el.getAttribute('data-timestamp') || el.textContent;
+                    el.textContent = window.formatTimestamp(timestamp, true);
+                }
+            });
+        };
+    </script>
+    
+    {% block scripts %}{% endblock %}
+
+    <script>
+        // Header Search Functionality
+        document.addEventListener('DOMContentLoaded', function() {
+            const headerSearchInput = document.getElementById('headerSearchInput');
+            if (headerSearchInput) {
+                headerSearchInput.addEventListener('keyup', function(e) {
+                    if (e.key === 'Enter' || this.value.length >= 2) {
+                        const searchTerm = this.value.trim();
+                        if (searchTerm) {
+                            window.location.href = '/sales/sales?search=' + encodeURIComponent(searchTerm);
+                        }
+                    }
+                });
+            }
+        });
+        
+        // Load real notifications from API
+        document.addEventListener('DOMContentLoaded', function() {
+            function loadNotifications() {
+                fetch('/api/notifications')
+                    .then(response => {
+                        if (!response.ok) {
+                            throw new Error(`HTTP error! status: ${response.status}`);
+                        }
+                        const contentType = response.headers.get('content-type');
+                        if (!contentType || !contentType.includes('application/json')) {
+                            throw new Error('Response is not JSON');
+                        }
+                        return response.json();
+                    })
+                    .then(data => {
+                        const notificationList = document.getElementById('notificationList');
+                        const badge = document.querySelector('.notification-badge');
+                        
+                        if (notificationList && data.notifications) {
+                            if (data.notifications.length === 0) {
+                                notificationList.innerHTML = '<li class="notification-item text-center text-muted py-3">No notifications</li>';
+                            } else {
+                                let html = '';
+                                data.notifications.forEach(function(notif) {
+                                    let iconClass = 'fa-info-circle';
+                                    let bgClass = 'bg-info-light';
+                                    let textClass = 'text-info';
+                                    
+                                    if (notif.type === 'success') {
+                                        iconClass = 'fa-check-circle';
+                                        bgClass = 'bg-success-light';
+                                        textClass = 'text-success';
+                                    } else if (notif.type === 'warning') {
+                                        iconClass = 'fa-exclamation-triangle';
+                                        bgClass = 'bg-warning-light';
+                                        textClass = 'text-warning';
+                                    } else if (notif.type === 'info') {
+                                        iconClass = 'fa-box';
+                                        bgClass = 'bg-info-light';
+                                        textClass = 'text-info';
+                                    }
+                                    
+                                    html += '<li class="notification-item">' +
+                                        '<a class="dropdown-item d-flex align-items-start" href="#">' +
+                                        '<div class="notification-icon ' + bgClass + ' ' + textClass + '"><i class="fas ' + iconClass + '"></i></div>' +
+                                        '<div class="notification-content">' +
+                                        '<p class="mb-0"><strong>' + notif.title + '</strong> ' + notif.message + '</p>' +
+                                        '<small class="text-muted">' + notif.time + '</small>' +
+                                        '</div>' +
+                                        '</a>' +
+                                        '</li>';
+                                });
+                                notificationList.innerHTML = html;
+                            }
+                        }
+                        
+                        if (badge && data.count > 0) {
+                            badge.textContent = data.count > 9 ? '9+' : data.count;
+                            badge.style.display = 'inline-block';
+                        }
+                    })
+                    .catch(function(error) {
+                        console.error('Error loading notifications:', error);
+                        const notificationList = document.getElementById('notificationList');
+                        if (notificationList) {
+                            notificationList.innerHTML = '<li class="notification-item text-center text-muted py-3">Failed to load</li>';
+                        }
+                    });
+            }
+            
+            loadNotifications();
+            setInterval(loadNotifications, 60000);
+        });
+        
+        // Company switcher function
+        function switchCompany(companyId) {
+            fetch('/companies/api/companies/switch', {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                    'X-CSRFToken': document.querySelector('meta[name="csrf-token"]').content
+                },
+                body: JSON.stringify({ company_id: companyId })
+            })
+            .then(response => response.json())
+            .then(data => {
+                if (data.success) {
+                    location.reload();
+                } else {
+                    alert(data.error || 'Failed to switch company');
+                }
+            })
+            .catch(error => {
+                alert('Error: ' + error);
+            });
+        }
+    </script>
+    </body>
+</html>

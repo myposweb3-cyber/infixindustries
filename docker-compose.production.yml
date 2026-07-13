@@ -1,0 +1,102 @@
+version: '3.8'
+
+services:
+  # PostgreSQL Database
+  db:
+    image: postgres:15-alpine
+    container_name: pos_db
+    restart: always
+    environment:
+      POSTGRES_DB: ${DB_NAME:-pos_db}
+      POSTGRES_USER: ${DB_USER:-pos_user}
+      POSTGRES_PASSWORD: ${DB_PASSWORD}
+      POSTGRES_INITDB_ARGS: "--encoding=UTF8"
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+      - ./backups:/backups
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U ${DB_USER:-pos_user}"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+    networks:
+      - pos_network
+    logging:
+      driver: "json-file"
+      options:
+        max-size: "10m"
+        max-file: "3"
+
+  # Flask Web Application
+  web:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    container_name: pos_app
+    restart: always
+    environment:
+      FLASK_ENV: production
+      DATABASE_URL: postgresql://${DB_USER:-pos_user}:${DB_PASSWORD}@db:5432/${DB_NAME:-pos_db}
+      SECRET_KEY: ${SECRET_KEY}
+      
+      # Email Configuration (Gmail or your provider)
+      MAIL_SERVER: ${MAIL_SERVER}
+      MAIL_PORT: ${MAIL_PORT}
+      MAIL_USE_TLS: ${MAIL_USE_TLS:-True}
+      MAIL_USERNAME: ${MAIL_USERNAME}
+      MAIL_PASSWORD: ${MAIL_PASSWORD}
+      MAIL_DEFAULT_SENDER: ${MAIL_DEFAULT_SENDER}
+      
+      # WhatsApp/Twilio (optional)
+      TWILIO_ACCOUNT_SID: ${TWILIO_ACCOUNT_SID:-}
+      TWILIO_AUTH_TOKEN: ${TWILIO_AUTH_TOKEN:-}
+      TWILIO_PHONE_NUMBER: ${TWILIO_PHONE_NUMBER:-}
+    
+    expose:
+      - "5000"
+    depends_on:
+      db:
+        condition: service_healthy
+    volumes:
+      - ./app/uploads:/app/uploads
+      - ./backups:/app/backups
+    networks:
+      - pos_network
+    logging:
+      driver: "json-file"
+      options:
+        max-size: "10m"
+        max-file: "3"
+
+  # Nginx Reverse Proxy & SSL
+  nginx:
+    image: nginx:alpine
+    container_name: pos_nginx
+    restart: always
+    ports:
+      - "8080:80"
+      - "8443:443"
+    volumes:
+      - ./nginx.production.conf:/etc/nginx/nginx.conf:ro
+      - ./ssl:/etc/nginx/ssl:ro
+      - ./letsencrypt_certs:/etc/letsencrypt:ro
+      - ./certbot/www:/var/www/certbot:ro
+      - ./app/static:/app/static:ro
+      - ./app/uploads:/app/uploads:ro
+    depends_on:
+      - web
+    networks:
+      - pos_network
+    logging:
+      driver: "json-file"
+      options:
+        max-size: "10m"
+        max-file: "3"
+
+volumes:
+  postgres_data:
+    driver: local
+
+networks:
+  pos_network:
+    driver: bridge

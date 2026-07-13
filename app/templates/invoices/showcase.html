@@ -1,0 +1,700 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Invoice Design Showcase</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            min-height: 100vh;
+            padding: 40px 20px;
+        }
+
+        .container {
+            max-width: 1400px;
+            margin: 0 auto;
+        }
+
+        .header {
+            text-align: center;
+            color: white;
+            margin-bottom: 50px;
+        }
+
+        .header h1 {
+            font-size: 2.5em;
+            margin-bottom: 10px;
+            text-shadow: 2px 2px 4px rgba(0,0,0,0.2);
+        }
+
+        .header p {
+            font-size: 1.1em;
+            opacity: 0.9;
+        }
+
+        .features-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
+            gap: 30px;
+            margin-bottom: 50px;
+        }
+
+        .feature-card {
+            background: white;
+            border-radius: 10px;
+            padding: 30px;
+            box-shadow: 0 10px 30px rgba(0,0,0,0.2);
+            transition: transform 0.3s ease;
+        }
+
+        .feature-card:hover {
+            transform: translateY(-5px);
+        }
+
+        .feature-card h3 {
+            color: #0051ba;
+            margin-bottom: 15px;
+            font-size: 1.3em;
+        }
+
+        .feature-card p {
+            color: #555;
+            line-height: 1.6;
+            margin-bottom: 15px;
+        }
+
+        .feature-list {
+            list-style: none;
+            padding-left: 0;
+        }
+
+        .feature-list li {
+            padding: 8px 0;
+            padding-left: 25px;
+            position: relative;
+            color: #666;
+        }
+
+        .feature-list li:before {
+            content: "✓";
+            position: absolute;
+            left: 0;
+            color: #0051ba;
+            font-weight: bold;
+            font-size: 1.2em;
+        }
+
+        .templates-section {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(350px, 1fr));
+            gap: 30px;
+            margin-bottom: 50px;
+        }
+
+        .template-showcase {
+            background: white;
+            border-radius: 10px;
+            overflow: hidden;
+            box-shadow: 0 10px 30px rgba(0,0,0,0.2);
+        }
+
+        .template-header {
+            background: linear-gradient(135deg, #0051ba 0%, #003d82 100%);
+            color: white;
+            padding: 20px;
+            text-align: center;
+        }
+
+        .template-header h3 {
+            font-size: 1.3em;
+            margin-bottom: 5px;
+        }
+
+        .template-header p {
+            font-size: 0.9em;
+            opacity: 0.9;
+        }
+
+        .template-specs {
+            padding: 20px;
+            background: #f9f9f9;
+            border-bottom: 1px solid #eee;
+        }
+
+        .spec-row {
+            display: flex;
+            justify-content: space-between;
+            margin-bottom: 10px;
+            font-size: 0.9em;
+        }
+
+        .spec-label {
+            font-weight: 600;
+            color: #333;
+        }
+
+        .spec-value {
+            color: #0051ba;
+        }
+
+        .template-preview {
+            height: 300px;
+            background: linear-gradient(135deg, #f5f7fa 0%, #c3cfe2 100%);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            color: #666;
+            font-size: 0.9em;
+            padding: 20px;
+            text-align: center;
+        }
+
+        .template-action {
+            padding: 20px;
+            text-align: center;
+            border-top: 1px solid #eee;
+        }
+
+        .btn {
+            display: inline-block;
+            padding: 10px 20px;
+            background: #0051ba;
+            color: white;
+            text-decoration: none;
+            border-radius: 5px;
+            transition: background 0.3s ease;
+            border: none;
+            cursor: pointer;
+            font-size: 0.95em;
+        }
+
+        .btn:hover {
+            background: #003d82;
+        }
+
+        .btn-secondary {
+            background: #6c757d;
+            margin-left: 10px;
+        }
+
+        .btn-secondary:hover {
+            background: #545b62;
+        }
+
+        .specifications-section {
+            background: white;
+            border-radius: 10px;
+            padding: 40px;
+            margin-bottom: 50px;
+            box-shadow: 0 10px 30px rgba(0,0,0,0.2);
+        }
+
+        .specifications-section h2 {
+            color: #0051ba;
+            margin-bottom: 30px;
+            font-size: 2em;
+        }
+
+        .spec-cards {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
+            gap: 20px;
+        }
+
+        .spec-card {
+            background: #f8f9fa;
+            border-left: 4px solid #0051ba;
+            padding: 20px;
+            border-radius: 5px;
+        }
+
+        .spec-card h4 {
+            color: #0051ba;
+            margin-bottom: 10px;
+        }
+
+        .spec-card p {
+            color: #666;
+            font-size: 0.95em;
+            line-height: 1.6;
+        }
+
+        .color-palette {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(150px, 1fr));
+            gap: 15px;
+            margin-top: 30px;
+        }
+
+        .color-box {
+            border-radius: 5px;
+            padding: 15px;
+            text-align: center;
+            color: white;
+            font-weight: 600;
+            box-shadow: 0 4px 10px rgba(0,0,0,0.15);
+        }
+
+        .color-hex {
+            font-size: 0.85em;
+            opacity: 0.9;
+            margin-top: 8px;
+            font-family: monospace;
+        }
+
+        .integration-guide {
+            background: white;
+            border-radius: 10px;
+            padding: 40px;
+            margin-bottom: 50px;
+            box-shadow: 0 10px 30px rgba(0,0,0,0.2);
+        }
+
+        .integration-guide h2 {
+            color: #0051ba;
+            margin-bottom: 30px;
+            font-size: 2em;
+        }
+
+        .step {
+            margin-bottom: 30px;
+            padding-bottom: 30px;
+            border-bottom: 1px solid #eee;
+        }
+
+        .step:last-child {
+            border-bottom: none;
+        }
+
+        .step-number {
+            display: inline-block;
+            width: 40px;
+            height: 40px;
+            background: #0051ba;
+            color: white;
+            border-radius: 50%;
+            text-align: center;
+            line-height: 40px;
+            font-weight: bold;
+            margin-right: 15px;
+        }
+
+        .step h3 {
+            display: inline-block;
+            color: #333;
+            margin: 0;
+        }
+
+        .step-content {
+            margin-left: 55px;
+            margin-top: 10px;
+            padding: 15px;
+            background: #f8f9fa;
+            border-radius: 5px;
+            font-size: 0.95em;
+            line-height: 1.6;
+        }
+
+        .code-block {
+            background: #2d2d2d;
+            color: #f8f8f2;
+            padding: 15px;
+            border-radius: 5px;
+            font-family: 'Courier New', monospace;
+            font-size: 0.85em;
+            overflow-x: auto;
+            margin: 10px 0;
+            line-height: 1.4;
+        }
+
+        .footer {
+            background: rgba(255,255,255,0.1);
+            color: white;
+            text-align: center;
+            padding: 30px 20px;
+            border-radius: 10px;
+            margin-top: 50px;
+        }
+
+        .quick-links {
+            display: flex;
+            justify-content: center;
+            gap: 20px;
+            margin-bottom: 20px;
+            flex-wrap: wrap;
+        }
+
+        .quick-links a {
+            color: white;
+            text-decoration: none;
+            padding: 10px 20px;
+            background: rgba(0,0,0,0.2);
+            border-radius: 5px;
+            transition: background 0.3s ease;
+        }
+
+        .quick-links a:hover {
+            background: rgba(0,0,0,0.3);
+        }
+
+        @media (max-width: 768px) {
+            .header h1 {
+                font-size: 1.8em;
+            }
+
+            .features-grid,
+            .templates-section {
+                grid-template-columns: 1fr;
+            }
+
+            .quick-links {
+                flex-direction: column;
+            }
+
+            .quick-links a {
+                display: block;
+                text-align: center;
+            }
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <!-- Header -->
+        <div class="header">
+            <h1>🎯 Professional Invoice & Receipt Design System</h1>
+            <p>Print-Ready Templates for Commercial Business Use | 300 DPI | CMYK Optimized</p>
+        </div>
+
+        <!-- Features Grid -->
+        <div class="features-grid">
+            <div class="feature-card">
+                <h3>🖨️ Print Quality</h3>
+                <p>Enterprise-grade printing specifications:</p>
+                <ul class="feature-list">
+                    <li>300 DPI resolution</li>
+                    <li>CMYK color mode</li>
+                    <li>Sharp typography</li>
+                    <li>Proper margins & bleed</li>
+                    <li>laser & thermal compatible</li>
+                </ul>
+            </div>
+
+            <div class="feature-card">
+                <h3>📄 Template Formats</h3>
+                <p>Three specialized templates:</p>
+                <ul class="feature-list">
+                    <li>A4 Full-page invoice</li>
+                    <li>A5 Compact invoice</li>
+                    <li>80mm thermal receipt</li>
+                    <li>Flexible item rows</li>
+                    <li>Auto page breaks</li>
+                </ul>
+            </div>
+
+            <div class="feature-card">
+                <h3>💼 Business Features</h3>
+                <p>Complete business support:</p>
+                <ul class="feature-list">
+                    <li>Company branding</li>
+                    <li>Tax/VAT tracking</li>
+                    <li>Payment status</li>
+                    <li>Signature areas</li>
+                    <li>QR/Barcode support</li>
+                </ul>
+            </div>
+
+            <div class="feature-card">
+                <h3>🎨 Design Excellence</h3>
+                <p>Professional appearance:</p>
+                <ul class="feature-list">
+                    <li>Modern layout</li>
+                    <li>Clean aesthetic</li>
+                    <li>Elegant styling</li>
+                    <li>Optimal spacing</li>
+                    <li>High readability</li>
+                </ul>
+            </div>
+
+            <div class="feature-card">
+                <h3>🔧 Developer Friendly</h3>
+                <p>Easy integration:</p>
+                <ul class="feature-list">
+                    <li>Python generator</li>
+                    <li>Flask routes</li>
+                    <li>REST API</li>
+                    <li>Sample data</li>
+                    <li>Documentation</li>
+                </ul>
+            </div>
+
+            <div class="feature-card">
+                <h3>✅ Compatibility</h3>
+                <p>Universal support:</p>
+                <ul class="feature-list">
+                    <li>All modern browsers</li>
+                    <li>All printer types</li>
+                    <li>Black & white</li>
+                    <li>Low ink mode</li>
+                    <li>Mobile friendly</li>
+                </ul>
+            </div>
+        </div>
+
+        <!-- Templates Section -->
+        <h2 style="color: white; margin-bottom: 30px; font-size: 2em; text-align: center;">Templates Overview</h2>
+        <div class="templates-section">
+            <div class="template-showcase">
+                <div class="template-header">
+                    <h3>A4 Invoice</h3>
+                    <p>Full-page professional invoice</p>
+                </div>
+                <div class="template-specs">
+                    <div class="spec-row">
+                        <span class="spec-label">Size:</span>
+                        <span class="spec-value">210mm × 297mm</span>
+                    </div>
+                    <div class="spec-row">
+                        <span class="spec-label">Format:</span>
+                        <span class="spec-value">Portrait</span>
+                    </div>
+                    <div class="spec-row">
+                        <span class="spec-label">Use:</span>
+                        <span class="spec-value">Formal invoicing</span>
+                    </div>
+                    <div class="spec-row">
+                        <span class="spec-label">Items:</span>
+                        <span class="spec-value">Unlimited rows</span>
+                    </div>
+                </div>
+                <div class="template-preview">
+                    📋 Full business invoice with all details
+                </div>
+                <div class="template-action">
+                    <button class="btn" onclick="window.open('/invoices/preview/a4', '_blank')">
+                        Preview A4
+                    </button>
+                </div>
+            </div>
+
+            <div class="template-showcase">
+                <div class="template-header">
+                    <h3>A5 Invoice</h3>
+                    <p>Compact half-page invoice</p>
+                </div>
+                <div class="template-specs">
+                    <div class="spec-row">
+                        <span class="spec-label">Size:</span>
+                        <span class="spec-value">148mm × 210mm</span>
+                    </div>
+                    <div class="spec-row">
+                        <span class="spec-label">Format:</span>
+                        <span class="spec-value">Portrait</span>
+                    </div>
+                    <div class="spec-row">
+                        <span class="spec-label">Use:</span>
+                        <span class="spec-value">Quick invoices</span>
+                    </div>
+                    <div class="spec-row">
+                        <span class="spec-label">Items:</span>
+                        <span class="spec-value">Optimized rows</span>
+                    </div>
+                </div>
+                <div class="template-preview">
+                    📄 Streamlined invoice for estimates
+                </div>
+                <div class="template-action">
+                    <button class="btn" onclick="window.open('/invoices/preview/a5', '_blank')">
+                        Preview A5
+                    </button>
+                </div>
+            </div>
+
+            <div class="template-showcase">
+                <div class="template-header">
+                    <h3>80mm Thermal Receipt</h3>
+                    <p>POS receipt for thermal printers</p>
+                </div>
+                <div class="template-specs">
+                    <div class="spec-row">
+                        <span class="spec-label">Width:</span>
+                        <span class="spec-value">80mm</span>
+                    </div>
+                    <div class="spec-row">
+                        <span class="spec-label">Height:</span>
+                        <span class="spec-value">Auto (flexible)</span>
+                    </div>
+                    <div class="spec-row">
+                        <span class="spec-label">Use:</span>
+                        <span class="spec-value">Point of sale</span>
+                    </div>
+                    <div class="spec-row">
+                        <span class="spec-label">Font:</span>
+                        <span class="spec-value">Monospace</span>
+                    </div>
+                </div>
+                <div class="template-preview">
+                    🧾 Compact high-speed thermal receipt
+                </div>
+                <div class="template-action">
+                    <button class="btn" onclick="window.open('/invoices/preview/receipt', '_blank')">
+                        Preview Receipt
+                    </button>
+                </div>
+            </div>
+        </div>
+
+        <!-- Specifications -->
+        <div class="specifications-section">
+            <h2>Print Specifications</h2>
+            
+            <div class="spec-cards">
+                <div class="spec-card">
+                    <h4>Color Mode</h4>
+                    <p><strong>Primary:</strong> CMYK<br><strong>Display:</strong> RGB<br><strong>Output:</strong> Monochrome Compatible</p>
+                </div>
+                <div class="spec-card">
+                    <h4>Resolution</h4>
+                    <p><strong>Screen:</strong> 72 DPI<br><strong>Print:</strong> 300 DPI<br><strong>Archive:</strong> 10+ years quality</p>
+                </div>
+                <div class="spec-card">
+                    <h4>Printers Supported</h4>
+                    <p><strong>Laser:</strong> All models<br><strong>Inkjet:</strong> All models<br><strong>Thermal:</strong> 58-110mm</p>
+                </div>
+                <div class="spec-card">
+                    <h4>Paper Sizes</h4>
+                    <p><strong>A4:</strong> 80-100 gsm<br><strong>A5:</strong> 80-100 gsm<br><strong>Thermal:</strong> 80mm rolls</p>
+                </div>
+                <div class="spec-card">
+                    <h4>Margins</h4>
+                    <p><strong>A4/A5:</strong> 0.5 inches<br><strong>Thermal:</strong> No margins<br><strong>Bleed:</strong> Professional</p>
+                </div>
+                <div class="spec-card">
+                    <h4>Browsers</h4>
+                    <p><strong>Chrome:</strong> Full support<br><strong>Firefox:</strong> Full support<br><strong>All Modern:</strong> Supported</p>
+                </div>
+            </div>
+
+            <h3 style="color: #0051ba; margin-top: 40px; margin-bottom: 20px;">CMYK Color Palette</h3>
+            <div class="color-palette">
+                <div class="color-box" style="background: #0051ba;">
+                    Primary Blue
+                    <div class="color-hex">#0051ba</div>
+                </div>
+                <div class="color-box" style="background: #003d82;">
+                    Dark Blue
+                    <div class="color-hex">#003d82</div>
+                </div>
+                <div class="color-box" style="background: #f5f5f5; color: #333;">
+                    Light Gray
+                    <div class="color-hex">#f5f5f5</div>
+                </div>
+                <div class="color-box" style="background: #333333;">
+                    Dark Gray
+                    <div class="color-hex">#333333</div>
+                </div>
+                <div class="color-box" style="background: #d32f2f;">
+                    Warning Red
+                    <div class="color-hex">#d32f2f</div>
+                </div>
+                <div class="color-box" style="background: #000000;">
+                    Pure Black
+                    <div class="color-hex">#000000</div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Integration Guide -->
+        <div class="integration-guide">
+            <h2>Quick Integration Guide</h2>
+
+            <div class="step">
+                <span class="step-number">1</span>
+                <h3>View Templates</h3>
+                <div class="step-content">
+                    Open templates in browser to preview the professional invoice designs. Navigate to:
+                    <div class="code-block">/invoices/preview/a4
+/invoices/preview/a5
+/invoices/preview/receipt</div>
+                </div>
+            </div>
+
+            <div class="step">
+                <span class="step-number">2</span>
+                <h3>Print to Your Printer</h3>
+                <div class="step-content">
+                    Use browser print dialog (Ctrl+P or Cmd+P) to configure and print:
+                    <div class="code-block">Margins: 0.5" (A4/A5) or 0" (Thermal)
+Scale: 100% (no scaling)
+Paper: A4, A5, or Thermal 80mm
+Color Mode: CMYK or Color</div>
+                </div>
+            </div>
+
+            <div class="step">
+                <span class="step-number">3</span>
+                <h3>Integrate with Python</h3>
+                <div class="step-content">
+                    Use the invoice generator in your Flask routes:
+                    <div class="code-block">from app.utils.invoice_generator import InvoiceGenerator
+generator = InvoiceGenerator()
+html = generator.generate_a4_invoice(invoice_data)</div>
+                </div>
+            </div>
+
+            <div class="step">
+                <span class="step-number">4</span>
+                <h3>Use REST API</h3>
+                <div class="step-content">
+                    Generate invoices via POST request:
+                    <div class="code-block">POST /invoices/api/generate
+Content-Type: application/json
+
+{
+  "format": "a4",
+  "invoice_data": { ... }
+}</div>
+                </div>
+            </div>
+
+            <div class="step">
+                <span class="step-number">5</span>
+                <h3>Customize & Deploy</h3>
+                <div class="step-content">
+                    Personalize templates with your branding and deploy to production:
+                    <ul class="feature-list">
+                        <li>Edit company logo in HTML</li>
+                        <li>Update brand colors in CSS</li>
+                        <li>Modify terms and conditions</li>
+                        <li>Test with all printer types</li>
+                        <li>Deploy to production server</li>
+                    </ul>
+                </div>
+            </div>
+        </div>
+
+        <!-- Quick Links & Footer -->
+        <div class="footer">
+            <h3 style="margin-bottom: 20px;">Quick Links</h3>
+            <div class="quick-links">
+                <a href="/invoices/preview/a4" target="_blank">📋 Preview A4 Invoice</a>
+                <a href="/invoices/preview/a5" target="_blank">📄 Preview A5 Invoice</a>
+                <a href="/invoices/preview/receipt" target="_blank">🧾 Preview Terminal Receipt</a>
+                <a href="/invoices/docs" target="_blank">📚 Full Documentation</a>
+                <a href="/invoices/api/sample/a4" target="_blank">💾 Sample Data (API)</a>
+            </div>
+            <hr style="opacity: 0.3; margin: 20px 0;">
+            <p>Professional Invoice & Receipt Design System v1.0 | Created May 19, 2026</p>
+            <p style="opacity: 0.8; margin-top: 10px;">300 DPI • CMYK Optimized • Print-Ready • Enterprise Quality</p>
+        </div>
+    </div>
+</body>
+</html>

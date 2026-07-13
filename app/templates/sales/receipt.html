@@ -1,0 +1,343 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <meta charset="UTF-8">
+    <title>Invoice #{{ invoice_number or sale.id }}</title>
+    <!-- XHTML2PDF_TEMPLATE_v2_2026-05-20 -->
+    <style>
+        * { margin: 0; padding: 0; }
+        body {
+            font-family: Arial, Helvetica, sans-serif;
+            font-size: 12px;
+            color: #2c3e50;
+        }
+        .container {
+            width: 210mm;
+            padding: 15mm 15mm 80mm 15mm;
+        }
+        
+        /* HEADER TABLE */
+        table.header-table {
+            width: 100%;
+            margin-bottom: 15px;
+            border-collapse: collapse;
+            border-bottom: 3px solid #2c3e50;
+        }
+        table.header-table td {
+            padding: 0;
+            vertical-align: top;
+        }
+        .header-left {
+            width: 50%;
+            padding-right: 20px;
+        }
+        .header-right {
+            width: 50%;
+            text-align: right;
+            padding-left: 15px;
+        }
+        
+        .company-name {
+            font-size: 26px;
+            font-weight: bold;
+            color: #2c3e50;
+            margin-bottom: 8px;
+        }
+        .company-info {
+            font-size: 10px;
+            line-height: 15px;
+            color: #555;
+        }
+        
+        .invoice-title {
+            font-size: 30px;
+            font-weight: bold;
+            color: #e74c3c;
+            margin: 0 0 4px 0;
+            padding: 0;
+            padding-top: 50px;
+        }
+        .invoice-meta {
+            font-size: 10px;
+            line-height: 16px;
+        }
+        .meta-row {
+            margin-bottom: 3px;
+        }
+        
+        /* INFO TABLE BELOW HEADER */
+        table.info-table {
+            width: 100%;
+            margin-bottom: 15px;
+            border-collapse: collapse;
+        }
+        table.info-table td {
+            width: 50%;
+            vertical-align: top;
+            padding: 10px;
+            font-size: 10px;
+            background: #ecf0f1;
+            border: 1px solid #bdc3c7;
+            border-left: 3px solid #3498db;
+        }
+        .info-title {
+            font-weight: bold;
+            color: #2c3e50;
+            margin-bottom: 4px;
+            font-size: 10px;
+            text-transform: uppercase;
+        }
+        .info-content {
+            font-size: 10px;
+            line-height: 15px;
+        }
+        .customer-name {
+            font-weight: bold;
+            margin-bottom: 2px;
+        }
+        
+        /* ITEMS TABLE */
+        table.items-table {
+            width: 100%;
+            border-collapse: collapse;
+            margin: 15px 0;
+            border: 2px solid #2c3e50;
+        }
+        table.items-table th {
+            background: #2c3e50;
+            color: white;
+            padding: 8px;
+            text-align: left;
+            font-weight: bold;
+            font-size: 10px;
+            text-transform: uppercase;
+            border: 1px solid #2c3e50;
+        }
+        table.items-table td {
+            padding: 8px;
+            border-bottom: 1px solid #bdc3c7;
+            border-left: 1px solid #ddd;
+            border-right: 1px solid #ddd;
+            font-size: 10px;
+            line-height: 14px;
+        }
+        table.items-table tr:nth-child(odd) {
+            background: #f8f9fa;
+        }
+        table.items-table tr:nth-child(even) {
+            background: white;
+        }
+        .col-code { width: 6%; }
+        .col-desc { width: 38%; }
+        .col-qty { width: 8%; text-align: center; }
+        .col-price { width: 12%; text-align: right; }
+        .col-disc { width: 10%; text-align: center; }
+        .col-tax { width: 10%; text-align: right; }
+        .col-total { width: 16%; text-align: right; font-weight: bold; }
+        
+        /* BOTTOM SECTION */
+        table.bottom-table {
+            width: 100%;
+            margin-top: 15px;
+            border-collapse: collapse;
+        }
+        table.bottom-table td {
+            width: 50%;
+            vertical-align: top;
+            padding-right: 15px;
+        }
+        .notes-section {
+            width: 50%;
+            font-size: 10px;
+            line-height: 14px;
+        }
+        .notes-title {
+            font-weight: bold;
+            color: #2c3e50;
+            margin-bottom: 4px;
+            font-size: 10px;
+        }
+        .notes-content {
+            color: #555;
+        }
+        .notes-line {
+            margin-bottom: 3px;
+        }
+        
+        /* TOTALS TABLE */
+        table.totals-table {
+            width: 100%;
+            border-collapse: collapse;
+            font-size: 10px;
+        }
+        table.totals-table td {
+            padding: 8px 10px;
+            border-bottom: 1px solid #ddd;
+        }
+        .total-label { 
+            width: 60%;
+            font-weight: bold; 
+            color: #2c3e50; 
+            text-align: left;
+            padding-left: 10px;
+        }
+        .total-value { 
+            width: 40%; 
+            font-weight: bold; 
+            text-align: right;
+            padding-right: 10px;
+        }
+        
+        table.totals-table tr.subtotal { background: #f8f9fa; }
+        table.totals-table tr.tax { background: #fff9e6; }
+        table.totals-table tr.grand { background: #2c3e50; color: white; font-weight: bold; font-size: 11px; }
+        table.totals-table tr.grand td { border: none; color: white; padding: 8px; }
+        table.totals-table tr.paid { background: #d4edda; color: #155724; border: 1px solid #c3e6cb; }
+        table.totals-table tr.change { background: #cce5ff; color: #004085; border: 1px solid #b8daff; }
+        
+        /* FOOTER */
+        .footer {
+            text-align: center;
+            font-size: 9px;
+            color: #7f8c8d;
+            margin-top: 50px;
+            padding: 12px 0;
+            border-top: 1px solid #ddd;
+        }
+        .thank-you {
+            font-weight: bold;
+            color: #2c3e50;
+            font-size: 10px;
+            margin-bottom: 3px;
+        }
+    </style>
+</head>
+<body>
+
+<div class="container">
+    
+    <!-- HEADER WITH COMPANY INFO AND INVOICE -->
+    <table class="header-table">
+        <tr>
+            <td class="header-left">
+                {% if logo_url %}
+                <div style="margin-bottom: 8px;">
+                    <img src="{{ logo_url }}" alt="Logo" style="width: 280px; height: auto; max-width: 100%; display: block;">
+                </div>
+                {% endif %}
+                <div class="company-name">{{ business_name or 'COMPANY' }}</div>
+                <div class="company-info">
+                    {{ business_address }}<br/>
+                    Phone: {{ business_phone }}<br/>
+                    Email: {{ business_email }}
+                    {% if business_gst %}<br/>Tax ID: {{ business_gst }}{% endif %}
+                </div>
+            </td>
+            <td class="header-right" style="text-align: right; padding-top: 0;">
+                <div class="invoice-title">INVOICE</div>
+                <div class="invoice-meta">
+                    <div class="meta-row"><strong>Invoice #:</strong> {{ invoice_number or sale.id }}</div>
+                    <div class="meta-row"><strong>Date:</strong> {{ invoice_date or sale_date }}</div>
+                    <div class="meta-row"><strong>Due Date:</strong> {{ due_date or sale_date }}</div>
+                    {% if payment_method %}<div class="meta-row"><strong>Payment Method:</strong> {{ payment_method }}</div>{% endif %}
+                </div>
+            </td>
+        </tr>
+    </table>
+    
+    <!-- BILL TO -->
+    <table class="info-table">
+        <tr>
+            <td>
+                <div class="info-title">Bill To</div>
+                <div class="info-content">
+                    <div class="customer-name">{{ customer_name or 'Customer' }}</div>
+                    {% if customer_address %}{{ customer_address }}<br/>{% endif %}
+                    {% if customer_phone %}Phone: {{ customer_phone }}{% endif %}
+                </div>
+            </td>
+        </tr>
+    </table>
+    
+    <!-- ITEMS TABLE -->
+    <table class="items-table">
+        <tr>
+            <th class="col-code">Code</th>
+            <th class="col-desc">Description</th>
+            <th class="col-qty">Qty</th>
+            <th class="col-price">Unit Price</th>
+            <th class="col-disc">Disc %</th>
+            <th class="col-tax">Tax</th>
+            <th class="col-total">Total</th>
+        </tr>
+        {% for item in items %}
+        <tr>
+            <td class="col-code">{{ item.code or '-' }}</td>
+            <td class="col-desc">{{ item.name }}</td>
+            <td class="col-qty">{{ "%.2f"|format(item.quantity) }}</td>
+            <td class="col-price">{{ "%.2f"|format(item.unit_price) }}</td>
+            <td class="col-disc">{{ "%.1f"|format(item.discount or 0) }}%</td>
+            <td class="col-tax">{{ "%.2f"|format(item.tax_amount or 0) }}</td>
+            <td class="col-total">{{ "%.2f"|format(item.total) }}</td>
+        </tr>
+        {% endfor %}
+    </table>
+    
+    <!-- NOTES AND TOTALS -->
+    <table class="bottom-table">
+        <tr>
+            <td>
+                <div class="notes-section">
+                    <div class="notes-title">Notes</div>
+                    <div class="notes-content">
+                        <div class="notes-line">Thank you for your business!</div>
+                    </div>
+                </div>
+            </td>
+            <td>
+                <table class="totals-table">
+                    <tr class="subtotal">
+                        <td class="total-label">Subtotal:</td>
+                        <td class="total-value">{{ "%.2f"|format(subtotal or 0) }}</td>
+                    </tr>
+                    {% if discount_total > 0 %}
+                    <tr>
+                        <td class="total-label">Discount:</td>
+                        <td class="total-value">-{{ "%.2f"|format(discount_total) }}</td>
+                    </tr>
+                    {% endif %}
+                    {% if tax_amount > 0 %}
+                    <tr class="tax">
+                        <td class="total-label">Tax ({{ tax_percentage or 0 }}%):</td>
+                        <td class="total-value">{{ "%.2f"|format(tax_amount) }}</td>
+                    </tr>
+                    {% endif %}
+                    <tr class="grand">
+                        <td class="total-label">GRAND TOTAL:</td>
+                        <td class="total-value">{{ "%.2f"|format(total or 0) }}</td>
+                    </tr>
+                    {% if paid_amount > 0 or paid_amount is defined %}
+                    <tr class="paid">
+                        <td class="total-label">Cash Given:</td>
+                        <td class="total-value">{{ "%.2f"|format(paid_amount or cash_given or 0) }}</td>
+                    </tr>
+                    {% endif %}
+                    {% if change > 0 %}
+                    <tr class="change">
+                        <td class="total-label">Change Given:</td>
+                        <td class="total-value">{{ "%.2f"|format(change) }}</td>
+                    </tr>
+                    {% endif %}
+                </table>
+            </td>
+        </tr>
+    </table>
+    
+    <!-- FOOTER -->
+    <div class="footer">
+    </div>
+
+</div>
+
+</body>
+</html>

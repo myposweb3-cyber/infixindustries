@@ -1,0 +1,74 @@
+# Environment variables (NEVER commit these - they contain secrets)
+.env
+.env.production
+.env.local
+.env.*.local
+
+# Flask
+__pycache__/
+*.py[cod]
+*$py.class
+*.so
+.Python
+env/
+venv/
+ENV/
+build/
+develop-eggs/
+dist/
+downloads/
+eggs/
+.eggs/
+lib/
+lib64/
+parts/
+sdist/
+var/
+wheels/
+*.egg-info/
+.installed.cfg
+*.egg
+
+# IDE
+.vscode/
+.idea/
+*.swp
+*.swo
+*~
+.DS_Store
+
+# Database
+*.db
+*.sqlite3
+pos_dev.db
+
+# Logs
+*.log
+server.log
+
+# Uploads
+uploads/
+static/uploads/
+app/static/uploads/
+
+# Temporary files
+.pytest_cache/
+.coverage
+htmlcov/
+
+# Docker
+docker-compose.override.yml
+
+# SSL certificates
+ssl/
+letsencrypt_certs/
+certbot/www/
+
+# Backups
+backups/
+*.bak
+*.backup
+
+# OS
+Thumbs.db
+.DS_Store

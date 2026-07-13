@@ -1,0 +1,2687 @@
+{% extends "base.html" %}
+
+{% block title %}Settings - {{ super() }}{% endblock %}
+
+{% block head %}
+<!-- Cropper.js CSS -->
+<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/cropperjs/1.5.13/cropper.min.css">
+
+<meta http-equiv="Cache-Control" content="no-cache, no-store, must-revalidate">
+<meta http-equiv="Pragma" content="no-cache">
+<meta http-equiv="Expires" content="0">
+
+<style>
+    .permissions-grid {
+        display: grid;
+        grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+        gap: 0.75rem;
+    }
+    .nav-pills .nav-link {
+        text-align: left;
+    }
+    
+    /* Profile Picture Container */
+    .profile-picture-container {
+        padding: 2rem 1rem;
+        border: 2px dashed #e8ecf1;
+        border-radius: 12px;
+        background: #f9fbfd;
+        transition: all 0.3s ease;
+    }
+    
+    .profile-picture-container:hover {
+        border-color: #4F46E5;
+        background: #f0f4f8;
+    }
+    
+    #profileImg {
+        box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);
+        transition: transform 0.3s ease;
+    }
+    
+    #profileImg:hover {
+        transform: scale(1.02);
+    }
+    
+    .profile-info .form-control-plaintext {
+        padding: 0.5rem 0;
+        font-size: 0.95rem;
+        border-bottom: 1px solid #e8ecf1;
+        padding-bottom: 1rem;
+    }
+    
+    /* Image Cropper Modal Styles */
+    .cropper-container {
+        max-height: 500px;
+        margin: 1rem auto;
+    }
+    
+    #imageToCrop {
+        max-width: 100%;
+        max-height: 400px;
+    }
+    
+    .crop-preview {
+        display: flex;
+        gap: 1rem;
+        margin-top: 1rem;
+    }
+    
+    .crop-preview-container {
+        flex: 1;
+    }
+    
+    .crop-preview-label {
+        font-size: 0.85rem;
+        color: #64748B;
+        margin-bottom: 0.5rem;
+        font-weight: 500;
+    }
+    
+    #previewCanvas {
+        max-width: 100%;
+        border: 1px solid #e8ecf1;
+        border-radius: 8px;
+    }
+    
+    .cropper-guide:nth-child(2n + 1) {
+        border-color: rgba(255, 255, 255, 0.5);
+    }
+    
+    /* Permission Tabs Styling */
+    #permissionsTabs {
+        border-bottom: 2px solid #e3e6f0;
+        flex-wrap: wrap;
+    }
+    
+    #permissionsTabs .nav-link {
+        color: #666;
+        border: none;
+        border-bottom: 3px solid transparent;
+        font-size: 0.9rem;
+        padding: 0.75rem 1rem;
+        transition: all 0.3s ease;
+    }
+    
+    #permissionsTabs .nav-link:hover {
+        color: #4e73df;
+        border-bottom-color: #4e73df;
+    }
+    
+    #permissionsTabs .nav-link.active {
+        color: #4e73df;
+        border-bottom-color: #4e73df;
+        background-color: transparent;
+        font-weight: 500;
+    }
+    
+    #permissionsTabContent {
+        background-color: #f8f9fa;
+        border: 1px solid #e3e6f0 !important;
+        border-top: none;
+        padding: 1rem !important;
+        max-height: 400px !important;
+        overflow-y: auto !important;
+    }
+    
+    #permissionsTabContent .form-check {
+        display: flex;
+        align-items: center;
+        padding: 0.4rem 0;
+    }
+    
+    #permissionsTabContent .form-check-input {
+        margin-top: 0;
+        margin-right: 0.5rem;
+    }
+    
+    #permissionsTabContent .form-check-label {
+        margin-bottom: 0;
+        font-size: 0.9rem;
+    }
+    
+    #permissionsTabContent .text-muted {
+        padding: 0.5rem 0;
+    }
+
+    /* Settings Sub-Tabs Styling */
+    #settingsSubTabs {
+        border-bottom: 1px solid #e3e6f0;
+        flex-wrap: wrap;
+        margin: 0;
+        display: none;
+    }
+
+    #settingsSubTabs .nav-link-sm {
+        color: #666;
+        border: none;
+        border-bottom: 2px solid transparent;
+        font-size: 0.85rem;
+        padding: 0.5rem 0.75rem;
+        transition: all 0.3s ease;
+    }
+
+    #settingsSubTabs .nav-link-sm:hover {
+        color: #4e73df;
+        border-bottom-color: #4e73df;
+    }
+
+    #settingsSubTabs .nav-link-sm.active {
+        color: #4e73df;
+        border-bottom-color: #4e73df;
+        background-color: transparent;
+        font-weight: 500;
+    }
+
+    #settingsSubTabContent {
+        background-color: #ffffff;
+        min-height: 120px;
+        padding: 1rem;
+        display: none;
+    }
+
+    #settingsSubTabContent .form-check {
+        display: flex;
+        align-items: center;
+        padding: 0.4rem 0;
+    }
+
+    /* Mobile Responsive Styles for User Actions */
+    @media (max-width: 576px) {
+        #usersTable {
+            font-size: 0.85rem;
+        }
+        
+        #usersTable tbody tr td {
+            padding: 0.5rem 0.25rem;
+        }
+        
+        .d-flex.flex-wrap.gap-2 {
+            gap: 0.25rem !important;
+        }
+        
+        .d-flex.flex-wrap.gap-2 .btn {
+            font-size: 0.75rem !important;
+            padding: 0.25rem 0.35rem !important;
+            flex: 1 !important;
+            min-width: 60px !important;
+        }
+        
+        .d-flex.flex-wrap.gap-2 .btn i {
+            margin-right: 0 !important;
+        }
+        
+        .d-flex.flex-wrap.gap-2 .btn span {
+            display: none !important;
+        }
+    }
+    
+    @media (min-width: 576px) and (max-width: 768px) {
+        .d-flex.flex-wrap.gap-2 .btn {
+            font-size: 0.8rem !important;
+            padding: 0.35rem 0.45rem !important;
+        }
+    }
+
+</style>
+{% endblock %}
+
+{% block content %}
+<div class="container-fluid">
+    <div class="d-flex justify-content-between align-items-center mb-4">
+        <h1 class="h3 mb-0 text-gray-800">Settings</h1>
+    </div>
+
+    <div class="row">
+        <div class="col-lg-3">
+            <div class="card shadow-sm mb-4">
+                <div class="card-header">
+                    <h6 class="m-0 font-weight-bold">Navigation</h6>
+                </div>
+                <div class="card-body p-2">
+                    <div class="nav flex-column nav-pills" id="v-pills-tab" role="tablist" aria-orientation="vertical">
+                        <a class="nav-link active" id="v-pills-profile-tab" data-bs-toggle="pill" href="#v-pills-profile" role="tab" aria-controls="v-pills-profile" aria-selected="true">
+                            <i class="fas fa-user-circle fa-fw me-2"></i>My Profile
+                        </a>
+                        {% if current_user.can_access_settings %}
+                        <a class="nav-link" id="v-pills-users-tab" data-bs-toggle="pill" href="#v-pills-users" role="tab" aria-controls="v-pills-users" aria-selected="false">
+                            <i class="fas fa-users-cog fa-fw me-2"></i>Users & Permissions
+                        </a>
+                        {% endif %}
+                        {% if current_user.role and current_user.role.lower() == 'super admin' %}
+                        <a class="nav-link" id="v-pills-companies-tab" data-bs-toggle="pill" href="#v-pills-companies" role="tab" aria-controls="v-pills-companies" aria-selected="false">
+                            <i class="fas fa-building fa-fw me-2"></i>Manage Companies
+                        </a>
+                        {% endif %}
+                        {% if (current_user.role and current_user.role.lower() in ['admin', 'super admin']) or current_user.can_view_general_settings %}
+                        <a class="nav-link" id="v-pills-general-tab" data-bs-toggle="pill" href="#v-pills-general" role="tab" aria-controls="v-pills-general" aria-selected="false">
+                            <i class="fas fa-cog fa-fw me-2"></i>General
+                        </a>
+                        {% endif %}
+                        {% if (current_user.role and current_user.role.lower() in ['admin', 'super admin']) or current_user.can_view_backup_settings %}
+                        <a class="nav-link" id="v-pills-backup-tab" data-bs-toggle="pill" href="#v-pills-backup" role="tab" aria-controls="v-pills-backup" aria-selected="false">
+                            <i class="fas fa-database fa-fw me-2"></i>Backup & Restore
+                        </a>
+                        {% endif %}
+                        {% if (current_user.role and current_user.role.lower() in ['admin', 'super admin']) or current_user.can_view_receipt_settings %}
+                        <a class="nav-link" id="v-pills-receipt-tab" data-bs-toggle="pill" href="#v-pills-receipt" role="tab" aria-controls="v-pills-receipt" aria-selected="false">
+                            <i class="fas fa-receipt fa-fw me-2"></i>Receipt Settings
+                        </a>
+                        {% endif %}
+                        {% if (current_user.role and current_user.role.lower() in ['admin', 'super admin']) or current_user.can_view_hardware_settings %}
+                        <a class="nav-link" id="v-pills-hardware-tab" data-bs-toggle="pill" href="#v-pills-hardware" role="tab" aria-controls="v-pills-hardware" aria-selected="false">
+                            <i class="fas fa-weight fa-fw me-2"></i>Scale & Hardware
+                        </a>
+                        {% endif %}
+                        {% if current_user.can_access_settings %}
+                        <a class="nav-link" id="v-pills-reset-tab" data-bs-toggle="pill" href="#v-pills-reset" role="tab" aria-controls="v-pills-reset" aria-selected="false">
+                            <i class="fas fa-redo fa-fw me-2"></i>System Reset
+                        </a>
+                        {% endif %}
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <div class="col-lg-9">
+            <div class="tab-content" id="v-pills-tabContent">
+                <!-- My Profile Tab -->
+                <div class="tab-pane fade show active" id="v-pills-profile" role="tabpanel" aria-labelledby="v-pills-profile-tab">
+                    <div class="card shadow-sm">
+                        <div class="card-header py-3">
+                            <h6 class="m-0 font-weight-bold text-primary">
+                                <i class="fas fa-user-circle me-2"></i>My Profile
+                            </h6>
+                        </div>
+                        <div class="card-body">
+                            <div class="row">
+                                <div class="col-md-4 text-center">
+                                    <div class="profile-picture-container mb-4">
+                                        <div id="profilePictureDisplay" class="mb-3">
+                                            {% if current_user.profile_picture %}
+                                                <img id="profileImg" src="{{ '/' + current_user.profile_picture }}" alt="Profile Picture" class="rounded-circle" style="width: 200px; height: 200px; object-fit: cover; border: 3px solid #4F46E5;">
+                                            {% else %}
+                                                <div id="profileImg" class="rounded-circle d-flex align-items-center justify-content-center text-white fw-bold" style="width: 200px; height: 200px; background: linear-gradient(135deg, #4F46E5 0%, #7C3AED 100%); font-size: 80px; margin: 0 auto;">
+                                                    {{ current_user.username[:1].upper() }}
+                                                </div>
+                                            {% endif %}
+                                        </div>
+                                        <input type="file" id="profilePictureInput" accept="image/*" style="display: none;">
+                                        <button type="button" class="btn btn-primary btn-sm" id="uploadBtn" title="Upload Profile Picture">
+                                            <i class="fas fa-camera me-1"></i>Upload Picture
+                                        </button>
+                                        {% if current_user.profile_picture %}
+                                        <button type="button" class="btn btn-outline-danger btn-sm ms-2" id="deleteBtn" title="Delete Profile Picture">
+                                            <i class="fas fa-trash me-1"></i>Delete
+                                        </button>
+                                        {% endif %}
+                                        <small class="d-block mt-2 text-muted">Crop and optimize to 500×500px</small>
+                                    </div>
+                                </div>
+                                <div class="col-md-8">
+                                    <div class="profile-info">
+                                        <div class="mb-3">
+                                            <label class="form-label fw-bold">Username</label>
+                                            <div class="form-control-plaintext">{{ current_user.username }}</div>
+                                        </div>
+                                        <div class="mb-3">
+                                            <label class="form-label fw-bold">Email</label>
+                                            <div class="form-control-plaintext">{{ current_user.email or 'Not set' }}</div>
+                                        </div>
+                                        <div class="mb-3">
+                                            <label class="form-label fw-bold">Role</label>
+                                            <div class="form-control-plaintext">
+                                                <span class="badge bg-primary">{{ current_user.role }}</span>
+                                            </div>
+                                        </div>
+                                        <div class="mb-3">
+                                            <label class="form-label fw-bold">Last Login</label>
+                                            <div class="form-control-plaintext">
+                                                {% if current_user.last_login %}
+                                                    {{ current_user.last_login.strftime('%Y-%m-%d %H:%M:%S') }}
+                                                {% else %}
+                                                    Never
+                                                {% endif %}
+                                            </div>
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Users & Permissions Tab -->
+                {% if current_user.can_access_settings %}
+                <div class="tab-pane fade" id="v-pills-users" role="tabpanel" aria-labelledby="v-pills-users-tab">
+                    <div class="card shadow-sm">
+                        <div class="card-header py-3 d-flex justify-content-between align-items-center">
+                            <h6 class="m-0 font-weight-bold text-primary">User Management</h6>
+                            <button class="btn btn-primary" id="addUserBtn" data-bs-toggle="modal" data-bs-target="#userModal">
+                                <i class="fas fa-plus me-2"></i>Add User
+                            </button>
+                        </div>
+                        <div class="card-body">
+                            <div class="table-responsive">
+                                <table class="table table-bordered table-hover" id="usersTable" width="100%" cellspacing="0">
+                                    <thead>
+                                        <tr>
+                                            <th>Username</th>
+                                            <th>Email</th>
+                                            <th>Role</th>
+                                            <th>Last Login</th>
+                                            <th>Actions</th>
+                                        </tr>
+                                    </thead>
+                                    <tbody id="usersTableBody">
+                                        <!-- User data will be loaded here by JavaScript -->
+                                    </tbody>
+                                </table>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+                {% endif %}
+
+                <!-- Manage Companies Tab (for Super Admin Only) -->
+                {% if current_user.role and current_user.role.lower() == 'super admin' %}
+                <div class="tab-pane fade" id="v-pills-companies" role="tabpanel" aria-labelledby="v-pills-companies-tab">
+                    <div class="card shadow-sm">
+                        <div class="card-header py-3 d-flex justify-content-between align-items-center">
+                            <h6 class="m-0 font-weight-bold text-primary">Manage Companies</h6>
+                            <a href="{{ url_for('companies.companies') }}" class="btn btn-primary">
+                                <i class="fas fa-plus me-2"></i>Add Company
+                            </a>
+                        </div>
+                        <div class="card-body">
+                            <div class="alert alert-info">
+                                <i class="fas fa-info-circle me-2"></i>
+                                Manage companies for your organization. Each company can have its own settings, products, and users.
+                            </div>
+                            <div class="text-center py-4">
+                                <a href="{{ url_for('companies.companies') }}" class="btn btn-lg btn-outline-primary">
+                                    <i class="fas fa-building fa-2x mb-3 d-block"></i>
+                                    Open Companies Management
+                                </a>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+                {% endif %}
+
+                <!-- General Settings Tab -->
+                {% if (current_user.role and current_user.role.lower() in ['admin', 'super admin']) or current_user.can_view_general_settings %}
+                <div class="tab-pane fade" id="v-pills-general" role="tabpanel" aria-labelledby="v-pills-general-tab">
+                    <div class="card shadow-sm">
+                        <div class="card-header">
+                            <h6 class="m-0 font-weight-bold text-primary">General Settings</h6>
+                        </div>
+                        <div class="card-body">
+                            <form id="generalSettingsForm">
+                                <h6 class="mb-3">Localization & Formatting</h6>
+                                <div class="row">
+                                    <div class="col-md-6 mb-3">
+                                        <label for="currencySymbol" class="form-label">Currency Symbol</label>
+                                        <input type="text" class="form-control" id="currencySymbol" placeholder="$">
+                                    </div>
+                                    <div class="col-md-6 mb-3">
+                                        <label for="language" class="form-label">Language</label>
+                                        <select class="form-select" id="language">
+                                            <option value="en">English</option>
+                                            <option value="es" disabled>Spanish (coming soon)</option>
+                                            <option value="fr" disabled>French (coming soon)</option>
+                                        </select>
+                                    </div>
+                                </div>
+                                <div class="row">
+                                    <div class="col-md-6 mb-3">
+                                        <label for="dateFormat" class="form-label">Date Format</label>
+                                        <select class="form-select" id="dateFormat">
+                                            <option value="YYYY-MM-DD">YYYY-MM-DD (e.g., 2026-02-21)</option>
+                                            <option value="DD-MM-YYYY">DD-MM-YYYY (e.g., 21-02-2026)</option>
+                                            <option value="MM/DD/YYYY">MM/DD/YYYY (e.g., 02/21/2026)</option>
+                                            <option value="DD MMM YYYY">DD MMM YYYY (e.g., 21 Feb 2026)</option>
+                                        </select>
+                                    </div>
+                                    <div class="col-md-6 mb-3">
+                                        <label for="timeFormat" class="form-label">Time Format</label>
+                                        <select class="form-select" id="timeFormat">
+                                            <option value="HH:mm:ss">24-hour (e.g., 14:30:55)</option>
+                                            <option value="hh:mm:ss A">12-hour (e.g., 02:30:55 PM)</option>
+                                        </select>
+                                    </div>
+                                </div>
+
+                                <hr>
+
+                                <h6 class="mb-3">Financials</h6>
+                                <div class="row">
+                                <div class="col-md-6 mb-3">
+                                    <div class="form-check form-switch mt-4">
+                                        <input class="form-check-input" type="checkbox" id="enableTax" checked>
+                                        <label class="form-check-label" for="enableTax">Enable Tax</label>
+                                    </div>
+                                </div>
+                                <div class="col-md-6 mb-3">
+                                    <label for="taxRate" class="form-label">Default Tax Rate (%)</label>
+                                    <input type="number" class="form-control" id="taxRate" step="0.01" placeholder="0.00">
+                                </div>
+                                <div class="col-md-6 mb-3">
+                                    <div class="form-check form-switch mt-4">
+                                        <input class="form-check-input" type="checkbox" id="showTaxInSales" checked>
+                                        <label class="form-check-label" for="showTaxInSales">Show Tax in Sales</label>
+                                    </div>
+                                </div>
+                                </div>
+
+                                <hr>
+
+                                <h6 class="mb-3">Loyalty Points</h6>
+                                <div class="row">
+                                <div class="col-md-6 mb-3">
+                                    <div class="form-check form-switch mt-4">
+                                        <input class="form-check-input" type="checkbox" id="enableLoyaltyPoints" checked>
+                                        <label class="form-check-label" for="enableLoyaltyPoints">Show Loyalty Points in Sales</label>
+                                    </div>
+                                    <small class="text-muted d-block mt-2">Display loyalty points redemption option in the sales screen</small>
+                                </div>
+                                <div class="col-md-6 mb-3">
+                                    <label for="loyaltyPointsConversionRate" class="form-label">Points Conversion Rate (Rs per point)</label>
+                                    <input type="number" class="form-control" id="loyaltyPointsConversionRate" step="0.01" min="0.01" value="1.00" placeholder="1.00">
+                                    <small class="text-muted">1 point = ₹ value you enter</small>
+                                </div>
+                                </div>
+                                <button type="submit" class="btn btn-primary">Save Changes</button>
+                            </form>
+                        </div>
+                    </div>
+                </div>
+                {% endif %}
+
+                <!-- Backup Tab -->
+                {% if (current_user.role and current_user.role.lower() in ['admin', 'super admin']) or current_user.can_view_backup_settings %}
+                <div class="tab-pane fade" id="v-pills-backup" role="tabpanel" aria-labelledby="v-pills-backup-tab">
+                    <div class="card shadow-sm">
+                        <div class="card-header">
+                            <h6 class="m-0 font-weight-bold text-primary">Database Backup</h6>
+                        </div>
+                        <div class="card-body">
+                            <div class="alert alert-info">
+                                <i class="fas fa-info-circle me-2"></i>
+                                Backups are saved to the server's <code>backups/</code> directory.
+                            </div>
+                            <div id="backupStatusMsg" style="display:none;"></div>
+                            <p>Create a full backup of your database to ensure data safety.</p>
+                            <button class="btn btn-success" id="createBackupBtn">
+                                <i class="fas fa-download me-2"></i>Create Database Backup
+                            </button>
+
+                            <hr class="my-4">
+
+                            <h6 class="font-weight-bold text-primary">Import Backup</h6>
+                            <p>Import a backup file from your computer to restore your database.</p>
+                            <div class="input-group mb-3">
+                                <input type="file" class="form-control" id="importBackupFile" accept=".json" title="Select JSON backup file (.json format)">
+                                <button class="btn btn-info" id="importBackupBtn" type="button">
+                                    <i class="fas fa-upload me-2"></i>Import Backup
+                                </button>
+                            </div>
+
+                            <hr class="my-4">
+                            
+                            <h6 class="font-weight-bold text-primary">Available Backups</h6>
+                            <div class="table-responsive mt-3">
+                                <table class="table table-bordered table-hover" id="backupsTable">
+                                    <thead>
+                                        <tr>
+                                            <th>Filename</th>
+                                            <th>Created At</th>
+                                            <th>Size</th>
+                                            <th>Actions</th>
+                                        </tr>
+                                    </thead>
+                                    <tbody id="backupsTableBody">
+                                        <!-- Backups loaded here -->
+                                    </tbody>
+                                </table>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+                {% endif %}
+
+                <!-- Receipt Settings Tab -->
+                {% if (current_user.role and current_user.role.lower() in ['admin', 'super admin']) or current_user.can_view_receipt_settings %}
+                <div class="tab-pane fade" id="v-pills-receipt" role="tabpanel" aria-labelledby="v-pills-receipt-tab">
+                    <div class="card shadow-sm">
+                        <div class="card-header">
+                            <h6 class="m-0 font-weight-bold text-primary">Receipt Configuration</h6>
+                        </div>
+                        <div class="card-body">
+                            <form id="receiptSettingsForm">
+                                <h6 class="mb-3">Business Information (on Receipt)</h6>
+                                <div class="row mb-4">
+                                    <div class="col-md-8">
+                                        <div class="mb-3">
+                                            <label for="receiptBusinessName" class="form-label">Business Name</label>
+                                            <input type="text" class="form-control" id="receiptBusinessName" placeholder="Your Business Name">
+                                        </div>
+                                        <div class="mb-3">
+                                            <label for="receiptLogoUpload" class="form-label">Business Logo</label>
+                                            <input class="form-control" type="file" id="receiptLogoUpload" accept="image/*">
+                                            <div class="form-text">Upload a logo for receipts. Recommended size: 200x100 pixels.</div>
+                                        </div>
+                                    </div>
+                                    <div class="col-md-4 text-center">
+                                        <label class="form-label d-block">Current Logo</label>
+                                        <img id="receiptLogoPreview" src="" alt="Receipt Logo Preview" class="img-thumbnail" style="max-height: 100px; display: none;">
+                                        <span id="noReceiptLogoText" class="text-muted">No logo uploaded.</span>
+                                    </div>
+                                </div>
+                                <div class="row">
+                                    <div class="col-md-6 mb-3">
+                                        <label for="businessAddress" class="form-label">Business Address</label>
+                                        <textarea class="form-control" id="businessAddress" rows="2" placeholder="123 Main Street, City, Country"></textarea>
+                                    </div>
+                                    <div class="col-md-6 mb-3">
+                                        <label for="businessPhone" class="form-label">Phone Number</label>
+                                        <input type="text" class="form-control" id="businessPhone" placeholder="+1 234 567 8900">
+                                    </div>
+                                </div>
+                                <div class="row">
+                                    <div class="col-md-6 mb-3">
+                                        <label for="businessEmail" class="form-label">Email</label>
+                                        <input type="email" class="form-control" id="businessEmail" placeholder="business@example.com">
+                                    </div>
+                                    <div class="col-md-6 mb-3">
+                                        <label for="businessGst" class="form-label">GST/Tax Number</label>
+                                        <input type="text" class="form-control" id="businessGst" placeholder="GSTIN123456789">
+                                    </div>
+                                </div>
+
+                                <hr>
+
+                                <h6 class="mb-3">Receipt Options</h6>
+                                <div class="row">
+                                    <div class="col-md-6 mb-3">
+                                        <label for="defaultReceiptFormat" class="form-label">Default Receipt Format</label>
+                                        <select class="form-select" id="defaultReceiptFormat">
+                                            <option value="thermal">Thermal (80mm POS Receipt)</option>
+                                            <option value="a4">A4 (Professional Invoice)</option>
+                                            <option value="a5">A5 (Compact Invoice)</option>
+                                        </select>
+                                        <div class="form-text">Receipts will automatically print in this format unless changed.</div>
+                                    </div>
+                                    <div class="col-md-6 mb-3">
+                                        <div class="form-check form-switch mt-4">
+                                            <input class="form-check-input" type="checkbox" id="showQrCode" checked>
+                                            <label class="form-check-label" for="showQrCode">Show QR Code on Receipt</label>
+                                        </div>
+                                    </div>
+                                </div>
+
+                                <div class="mb-3">
+                                    <label for="thankYouMessage" class="form-label">Thank You Message</label>
+                                    <input type="text" class="form-control" id="thankYouMessage" placeholder="Thank you for your business!" value="Thank you for your business!">
+                                </div>
+
+                                <div class="mb-3">
+                                    <label for="warrantyInfo" class="form-label">Warranty Information</label>
+                                    <textarea class="form-control" id="warrantyInfo" rows="3" placeholder="Warranty: 7 days replacement, 1 year service"></textarea>
+                                    <div class="form-text">This will appear at the bottom of the receipt.</div>
+                                </div>
+
+                                <div class="mb-3">
+                                    <label for="receiptFooterText" class="form-label">Footer Text</label>
+                                    <input type="text" class="form-control" id="receiptFooterText" placeholder="Generated by POS System" value="Generated by POS System">
+                                </div>
+
+                                <button type="submit" class="btn btn-primary">Save Receipt Settings</button>
+                            </form>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Receipt Terminal Tab -->
+                <div class="tab-pane fade" id="v-pills-terminal" role="tabpanel" aria-labelledby="v-pills-terminal-tab">
+                    <div class="card shadow-sm">
+                        <div class="card-header">
+                            <h6 class="m-0 font-weight-bold text-primary">Receipt Terminal Configuration</h6>
+                        </div>
+                        <div class="card-body">
+                            <form id="terminalSettingsForm">
+                                <div class="row mb-4">
+                                    <div class="col-md-12">
+                                        <div class="alert alert-info">
+                                            <i class="fas fa-info-circle me-2"></i>
+                                            Configure how receipts are printed and displayed. Choose between different receipt formats and printer settings.
+                                        </div>
+                                    </div>
+                                </div>
+
+                                <h6 class="mb-3">Receipt Format</h6>
+                                <div class="row">
+                                    <div class="col-md-6 mb-3">
+                                        <label for="receiptType" class="form-label">Receipt Type</label>
+                                        <select class="form-select" id="receiptType">
+                                            <option value="thermal">Thermal Printer (80mm)</option>
+                                            <option value="a4">A4 Paper</option>
+                                            <option value="compact">Compact (58mm)</option>
+                                        </select>
+                                    </div>
+                                    <div class="col-md-6 mb-3">
+                                        <label for="receiptTheme" class="form-label">Receipt Theme</label>
+                                        <select class="form-select" id="receiptTheme">
+                                            <option value="professional">Professional (Blue)</option>
+                                            <option value="modern">Modern (Dark)</option>
+                                            <option value="minimal">Minimal (Clean)</option>
+                                            <option value="retail">Retail (Colorful)</option>
+                                        </select>
+                                    </div>
+                                </div>
+
+                                <hr>
+
+                                <h6 class="mb-3">Print Settings</h6>
+                                <div class="row">
+                                    <div class="col-md-6 mb-3">
+                                        <div class="form-check form-switch">
+                                            <input class="form-check-input" type="checkbox" id="autoPrint" checked>
+                                            <label class="form-check-label" for="autoPrint">Auto-print after sale</label>
+                                        </div>
+                                    </div>
+                                    <div class="col-md-6 mb-3">
+                                        <div class="form-check form-switch">
+                                            <input class="form-check-input" type="checkbox" id="showLogo" checked>
+                                            <label class="form-check-label" for="showLogo">Show business logo</label>
+                                        </div>
+                                    </div>
+                                </div>
+                                <div class="row">
+                                    <div class="col-md-6 mb-3">
+                                        <div class="form-check form-switch">
+                                            <input class="form-check-input" type="checkbox" id="showBarcode" checked>
+                                            <label class="form-check-label" for="showBarcode">Show barcode on receipt</label>
+                                        </div>
+                                    </div>
+                                    <div class="col-md-6 mb-3">
+                                        <div class="form-check form-switch">
+                                            <input class="form-check-input" type="checkbox" id="showTerms" checked>
+                                            <label class="form-check-label" for="showTerms">Show terms & conditions</label>
+                                        </div>
+                                    </div>
+                                </div>
+
+                                <hr>
+
+                                <h6 class="mb-3">Paper Size</h6>
+                                <div class="row">
+                                    <div class="col-md-6 mb-3">
+                                        <label for="paperWidth" class="form-label">Paper Width (mm)</label>
+                                        <input type="number" class="form-control" id="paperWidth" value="80" min="58" max="210">
+                                    </div>
+                                    <div class="col-md-6 mb-3">
+                                        <label for="fontSize" class="form-label">Font Size</label>
+                                        <select class="form-select" id="fontSize">
+                                            <option value="8">Small (8pt)</option>
+                                            <option value="10" selected>Normal (10pt)</option>
+                                            <option value="12">Large (12pt)</option>
+                                        </select>
+                                    </div>
+                                </div>
+
+                                <hr>
+
+                                <h6 class="mb-3">Terms & Conditions</h6>
+                                <div class="mb-3">
+                                    <textarea class="form-control" id="termsConditions" rows="3" placeholder="1. Please keep the receipt for returns&#10;2. Warranty valid for 7 days&#10;3. Items must be unused and in original packaging"></textarea>
+                                </div>
+
+                                <div class="mb-3">
+                                    <label for="returnPolicy" class="form-label">Return Policy</label>
+                                    <input type="text" class="form-control" id="returnPolicy" placeholder="7 days replacement policy" value="7 days replacement policy">
+                                </div>
+
+                                <button type="submit" class="btn btn-primary">Save Terminal Settings</button>
+                                <button type="button" class="btn btn-success ms-2" id="testPrintBtn">
+                                    <i class="fas fa-print me-2"></i>Test Print
+                                </button>
+                            </form>
+                        </div>
+                    </div>
+                </div>
+                {% endif %}
+
+                <!-- Scale & Hardware Tab -->
+                {% if (current_user.role and current_user.role.lower() in ['admin', 'super admin']) or current_user.can_view_hardware_settings %}
+                <div class="tab-pane fade" id="v-pills-hardware" role="tabpanel" aria-labelledby="v-pills-hardware-tab">
+                    <div class="card shadow-sm">
+                        <div class="card-header">
+                            <h6 class="m-0 font-weight-bold text-primary">Scale & Hardware Configuration</h6>
+                        </div>
+                        <div class="card-body">
+                            <!-- Scale Settings -->
+                            <h6 class="mb-3"><i class="fas fa-weight fa-fw me-2"></i>Weighing Scale Settings</h6>
+                            <div class="alert alert-info">
+                                <i class="fas fa-info-circle me-2"></i>
+                                Connect a USB or RS232 weighing scale to enable weight-based sales. Most USB scales emulate a serial COM port.
+                            </div>
+                            
+                            <div class="row">
+                                <div class="col-md-6 mb-3">
+                                    <label for="scalePort" class="form-label">COM Port</label>
+                                    <select class="form-select" id="scalePort">
+                                        <option value="">Select COM Port</option>
+                                    </select>
+                                    <button class="btn btn-sm btn-outline-secondary mt-2" id="refreshPortsBtn">
+                                        <i class="fas fa-sync-alt me-1"></i>Refresh Ports
+                                    </button>
+                                </div>
+                                <div class="col-md-6 mb-3">
+                                    <label for="scaleBaudrate" class="form-label">Baud Rate</label>
+                                    <select class="form-select" id="scaleBaudrate">
+                                        <option value="9600" selected>9600 (Default)</option>
+                                        <option value="4800">4800</option>
+                                        <option value="2400">2400</option>
+                                        <option value="1200">1200</option>
+                                    </select>
+                                </div>
+                            </div>
+                            
+                            <div class="row">
+                                <div class="col-md-6 mb-3">
+                                    <div class="form-check form-switch">
+                                        <input class="form-check-input" type="checkbox" id="scaleAutoConnect">
+                                        <label class="form-check-label" for="scaleAutoConnect">Auto-connect on startup</label>
+                                    </div>
+                                </div>
+                                <div class="col-md-6 mb-3">
+                                    <button class="btn btn-primary" id="connectScaleBtn">
+                                        <i class="fas fa-plug me-2"></i>Connect Scale
+                                    </button>
+                                    <span id="scaleConnectionStatus" class="ms-2 badge bg-secondary">Disconnected</span>
+                                </div>
+                            </div>
+
+                            <div class="mb-3" id="scaleWeightDisplay" style="display: none;">
+                                <div class="card bg-light">
+                                    <div class="card-body text-center">
+                                        <h4 class="mb-0">Current Weight: <span id="currentWeight" class="text-primary">0.000</span> KG</h4>
+                                        <small class="text-muted" id="weightStatus">Waiting for weight...</small>
+                                    </div>
+                                </div>
+                            </div>
+
+                            <hr class="my-4">
+
+                            <!-- Barcode Printer Settings -->
+                            <h6 class="mb-3"><i class="fas fa-print fa-fw me-2"></i>Barcode Label Printer Settings</h6>
+                            
+                            <div class="row">
+                                <div class="col-md-6 mb-3">
+                                    <label for="printerType" class="form-label">Printer Type</label>
+                                    <select class="form-select" id="printerType">
+                                        <option value="usb">USB Printer</option>
+                                        <option value="network">Network Printer</option>
+                                        <option value="serial">Serial/ COM Port</option>
+                                    </select>
+                                </div>
+                                <div class="col-md-6 mb-3">
+                                    <label for="labelWidth" class="form-label">Label Width</label>
+                                    <select class="form-select" id="labelWidth">
+                                        <option value="58mm">58mm (2.3 inch)</option>
+                                        <option value="80mm" selected>80mm (3.1 inch)</option>
+                                    </select>
+                                </div>
+                            </div>
+                            
+                            <div class="row">
+                                <div class="col-md-6 mb-3">
+                                    <label for="barcodeType" class="form-label">Barcode Format</label>
+                                    <select class="form-select" id="barcodeType">
+                                        <option value="code128" selected>Code 128 (Default)</option>
+                                        <option value="ean13">EAN-13</option>
+                                        <option value="code39">Code 39</option>
+                                    </select>
+                                </div>
+                                <div class="col-md-6 mb-3">
+                                    <label for="printerHost" class="form-label">Printer Host/IP (for Network)</label>
+                                    <input type="text" class="form-control" id="printerHost" placeholder="192.168.1.100">
+                                </div>
+                            </div>
+
+                            <div class="mb-3">
+                                <div class="form-check form-switch">
+                                    <input class="form-check-input" type="checkbox" id="autoPrintLabel" checked>
+                                    <label class="form-check-label" for="autoPrintLabel">Auto-print label after weighing</label>
+                                </div>
+                            </div>
+
+                            <hr class="my-4">
+
+                            <!-- Test & Save -->
+                            <div class="d-flex gap-2">
+                                <button class="btn btn-success" id="testScaleBtn">
+                                    <i class="fas fa-weight-hanging me-2"></i>Test Scale
+                                </button>
+                                <button class="btn btn-info" id="testBarcodeBtn">
+                                    <i class="fas fa-barcode me-2"></i>Test Barcode
+                                </button>
+                                <button class="btn btn-primary" id="saveHardwareBtn">
+                                    <i class="fas fa-save me-2"></i>Save Hardware Settings
+                                </button>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                {% endif %}
+
+                <!-- System Reset Tab -->
+                {% if current_user.can_access_settings %}
+                <div class="tab-pane fade" id="v-pills-reset" role="tabpanel" aria-labelledby="v-pills-reset-tab">
+                    <div class="card shadow-sm">
+                        <div class="card-header">
+                            <h6 class="m-0 font-weight-bold text-primary">System Reset</h6>
+                        </div>
+                        <div class="card-body">
+                            <div class="alert alert-danger">
+                                <i class="fas fa-exclamation-triangle me-2"></i>
+                                <strong>Warning:</strong> This is a destructive action that cannot be undone!
+                            </div>
+                            
+                            <h6 class="mb-3">What will be reset:</h6>
+                            <ul class="text-muted mb-4">
+                                <li>All sales transactions and returns</li>
+                                <li>All products and inventory</li>
+                                <li>All customers</li>
+                                <li>All suppliers</li>
+                                <li>All expenses</li>
+                                <li>All promotions</li>
+                                <li>All settings (except your admin account)</li>
+                            </ul>
+                            
+                            <p class="mb-3"><strong>Your admin account will be preserved with full permissions.</strong></p>
+                            
+                            <div class="mb-4">
+                                <label for="resetConfirmText" class="form-label">Type <code>RESET</code> to confirm:</label>
+                                <input type="text" class="form-control" id="resetConfirmText" placeholder="RESET">
+                            </div>
+                            
+                            <button class="btn btn-danger" id="resetSystemBtn" disabled>
+                                <i class="fas fa-redo me-2"></i>Reset System
+                            </button>
+                        </div>
+                    </div>
+                </div>
+                {% endif %}
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Add/Edit User Modal -->
+<div class="modal fade" id="userModal" tabindex="-1" aria-labelledby="userModalLabel" aria-hidden="true">
+    <div class="modal-dialog modal-lg">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title" id="userModalLabel">Add New User</h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+            </div>
+            <div class="modal-body">
+                <form id="userForm">
+                    <input type="hidden" id="userId">
+                    
+                    <h6>User Details</h6>
+                    <div class="row">
+                        <div class="col-md-6 mb-3">
+                            <label for="username" class="form-label">Username *</label>
+                            <input type="text" class="form-control" id="username" required>
+                        </div>
+                        <div class="col-md-6 mb-3">
+                            <label for="email" class="form-label">Email</label>
+                            <input type="email" class="form-control" id="email">
+                        </div>
+                    </div>
+                    <div class="row">
+                        <div class="col-md-6 mb-3">
+                            <label for="password" class="form-label">Password</label>
+                            <input type="password" class="form-control" id="password" placeholder="Leave blank to keep unchanged">
+                            <small class="form-text text-muted">Must be at least 6 characters.</small>
+                        </div>
+                        <div class="col-md-6 mb-3">
+                            <label for="userRole" class="form-label">Role</label>
+                            <select class="form-select" id="userRole">
+                                <option value="Cashier">Cashier</option>
+                                <option value="Manager">Manager</option>
+                                <option value="Admin">Admin</option>
+                            </select>
+                        </div>
+                    </div>
+
+                    <hr class="my-4">
+
+                    <h6>Role Permissions</h6>
+                    <p class="text-muted small">Changing the role above will reset permissions to the default for that role. You can then customize specific permissions for this user below.</p>
+                    
+                    <!-- Permissions Tabs -->
+                    <ul class="nav nav-tabs mb-3" id="permissionsTabs" role="tablist">
+                        <li class="nav-item" role="presentation">
+                            <button class="nav-link active" id="sales-tab" data-bs-toggle="tab" data-bs-target="#sales-perms" type="button" role="tab" aria-controls="sales-perms" aria-selected="true">Sales</button>
+                        </li>
+                        <li class="nav-item" role="presentation">
+                            <button class="nav-link" id="purchases-tab" data-bs-toggle="tab" data-bs-target="#purchases-perms" type="button" role="tab" aria-controls="purchases-perms" aria-selected="false">Purchases</button>
+                        </li>
+                        <li class="nav-item" role="presentation">
+                            <button class="nav-link" id="returns-tab" data-bs-toggle="tab" data-bs-target="#returns-perms" type="button" role="tab" aria-controls="returns-perms" aria-selected="false">Returns</button>
+                        </li>
+                        <li class="nav-item" role="presentation">
+                            <button class="nav-link" id="inventory-tab" data-bs-toggle="tab" data-bs-target="#inventory-perms" type="button" role="tab" aria-controls="inventory-perms" aria-selected="false">Inventory</button>
+                        </li>
+                        <li class="nav-item" role="presentation">
+                            <button class="nav-link" id="customers-tab" data-bs-toggle="tab" data-bs-target="#customers-perms" type="button" role="tab" aria-controls="customers-perms" aria-selected="false">Customers</button>
+                        </li>
+                        <li class="nav-item" role="presentation">
+                            <button class="nav-link" id="reports-tab" data-bs-toggle="tab" data-bs-target="#reports-perms" type="button" role="tab" aria-controls="reports-perms" aria-selected="false">Reports</button>
+                        </li>
+                        <li class="nav-item" role="presentation">
+                            <button class="nav-link" id="expenses-tab" data-bs-toggle="tab" data-bs-target="#expenses-perms" type="button" role="tab" aria-controls="expenses-perms" aria-selected="false">Expenses</button>
+                        </li>
+                        <li class="nav-item" role="presentation">
+                            <button class="nav-link" id="settings-tab" data-bs-toggle="tab" data-bs-target="#settings-perms" type="button" role="tab" aria-controls="settings-perms" aria-selected="false">Settings</button>
+                        </li>
+                        <li class="nav-item" role="presentation">
+                            <button class="nav-link" id="audit-tab" data-bs-toggle="tab" data-bs-target="#audit-perms" type="button" role="tab" aria-controls="audit-perms" aria-selected="false">Audit</button>
+                        </li>
+                        <li class="nav-item" role="presentation">
+                            <button class="nav-link" id="system-tab" data-bs-toggle="tab" data-bs-target="#system-perms" type="button" role="tab" aria-controls="system-perms" aria-selected="false">System</button>
+                        </li>
+                    </ul>
+
+                    <!-- Permissions Tab Content -->
+                    <div class="tab-content" id="permissionsTabContent" style="max-height: 300px; overflow-y: auto; border: 1px solid #dee2e6; padding: 15px; border-radius: 0 0 0.25rem 0.25rem;">
+                        <!-- Sales Permissions -->
+                        <div class="tab-pane fade show active" id="sales-perms" role="tabpanel" aria-labelledby="sales-tab">
+                            <div id="salesPermsContainer" class="permissions-grid">
+                                <!-- Generated dynamically -->
+                            </div>
+                        </div>
+                        <!-- Purchases Permissions -->
+                        <div class="tab-pane fade" id="purchases-perms" role="tabpanel" aria-labelledby="purchases-tab">
+                            <div id="purchasesPermsContainer" class="permissions-grid">
+                                <!-- Generated dynamically -->
+                            </div>
+                        </div>
+                        <!-- Returns Permissions -->
+                        <div class="tab-pane fade" id="returns-perms" role="tabpanel" aria-labelledby="returns-tab">
+                            <div id="returnsPermsContainer" class="permissions-grid">
+                                <!-- Generated dynamically -->
+                            </div>
+                        </div>
+                        <!-- Inventory Permissions -->
+                        <div class="tab-pane fade" id="inventory-perms" role="tabpanel" aria-labelledby="inventory-tab">
+                            <div id="inventoryPermsContainer" class="permissions-grid">
+                                <!-- Generated dynamically -->
+                            </div>
+                        </div>
+                        <!-- Customers Permissions -->
+                        <div class="tab-pane fade" id="customers-perms" role="tabpanel" aria-labelledby="customers-tab">
+                            <div id="customersPermsContainer" class="permissions-grid">
+                                <!-- Generated dynamically -->
+                            </div>
+                        </div>
+                        <!-- Reports Permissions -->
+                        <div class="tab-pane fade" id="reports-perms" role="tabpanel" aria-labelledby="reports-tab">
+                            <div id="reportsPermsContainer" class="permissions-grid">
+                                <!-- Generated dynamically -->
+                            </div>
+                        </div>
+                        <!-- Expenses Permissions -->
+                        <div class="tab-pane fade" id="expenses-perms" role="tabpanel" aria-labelledby="expenses-tab">
+                            <div id="expensesPermsContainer" class="permissions-grid">
+                                <!-- Generated dynamically -->
+                            </div>
+                        </div>
+                        <!-- Settings Permissions -->
+                        <div class="tab-pane fade" id="settings-perms" role="tabpanel" aria-labelledby="settings-tab">
+                            <div id="settingsPermsContainer" class="permissions-grid">
+                                <!-- Generated dynamically -->
+                            </div>
+                        </div>
+                        <!-- Audit Permissions -->
+                        <div class="tab-pane fade" id="audit-perms" role="tabpanel" aria-labelledby="audit-tab">
+                            <div id="auditPermsContainer" class="permissions-grid">
+                                <!-- Generated dynamically -->
+                            </div>
+                        </div>
+                        <!-- System Permissions -->
+                        <div class="tab-pane fade" id="system-perms" role="tabpanel" aria-labelledby="system-tab">
+                            <div id="systemPermsContainer" class="permissions-grid">
+                                <!-- Generated dynamically -->
+                            </div>
+                        </div>
+                    </div>
+                    
+                    <!-- Fallback container for backward compatibility -->
+                    <div id="permissionsContainer" class="permissions-grid" style="display:none;">
+                        <!-- Permissions checkboxes will be dynamically inserted here -->
+                    </div>
+                </form>
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancel</button>
+                <button type="button" class="btn btn-primary" id="saveUserBtn">Save User</button>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Change Password Modal -->
+<div class="modal fade" id="changePasswordModal" tabindex="-1" aria-labelledby="changePasswordModalLabel" aria-hidden="true">
+    <div class="modal-dialog">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title" id="changePasswordModalLabel">Change Password</h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+            </div>
+            <div class="modal-body">
+                <form id="changePasswordForm">
+                    <input type="hidden" id="changePasswordUserId">
+                    <p>Changing password for user: <strong id="changePasswordUsername"></strong></p>
+                    <div class="mb-3">
+                        <label for="newPassword" class="form-label">New Password *</label>
+                        <input type="password" class="form-control" id="newPassword" required>
+                        <small class="form-text text-muted">Must be at least 6 characters.</small>
+                    </div>
+                </form>
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancel</button>
+                <button type="button" class="btn btn-primary" id="savePasswordBtn">Save Password</button>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Simple Image Upload & Preview Modal -->
+<div class="modal fade" id="imageCropperModal" tabindex="-1" aria-labelledby="imageCropperModalLabel" aria-hidden="true">
+    <div class="modal-dialog">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title" id="imageCropperModalLabel">
+                    <i class="fas fa-image me-2"></i>Upload Profile Picture
+                </h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+            </div>
+            <div class="modal-body">
+                <div class="text-center">
+                    <img id="imageToCrop" src="" alt="Preview" style="max-width: 100%; max-height: 300px; border-radius: 8px; margin-bottom: 15px;">
+                    <div>
+                        <p class="text-muted small mb-3">The image will be automatically cropped to 500×500px</p>
+                        <div class="d-grid gap-2">
+                            <button type="button" class="btn btn-outline-secondary btn-sm" id="rotateCW">
+                                <i class="fas fa-redo me-2"></i>Rotate 90°
+                            </button>
+                        </div>
+                        <canvas id="previewCanvas" width="150" height="150" style="display: none;"></canvas>
+                    </div>
+                </div>
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancel</button>
+                <button type="button" class="btn btn-success" id="cropAndUploadBtn">
+                    <i class="fas fa-upload me-1"></i>Upload Picture
+                </button>
+            </div>
+        </div>
+    </div>
+</div>
+
+{% endblock %}
+
+{% block scripts %}
+
+<script>
+document.addEventListener('DOMContentLoaded', function () {
+    const userModal = new bootstrap.Modal(document.getElementById('userModal'));
+    const changePasswordModal = new bootstrap.Modal(document.getElementById('changePasswordModal'));
+    let allPermissions = [];
+    
+    // Image Cropper Variables
+    let cropper = null;
+    let croppedImageFile = null;
+
+    // ===== NOTIFICATION HELPER FUNCTION =====
+    function showNotification(message, type = 'info') {
+        // Use alert as fallback - can be replaced with toast notifications
+        const alertType = type === 'success' ? 'success' : type === 'danger' ? 'error' : 'info';
+        // Try to use a toast notification if available, otherwise use alert
+        if (typeof bootstrap !== 'undefined' && document.body) {
+            // Create a temporary alert div
+            const alertDiv = document.createElement('div');
+            alertDiv.className = `alert alert-${type} alert-dismissible fade show`;
+            alertDiv.setAttribute('role', 'alert');
+            alertDiv.innerHTML = `
+                ${message}
+                <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
+            `;
+            alertDiv.style.position = 'fixed';
+            alertDiv.style.top = '20px';
+            alertDiv.style.right = '20px';
+            alertDiv.style.zIndex = '9999';
+            alertDiv.style.minWidth = '300px';
+            document.body.appendChild(alertDiv);
+            
+            // Auto-remove after 5 seconds
+            setTimeout(() => {
+                alertDiv.remove();
+            }, 5000);
+        } else {
+            alert(message);
+        }
+    }
+
+    // --- Main Function to Load Users ---
+    function loadUsers() {
+        console.log('Loading users...');
+        fetch('/api/settings/users')
+            .then(response => {
+                console.log('Users API response status:', response.status);
+                if (!response.ok) {
+                    throw new Error(`HTTP error! status: ${response.status}`);
+                }
+                return response.json();
+            })
+            .then(users => {
+                console.log('Users loaded:', users.length);
+                const tableBody = document.getElementById('usersTableBody');
+                if (!tableBody) {
+                    console.error('usersTableBody element not found!');
+                    return;
+                }
+                tableBody.innerHTML = '';
+                if (users.length > 0 && allPermissions.length === 0) {
+                    allPermissions = Object.keys(users[0].permissions).sort();
+                    console.log('Permissions loaded:', allPermissions.length);
+                }
+                if (users.length === 0) {
+                    tableBody.innerHTML = '<tr><td colspan="5" class="text-center text-muted">No users found</td></tr>';
+                    return;
+                }
+                users.forEach(user => {
+                    const row = document.createElement('tr');
+                    row.innerHTML = `
+                        <td>${user.username}</td>
+                        <td>${user.email || 'N/A'}</td>
+                        <td><span class="badge bg-primary">${user.role}</span></td>
+                        <td>${user.last_login || 'Never'}</td>
+                        <td>
+                            <div class="d-flex flex-wrap gap-2">
+                                <button class="btn btn-outline-primary" onclick="openEditUserModal(${user.id})" title="Edit User & Permissions" style="flex: 1; min-width: 80px; font-size: 0.85rem; padding: 0.375rem 0.5rem;">
+                                    <i class="fas fa-edit me-1"></i><span class="d-none d-sm-inline">Edit</span>
+                                </button>
+                                <button class="btn btn-outline-secondary" onclick="openChangePasswordModal(${user.id}, '${user.username}')" title="Change Password" style="flex: 1; min-width: 80px; font-size: 0.85rem; padding: 0.375rem 0.5rem;">
+                                    <i class="fas fa-key me-1"></i><span class="d-none d-sm-inline">Pass</span>
+                                </button>
+                                <button class="btn btn-outline-danger" onclick="deleteUser(${user.id}, '${user.username}')" title="Delete User" style="flex: 1; min-width: 80px; font-size: 0.85rem; padding: 0.375rem 0.5rem;">
+                                    <i class="fas fa-trash me-1"></i><span class="d-none d-sm-inline">Delete</span>
+                                </button>
+                            </div>
+                        </td>
+                    `;
+                    tableBody.appendChild(row);
+                });
+            })
+            .catch(error => {
+                console.error('Error loading users:', error);
+                const tableBody = document.getElementById('usersTableBody');
+                if (tableBody) {
+                    tableBody.innerHTML = `<tr><td colspan="5" class="text-center text-danger">Error loading users: ${error.message}</td></tr>`;
+                }
+                alert('Failed to load users: ' + error.message);
+            });
+    }
+
+    // --- Modal Handling ---
+
+    // Open "Add User" modal
+    const addUserBtn = document.getElementById('addUserBtn');
+    if (addUserBtn) {
+        addUserBtn.addEventListener('click', function () {
+        document.getElementById('userForm').reset();
+        document.getElementById('userId').value = '';
+        document.getElementById('userModalLabel').textContent = 'Add New User';
+        document.getElementById('userRole').value = 'Cashier'; // Set default role
+        document.getElementById('password').setAttribute('required', 'required');
+        document.getElementById('password').placeholder = 'Required for new user';
+        
+        // Ensure allPermissions is loaded
+        if (allPermissions.length === 0) {
+            console.warn('Permissions not loaded yet, loading users first...');
+            fetch('/api/settings/users')
+                .then(response => response.json())
+                .then(users => {
+                    if (users.length > 0) {
+                        allPermissions = Object.keys(users[0].permissions).sort();
+                    }
+                    renderPermissionsCheckboxes();
+                    userModal.show();
+                })
+                .catch(error => {
+                    console.error('Error loading permissions:', error);
+                    alert('Error loading permissions');
+                });
+        } else {
+            renderPermissionsCheckboxes();
+            userModal.show();
+        }
+        });
+    }
+
+    // Open "Edit User" modal
+    window.openEditUserModal = function (userId) {
+        fetch(`/api/settings/users`)
+            .then(response => response.json())
+            .then(users => {
+                const user = users.find(u => u.id === userId);
+                if (user) {
+                    document.getElementById('userForm').reset();
+                    document.getElementById('userModalLabel').textContent = `Edit User: ${user.username}`;
+                    document.getElementById('userId').value = user.id;
+                    document.getElementById('username').value = user.username;
+                    document.getElementById('email').value = user.email || '';
+                    document.getElementById('userRole').value = user.role;
+                    document.getElementById('password').removeAttribute('required');
+                    document.getElementById('password').placeholder = 'Leave blank to keep unchanged';
+                    
+                    // Ensure allPermissions is loaded
+                    if (allPermissions.length === 0 && users.length > 0) {
+                        allPermissions = Object.keys(users[0].permissions).sort();
+                    }
+                    
+                    renderPermissionsCheckboxes(user.permissions);
+                    userModal.show();
+                } else {
+                    alert('User not found');
+                }
+            })
+            .catch(error => {
+                console.error('Error loading user:', error);
+                alert('Error loading user');
+            });
+    };
+
+    // Open "Change Password" modal
+    window.openChangePasswordModal = function (userId, username) {
+        document.getElementById('changePasswordForm').reset();
+        document.getElementById('changePasswordUserId').value = userId;
+        document.getElementById('changePasswordUsername').textContent = username;
+        changePasswordModal.show();
+    };
+
+    // --- Form Submission ---
+
+    // Save User (Add or Edit)
+    document.getElementById('saveUserBtn').addEventListener('click', function () {
+        const userId = document.getElementById('userId').value;
+        const password = document.getElementById('password').value;
+
+        const permissions = {};
+        allPermissions.forEach(perm => {
+            const checkbox = document.getElementById(`perm-${perm}`);
+            if (checkbox) {
+                permissions[perm] = checkbox.checked;
+            }
+        });
+
+        const userData = {
+            username: document.getElementById('username').value,
+            email: document.getElementById('email').value,
+            role: document.getElementById('userRole').value,
+            permissions: permissions
+        };
+
+        if (userId) { // Update existing user
+            fetch(`/api/settings/users/${userId}`, {
+                method: 'PUT',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify(userData)
+            })
+            .then(handleResponse)
+            .then(data => {
+                if (password) {
+                    return changeUserPassword(userId, password);
+                }
+                return data;
+            })
+            .then(() => {
+                userModal.hide();
+                loadUsers();
+                alert('User updated successfully!');
+            })
+            .catch(handleError);
+        } else { // Create new user
+            if (!password) {
+                alert('Password is required for new users.');
+                return;
+            }
+            userData.password = password;
+            fetch('/api/settings/users', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify(userData)
+            })
+            .then(handleResponse)
+            .then(() => {
+                userModal.hide();
+                loadUsers();
+                alert('User created successfully!');
+            })
+            .catch(handleError);
+        }
+    });
+
+    // Save new password
+    document.getElementById('savePasswordBtn').addEventListener('click', function () {
+        const userId = document.getElementById('changePasswordUserId').value;
+        const password = document.getElementById('newPassword').value;
+        changeUserPassword(userId, password)
+            .then(() => {
+                changePasswordModal.hide();
+                alert('Password changed successfully!');
+            })
+            .catch(handleError);
+    });
+
+    // --- User Actions ---
+
+    window.deleteUser = function (userId, username) {
+        if (confirm(`Are you sure you want to delete the user "${username}"?`)) {
+            fetch(`/api/settings/users/${userId}`, {
+                method: 'DELETE'
+            })
+            .then(handleResponse)
+            .then(() => {
+                loadUsers();
+                alert('User deleted successfully!');
+            })
+            .catch(handleError);
+        }
+    };
+
+    function changeUserPassword(userId, password) {
+        return fetch(`/api/settings/users/${userId}/password`, {
+            method: 'PUT',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ password: password })
+        }).then(handleResponse);
+    }
+
+    // --- Helper Functions ---
+
+    function renderPermissionsCheckboxes(currentPermissions = {}) {
+        if (allPermissions.length === 0) {
+            console.warn('No permissions loaded. Waiting for allPermissions to be populated.');
+            return;
+        }
+
+        // Map permissions to their tab containers
+        const permissionTabs = {
+            'Sales': ['can_access_sales', 'can_access_cheques', 'can_manage_customer_payments'],
+            'Purchases': ['can_access_purchases', 'can_access_suppliers'],
+            'Returns': ['can_manage_returns', 'can_manage_purchase_returns'],
+            'Inventory': ['can_view_inventory', 'can_edit_inventory', 'can_access_warehouse'],
+            'Customers': ['can_access_customers', 'can_view_sales_history', 'can_view_reports', 'can_view_profit'],
+            'Reports': ['can_view_reports', 'can_view_profit', 'can_view_sales_history'],
+            'Expenses': ['can_access_expenses'],
+            'Settings': ['can_view_general_settings', 'can_view_receipt_settings', 'can_view_terminal_settings', 'can_view_backup_settings', 'can_view_hardware_settings', 'can_access_settings'],
+            'Audit': ['can_access_audit_logs'],
+            'System': ['can_access_scale']
+        };
+
+        // Clear all tab containers
+        Object.keys(permissionTabs).forEach(tab => {
+            const containerId = tab.toLowerCase() + 'PermsContainer';
+            const container = document.getElementById(containerId);
+            if (container) {
+                container.innerHTML = '';
+            }
+        });
+
+        // Populate each tab with its permissions
+        Object.entries(permissionTabs).forEach(([tabName, permissions]) => {
+            const containerId = tabName.toLowerCase() + 'PermsContainer';
+            const container = document.getElementById(containerId);
+            
+            if (!container) {
+                console.warn(`Container not found: ${containerId}`);
+                return;
+            }
+
+            // Filter to only show permissions that exist in allPermissions
+            const validPerms = permissions.filter(p => allPermissions.includes(p));
+
+            if (validPerms.length === 0) {
+                container.innerHTML = '<p class="text-muted small">No permissions in this category</p>';
+                return;
+            }
+
+            validPerms.forEach(perm => {
+                const isChecked = currentPermissions[perm] || false;
+                const label = perm
+                    .replace(/^can_/, '')
+                    .replace(/_/g, ' ')
+                    .split(' ')
+                    .map(word => word.charAt(0).toUpperCase() + word.slice(1))
+                    .join(' ');
+                
+                const permDiv = document.createElement('div');
+                permDiv.className = 'form-check form-switch mb-2';
+                permDiv.innerHTML = `
+                    <input class="form-check-input" type="checkbox" id="perm-${perm}" ${isChecked ? 'checked' : ''}>
+                    <label class="form-check-label" for="perm-${perm}">${label}</label>
+                `;
+                container.appendChild(permDiv);
+            });
+        });
+    }
+
+    function handleResponse(response) {
+        return response.json().then(data => {
+            if (!response.ok) {
+                throw new Error(data.error || 'An unknown error occurred.');
+            }
+            return data;
+        });
+    }
+
+    function handleError(error) {
+        console.error('API Error:', error);
+        alert(`Error: ${error.message}`);
+    }
+
+    // --- Role Change Listener ---
+    const userRoleSelect = document.getElementById('userRole');
+    if (userRoleSelect) {
+        userRoleSelect.addEventListener('change', function(e) {
+            const role = e.target.value;
+            const defaultPermissions = getPermissionsForRole(role);
+            renderPermissionsCheckboxes(defaultPermissions);
+        });
+    }
+
+    function getPermissionsForRole(role) {
+        const perms = {};
+        allPermissions.forEach(p => perms[p] = false);
+
+        if (role === 'Admin' || role === 'Super Admin') {
+            allPermissions.forEach(p => perms[p] = true);
+        } else if (role === 'Manager') {
+            // Sales & Transactions
+            perms.can_access_sales = true;
+            perms.can_access_cheques = true;
+            perms.can_manage_returns = true;
+            perms.can_manage_customer_payments = true;
+            // Purchases & Suppliers
+            perms.can_access_purchases = true;
+            perms.can_access_suppliers = true;
+            perms.can_manage_purchase_returns = true;
+            // Inventory & Warehouse
+            perms.can_view_inventory = true;
+            perms.can_edit_inventory = true;
+            perms.can_access_warehouse = true;
+            // Customers & Reports
+            perms.can_access_customers = true;
+            perms.can_view_sales_history = true;
+            perms.can_view_reports = true;
+            perms.can_view_profit = true;
+            // Equipment
+            perms.can_access_scale = true;
+            // Settings (limited access)
+            perms.can_view_general_settings = true;
+            perms.can_view_receipt_settings = true;
+            perms.can_view_terminal_settings = true;
+        } else { // Cashier
+            // Sales & Transactions (limited)
+            perms.can_access_sales = true;
+            perms.can_access_cheques = false;
+            perms.can_manage_returns = false;
+            perms.can_manage_customer_payments = false;
+            // Purchases & Suppliers
+            perms.can_access_purchases = false;
+            perms.can_access_suppliers = false;
+            perms.can_manage_purchase_returns = false;
+            // Inventory & Warehouse
+            perms.can_view_inventory = true;
+            perms.can_edit_inventory = false;
+            perms.can_access_warehouse = false;
+            // Customers & Reports
+            perms.can_access_customers = true;
+            perms.can_view_sales_history = false;
+            perms.can_view_reports = false;
+            perms.can_view_profit = false;
+            // Equipment
+            perms.can_access_scale = false;
+            // Settings (no access)
+            perms.can_view_general_settings = false;
+            perms.can_view_receipt_settings = false;
+            perms.can_view_terminal_settings = false;
+            perms.can_view_backup_settings = false;
+            perms.can_view_hardware_settings = false;
+        }
+        return perms;
+    }
+
+    // --- General Settings & Backup ---
+
+    function loadSettings() {
+        fetch('/api/settings')
+            .then(response => response.json())
+            .then(data => {
+                // Currency
+                if (data.currency && data.currency.symbol) {
+                    document.getElementById('currencySymbol').value = data.currency.symbol;
+                }
+                // Tax
+                if (data.tax && data.tax.rate) {
+                    document.getElementById('taxRate').value = data.tax.rate;
+                }
+                // Enable Tax (new setting)
+                if (data.tax && data.tax.enable_tax !== undefined) {
+                    document.getElementById('enableTax').checked = data.tax.enable_tax === 'true';
+                }
+                // Show Tax in Sales
+                if (data.tax && data.tax.show_tax_in_sales !== undefined) {
+                    document.getElementById('showTaxInSales').checked = data.tax.show_tax_in_sales === 'true';
+                }
+                // Loyalty Points
+                if (data.general && data.general.enable_loyalty_points !== undefined) {
+                    document.getElementById('enableLoyaltyPoints').checked = data.general.enable_loyalty_points === 'true';
+                }
+                if (data.general && data.general.loyalty_points_conversion_rate !== undefined) {
+                    document.getElementById('loyaltyPointsConversionRate').value = data.general.loyalty_points_conversion_rate;
+                }
+                // Printing
+                if (data.printing && data.printing.footer_text) {
+                    document.getElementById('receiptFooter').value = data.printing.footer_text;
+                }
+                // Datetime
+                if (data.datetime) {
+                    if (data.datetime.date_format) document.getElementById('dateFormat').value = data.datetime.date_format;
+                    if (data.datetime.time_format) document.getElementById('timeFormat').value = data.datetime.time_format;
+                }
+                // Localization
+                if (data.localization && data.localization.language) {
+                    document.getElementById('language').value = data.localization.language;
+                }
+                // Receipt settings
+                if (data.receipt) {
+                    if (data.receipt.business_name) document.getElementById('receiptBusinessName').value = data.receipt.business_name;
+// Check for logo in receipt settings or general settings
+                    var logoPath = '';
+                    if (data.receipt && data.receipt.logo_path) {
+                        logoPath = data.receipt.logo_path;
+                    } else if (data.general && data.general.logo_path) {
+                        logoPath = data.general.logo_path;
+                    }
+                    
+                    console.log('Logo path:', logoPath);
+                    
+                    if (logoPath) {
+                        document.getElementById('receiptLogoPreview').src = logoPath;
+                        document.getElementById('receiptLogoPreview').style.display = 'block';
+                        document.getElementById('noReceiptLogoText').style.display = 'none';
+                    }
+                    if (data.receipt.business_address) document.getElementById('businessAddress').value = data.receipt.business_address;
+                    if (data.receipt.business_phone) document.getElementById('businessPhone').value = data.receipt.business_phone;
+                    if (data.receipt.business_email) document.getElementById('businessEmail').value = data.receipt.business_email;
+                    if (data.receipt.business_gst) document.getElementById('businessGst').value = data.receipt.business_gst;
+                    // Load default format - ensure element exists
+                    const defaultFormatSelect = document.getElementById('defaultReceiptFormat');
+                    if (defaultFormatSelect && data.receipt.default_format) {
+                        defaultFormatSelect.value = data.receipt.default_format;
+                        console.log('Loaded default format:', data.receipt.default_format);
+                    } else if (defaultFormatSelect) {
+                        defaultFormatSelect.value = 'a4'; // fallback to a4
+                    }
+                    if (data.receipt.show_qr_code) document.getElementById('showQrCode').checked = data.receipt.show_qr_code === 'true';
+                    if (data.receipt.thank_you_message) document.getElementById('thankYouMessage').value = data.receipt.thank_you_message;
+                    if (data.receipt.warranty_info) document.getElementById('warrantyInfo').value = data.receipt.warranty_info;
+                    if (data.receipt.footer_text) document.getElementById('receiptFooterText').value = data.receipt.footer_text;
+                }
+            })
+            .catch(error => console.error('Error loading settings:', error));
+    }
+
+    const generalSettingsForm = document.getElementById('generalSettingsForm');
+    if (generalSettingsForm) {
+        generalSettingsForm.addEventListener('submit', function(e) {
+            e.preventDefault();
+            const settingsData = {
+                currency: { symbol: document.getElementById('currencySymbol').value },
+                tax: { 
+                    rate: document.getElementById('taxRate').value,
+                    enable_tax: document.getElementById('enableTax').checked ? 'true' : 'false',
+                    show_tax_in_sales: document.getElementById('showTaxInSales').checked ? 'true' : 'false'
+                },
+                general: {
+                    enable_loyalty_points: document.getElementById('enableLoyaltyPoints').checked ? 'true' : 'false',
+                    loyalty_points_conversion_rate: document.getElementById('loyaltyPointsConversionRate').value
+                },
+                datetime: {
+                    date_format: document.getElementById('dateFormat').value,
+                    time_format: document.getElementById('timeFormat').value
+                },
+                localization: {
+                    language: document.getElementById('language').value
+                }
+            };
+
+            fetch('/api/settings', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify(settingsData)
+            })
+            .then(handleResponse)
+            .then(() => alert('Settings saved successfully!'))
+            .catch(handleError);
+        });
+    }
+
+    const createBackupBtn = document.getElementById('createBackupBtn');
+    if (createBackupBtn) {
+        // Check backup status on load
+        checkBackupStatus();
+        
+        createBackupBtn.addEventListener('click', function() {
+            if(confirm('Create a new database backup?')) {
+                this.disabled = true;
+                this.innerHTML = '<i class="fas fa-spinner fa-spin me-2"></i>Creating...';
+                fetch('/api/settings/backup', { method: 'POST' })
+                .then(handleResponse)
+                .then(data => {
+                    alert(data.message);
+                    loadBackups(); // Refresh list
+                })
+                .catch(handleError)
+                .finally(() => { this.disabled = false; this.innerHTML = '<i class="fas fa-download me-2"></i>Create Database Backup'; });
+            }
+        });
+
+        const importBackupBtn = document.getElementById('importBackupBtn');
+        const importBackupFile = document.getElementById('importBackupFile');
+        
+        if (importBackupBtn) {
+            importBackupBtn.addEventListener('click', function() {
+                if (!importBackupFile.files.length) {
+                    alert('Please select a backup file (.json)');
+                    return;
+                }
+                
+                const file = importBackupFile.files[0];
+                const validExtensions = ['.json'];
+                const fileExtension = '.' + file.name.split('.').pop().toLowerCase();
+                
+                if (!validExtensions.includes(fileExtension)) {
+                    alert('Invalid file type. Please select a JSON backup file (.json).');
+                    return;
+                }
+                
+                if (confirm(`Import and restore from "${file.name}"? Current data will be overwritten (a backup will be created first).`)) {
+                    const formData = new FormData();
+                    formData.append('file', file);
+                    
+                    this.disabled = true;
+                    const originalText = this.innerHTML;
+                    this.innerHTML = '<i class="fas fa-spinner fa-spin me-2"></i>Importing...';
+                    
+                    fetch('/api/settings/import-backup', { method: 'POST', body: formData })
+                        .then(handleResponse)
+                        .then(data => {
+                            alert(data.message);
+                            importBackupFile.value = '';
+                            loadBackups();
+                        })
+                        .catch(handleError)
+                        .finally(() => { 
+                            this.disabled = false; 
+                            this.innerHTML = originalText;
+                        });
+                }
+            });
+        }
+    }
+
+    function checkBackupStatus() {
+        fetch('/api/settings/backup-status')
+            .then(response => response.json())
+            .then(status => {
+                const createBackupBtn = document.getElementById('createBackupBtn');
+                const statusMsg = document.getElementById('backupStatusMsg');
+                
+                if (!status.available) {
+                    createBackupBtn.disabled = true;
+                    createBackupBtn.classList.add('btn-danger');
+                    createBackupBtn.classList.remove('btn-success');
+                    
+                    let message = `<strong>Backup Unavailable:</strong> ${status.message}`;
+                    if (status.hint) {
+                        message += `<br><small>${status.hint}</small>`;
+                    }
+                    
+                    statusMsg.innerHTML = message;
+                    statusMsg.className = 'alert alert-warning mb-3';
+                    statusMsg.style.display = 'block';
+                } else {
+                    createBackupBtn.disabled = false;
+                    createBackupBtn.classList.remove('btn-danger');
+                    createBackupBtn.classList.add('btn-success');
+                    statusMsg.style.display = 'none';
+                }
+            })
+            .catch(error => console.error('Error checking backup status:', error));
+    }
+
+    function loadBackups() {
+        fetch('/api/settings/backups')
+            .then(response => response.json())
+            .then(backups => {
+                const tbody = document.getElementById('backupsTableBody');
+                tbody.innerHTML = '';
+                if (backups.length === 0) {
+                    tbody.innerHTML = '<tr><td colspan="4" class="text-center">No backups found.</td></tr>';
+                    return;
+                }
+                backups.forEach(backup => {
+                    const row = document.createElement('tr');
+                    row.innerHTML = `
+                        <td>${backup.filename}</td>
+                        <td>${window.formatTimestamp(backup.created_at, true)}</td>
+                        <td>${backup.size}</td>
+                        <td>
+                            <button class="btn btn-sm btn-warning me-1" onclick="restoreBackup('${backup.filename}')" title="Restore">
+                                <i class="fas fa-undo"></i> Restore
+                            </button>
+                            <button class="btn btn-sm btn-info me-1" onclick="downloadBackup('${backup.filename}')" title="Download">
+                                <i class="fas fa-download"></i>
+                            </button>
+                            <button class="btn btn-sm btn-danger" onclick="deleteBackup('${backup.filename}')" title="Delete">
+                                <i class="fas fa-trash"></i>
+                            </button>
+                        </td>
+                    `;
+                    tbody.appendChild(row);
+                });
+            })
+            .catch(error => console.error('Error loading backups:', error));
+    }
+
+    window.restoreBackup = function(filename) {
+        if (confirm(`Are you sure you want to restore from "${filename}"? Current data will be overwritten (a backup will be created first).`)) {
+            fetch(`/api/settings/restore/${filename}`, { method: 'POST' })
+                .then(handleResponse)
+                .then(data => {
+                    alert(data.message);
+                    loadBackups();
+                })
+                .catch(handleError);
+        }
+    };
+
+    window.downloadBackup = function(filename) {
+        // Create a temporary link and trigger download
+        const link = document.createElement('a');
+        link.href = `/api/settings/download-backup/${filename}`;
+        link.download = filename;
+        document.body.appendChild(link);
+        link.click();
+        document.body.removeChild(link);
+    };
+
+    window.deleteBackup = function(filename) {
+        if (confirm(`Are you sure you want to delete backup "${filename}"?`)) {
+            fetch(`/api/settings/backups/${filename}`, { method: 'DELETE' })
+                .then(handleResponse)
+                .then(data => {
+                    alert(data.message);
+                    loadBackups();
+                })
+                .catch(handleError);
+        }
+    };
+
+    // Initial load
+    {% if current_user.can_access_settings %}
+    loadUsers();
+    {% endif %}
+    loadSettings();
+    loadBackups();
+    
+    // Load hardware/scale settings only if the functions are available (defined outside)
+    try {
+        if (typeof loadHardwareSettings === 'function') loadHardwareSettings();
+        if (typeof refreshComPorts === 'function') refreshComPorts();
+        if (typeof loadTerminalSettings === 'function') loadTerminalSettings();
+    } catch(e) {
+        console.warn('Some hardware functions not available yet');
+    }
+    
+    // Logo Upload Handler
+    const receiptLogoUpload = document.getElementById('receiptLogoUpload');
+    if (receiptLogoUpload) {
+        receiptLogoUpload.addEventListener('change', function(e) {
+            const file = e.target.files[0];
+            if (!file) return;
+            
+            // Create FormData for file upload
+            const formData = new FormData();
+            formData.append('logo', file);
+            
+            // Show loading state
+            const originalButtonText = 'Uploading...';
+            
+            fetch('/api/settings/upload-logo', {
+                method: 'POST',
+                body: formData
+            })
+            .then(handleResponse)
+            .then(data => {
+                alert('Logo uploaded successfully!');
+                // Update the preview
+                document.getElementById('receiptLogoPreview').src = data.logo_path;
+                document.getElementById('receiptLogoPreview').style.display = 'block';
+                document.getElementById('noReceiptLogoText').style.display = 'none';
+            })
+            .catch(handleError);
+        });
+    }
+
+    // Receipt Settings Form
+    const receiptSettingsForm = document.getElementById('receiptSettingsForm');
+    if (receiptSettingsForm) {
+        receiptSettingsForm.addEventListener('submit', function(e) {
+            e.preventDefault();
+            const receiptData = {
+                receipt: {
+                    business_name: document.getElementById('receiptBusinessName').value,
+                    business_address: document.getElementById('businessAddress').value,
+                    business_phone: document.getElementById('businessPhone').value,
+                    business_email: document.getElementById('businessEmail').value,
+                    business_gst: document.getElementById('businessGst').value,
+                    default_format: document.getElementById('defaultReceiptFormat').value,
+                    show_qr_code: document.getElementById('showQrCode').checked ? 'true' : 'false',
+                    thank_you_message: document.getElementById('thankYouMessage').value,
+                    warranty_info: document.getElementById('warrantyInfo').value,
+                    footer_text: document.getElementById('receiptFooterText').value
+                }
+            };
+
+            fetch('/api/settings', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify(receiptData)
+            })
+            .then(handleResponse)
+            .then(() => alert('Receipt settings saved successfully!'))
+            .catch(handleError);
+        });
+    }
+
+    // Terminal Settings Form
+    const terminalSettingsForm = document.getElementById('terminalSettingsForm');
+    if (terminalSettingsForm) {
+        terminalSettingsForm.addEventListener('submit', function(e) {
+            e.preventDefault();
+            const terminalData = {
+                terminal: {
+                    receipt_type: document.getElementById('receiptType').value,
+                    receipt_theme: document.getElementById('receiptTheme').value,
+                    auto_print: document.getElementById('autoPrint').checked ? 'true' : 'false',
+                    show_logo: document.getElementById('showLogo').checked ? 'true' : 'false',
+                    show_barcode: document.getElementById('showBarcode').checked ? 'true' : 'false',
+                    show_terms: document.getElementById('showTerms').checked ? 'true' : 'false',
+                    paper_width: document.getElementById('paperWidth').value,
+                    font_size: document.getElementById('fontSize').value,
+                    terms_conditions: document.getElementById('termsConditions').value,
+                    return_policy: document.getElementById('returnPolicy').value
+                }
+            };
+
+            fetch('/api/settings', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify(terminalData)
+            })
+            .then(handleResponse)
+            .then(() => alert('Terminal settings saved successfully!'))
+            .catch(handleError);
+        });
+
+        // Test Print Button
+        const testPrintBtn = document.getElementById('testPrintBtn');
+        if (testPrintBtn) {
+            testPrintBtn.addEventListener('click', function() {
+                alert('Test print feature will open a print preview with a sample receipt.');
+                // Open print window with test receipt
+                window.open('/sales/api/test-receipt', '_blank');
+            });
+        }
+    }
+
+    // Load terminal settings if exists
+    function loadTerminalSettings() {
+        fetch('/api/settings')
+            .then(response => response.json())
+            .then(data => {
+                if (data.terminal) {
+                    if (data.terminal.receipt_type) document.getElementById('receiptType').value = data.terminal.receipt_type;
+                    if (data.terminal.receipt_theme) document.getElementById('receiptTheme').value = data.terminal.receipt_theme;
+                    if (data.terminal.auto_print) document.getElementById('autoPrint').checked = data.terminal.auto_print === 'true';
+                    if (data.terminal.show_logo) document.getElementById('showLogo').checked = data.terminal.show_logo === 'true';
+                    if (data.terminal.show_barcode) document.getElementById('showBarcode').checked = data.terminal.show_barcode === 'true';
+                    if (data.terminal.show_terms) document.getElementById('showTerms').checked = data.terminal.show_terms === 'true';
+                    if (data.terminal.paper_width) document.getElementById('paperWidth').value = data.terminal.paper_width;
+                    if (data.terminal.font_size) document.getElementById('fontSize').value = data.terminal.font_size;
+                    if (data.terminal.terms_conditions) document.getElementById('termsConditions').value = data.terminal.terms_conditions;
+                    if (data.terminal.return_policy) document.getElementById('returnPolicy').value = data.terminal.return_policy;
+                }
+            })
+            .catch(error => console.error('Error loading terminal settings:', error));
+    }
+
+    loadTerminalSettings();
+});
+
+// ==================== SCALE & HARDWARE TAB FUNCTIONALITY ====================
+let scaleConnected = false;
+let weightPollingInterval = null;
+
+// Load hardware settings on page load
+function loadHardwareSettings() {
+    fetch('/api/settings')
+        .then(response => response.json())
+        .then(data => {
+            // Scale settings
+            if (data.scale) {
+                if (data.scale.port) document.getElementById('scalePort').value = data.scale.port;
+                if (data.scale.baudrate) document.getElementById('scaleBaudrate').value = data.scale.baudrate;
+                if (data.scale.auto_connect) document.getElementById('scaleAutoConnect').checked = data.scale.auto_connect === 'true';
+            }
+            
+            // Printer settings
+            if (data.printer) {
+                if (data.printer.printer_type) document.getElementById('printerType').value = data.printer.printer_type;
+                if (data.printer.label_width) document.getElementById('labelWidth').value = data.printer.label_width;
+                if (data.printer.barcode_type) document.getElementById('barcodeType').value = data.printer.barcode_type;
+                if (data.printer.host) document.getElementById('printerHost').value = data.printer.host;
+                if (data.printer.auto_print) document.getElementById('autoPrintLabel').checked = data.printer.auto_print === 'true';
+            }
+        })
+        .catch(error => console.error('Error loading hardware settings:', error));
+}
+
+// Refresh COM ports
+function refreshComPorts() {
+    const scalePort = document.getElementById('scalePort');
+    if (!scalePort) return; // Exit if element doesn't exist
+    
+    fetch('/api/scale/ports')
+        .then(response => {
+            if (!response.ok) {
+                throw new Error(`HTTP error! status: ${response.status}`);
+            }
+            return response.json();
+        })
+        .then(data => {
+            const select = document.getElementById('scalePort');
+            if (!select) return;
+            select.innerHTML = '<option value="">Select COM Port</option>';
+            
+            // Handle different response formats
+            let ports = [];
+            if (Array.isArray(data)) {
+                ports = data;
+            } else if (data && Array.isArray(data.ports)) {
+                ports = data.ports;
+            } else if (data && data.ports && typeof data.ports === 'object') {
+                // Handle object format like {ports: {COM1: {...}, COM2: {...}}}
+                ports = Object.entries(data.ports).map(([portName, portInfo]) => ({
+                    port: portName,
+                    description: portInfo.description || ''
+                }));
+            }
+            
+            if (ports.length === 0) {
+                select.innerHTML = '<option value="">No COM ports found</option>';
+                return;
+            }
+            
+            ports.forEach(port => {
+                const option = document.createElement('option');
+                option.value = port.port;
+                option.textContent = `${port.port} - ${port.description || 'Unknown'}`;
+                select.appendChild(option);
+            });
+        })
+        .catch(error => {
+            console.error('Error loading ports:', error);
+            const select = document.getElementById('scalePort');
+            if (select) {
+                select.innerHTML = '<option value="">Error loading ports</option>';
+            }
+        });
+}
+
+// Connect to scale
+function connectScale() {
+    const scalePort = document.getElementById('scalePort');
+    const scaleBaudrate = document.getElementById('scaleBaudrate');
+    
+    if (!scalePort || !scaleBaudrate) return;
+    
+    const port = scalePort.value;
+    const baudrate = parseInt(scaleBaudrate.value);
+    
+    if (!port) {
+        alert('Please select a COM port');
+        return;
+    }
+    
+    const btn = document.getElementById('connectScaleBtn');
+    btn.disabled = true;
+    btn.innerHTML = '<i class="fas fa-spinner fa-spin me-2"></i>Connecting...';
+    
+    fetch('/api/scale/connect', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ port: port, baudrate: baudrate })
+    })
+    .then(response => response.json())
+    .then(data => {
+        if (data.success) {
+            scaleConnected = true;
+            document.getElementById('scaleConnectionStatus').textContent = 'Connected';
+            document.getElementById('scaleConnectionStatus').className = 'ms-2 badge bg-success';
+            document.getElementById('scaleWeightDisplay').style.display = 'block';
+            
+            // Start polling for weight
+            startWeightPolling();
+            
+            alert('Scale connected successfully!');
+        } else {
+            alert('Failed to connect: ' + data.message);
+        }
+    })
+    .catch(error => {
+        console.error('Error connecting to scale:', error);
+        alert('Error connecting to scale');
+    })
+    .finally(() => {
+        btn.disabled = false;
+        btn.innerHTML = '<i class="fas fa-plug me-2"></i>Connect Scale';
+    });
+}
+
+// Disconnect from scale
+function disconnectScale() {
+    fetch('/api/scale/disconnect', { method: 'POST' })
+        .then(response => response.json())
+        .then(data => {
+            scaleConnected = false;
+            document.getElementById('scaleConnectionStatus').textContent = 'Disconnected';
+            document.getElementById('scaleConnectionStatus').className = 'ms-2 badge bg-secondary';
+            document.getElementById('scaleWeightDisplay').style.display = 'none';
+            stopWeightPolling();
+        });
+}
+
+// Start polling for weight
+function startWeightPolling() {
+    if (weightPollingInterval) return;
+    
+    weightPollingInterval = setInterval(() => {
+        fetch('/api/scale/weight')
+            .then(response => response.json())
+            .then(data => {
+                if (data.weight !== undefined) {
+                    document.getElementById('currentWeight').textContent = data.weight.toFixed(3);
+                    document.getElementById('weightStatus').textContent = data.is_stable ? 'Stable' : 'Unstable';
+                }
+            })
+            .catch(error => console.error('Error reading weight:', error));
+    }, 500);
+}
+
+// Stop polling for weight
+function stopWeightPolling() {
+    if (weightPollingInterval) {
+        clearInterval(weightPollingInterval);
+        weightPollingInterval = null;
+    }
+}
+
+// Test scale
+function testScale() {
+    fetch('/api/scale/status')
+        .then(response => response.json())
+        .then(data => {
+            if (data.connected) {
+                alert(`Scale Status:\nPort: ${data.port}\nCurrent Weight: ${data.current_weight.toFixed(3)} KG\nStatus: ${data.is_stable ? 'Stable' : 'Unstable'}`);
+            } else {
+                alert('Scale is not connected. Please connect first.');
+            }
+        });
+}
+
+// Test barcode generation
+function testBarcode() {
+    const testData = {
+        product_code: 'TEST001',
+        product_name: 'Test Product',
+        weight_kg: 0.750,
+        price_per_kg: 1200,
+        total_price: 900
+    };
+    
+    fetch('/api/barcode/generate', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(testData)
+    })
+    .then(response => response.json())
+    .then(data => {
+        if (data.success) {
+            // Open barcode image in new window
+            const win = window.open('', '_blank');
+            win.document.write(`<img src="${data.barcode_image}" style="max-width:100%"><br><p>Barcode: ${data.barcode_data}</p>`);
+        } else {
+            alert('Failed to generate barcode: ' + data.message);
+        }
+    })
+    .catch(error => {
+        console.error('Error generating barcode:', error);
+        alert('Error generating barcode');
+    });
+}
+
+// Save hardware settings
+function saveHardwareSettings() {
+    const settingsData = {
+        scale: {
+            port: document.getElementById('scalePort').value,
+            baudrate: document.getElementById('scaleBaudrate').value,
+            auto_connect: document.getElementById('scaleAutoConnect').checked ? 'true' : 'false'
+        },
+        printer: {
+            printer_type: document.getElementById('printerType').value,
+            label_width: document.getElementById('labelWidth').value,
+            barcode_type: document.getElementById('barcodeType').value,
+            host: document.getElementById('printerHost').value,
+            auto_print: document.getElementById('autoPrintLabel').checked ? 'true' : 'false'
+        }
+    };
+    
+    fetch('/api/settings', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(settingsData)
+    })
+    .then(response => response.json())
+    .then(data => {
+        if (data.success) {
+            alert('Hardware settings saved successfully!');
+        } else {
+            alert('Failed to save settings: ' + data.message);
+        }
+    })
+    .catch(error => {
+        console.error('Error saving hardware settings:', error);
+        alert('Error saving hardware settings');
+    });
+}
+
+// Attach event listeners for hardware tab
+document.addEventListener('DOMContentLoaded', function() {
+    // Load hardware settings
+    loadHardwareSettings();
+    refreshComPorts();
+    
+    // Refresh ports button
+    const refreshBtn = document.getElementById('refreshPortsBtn');
+    if (refreshBtn) {
+        refreshBtn.addEventListener('click', refreshComPorts);
+    }
+    
+    // Connect/Disconnect scale button
+    const connectBtn = document.getElementById('connectScaleBtn');
+    if (connectBtn) {
+        connectBtn.addEventListener('click', function() {
+            if (scaleConnected) {
+                disconnectScale();
+            } else {
+                connectScale();
+            }
+        });
+    }
+    
+    // Test scale button
+    const testScaleBtn = document.getElementById('testScaleBtn');
+    if (testScaleBtn) {
+        testScaleBtn.addEventListener('click', testScale);
+    }
+    
+    // Test barcode button
+    const testBarcodeBtn = document.getElementById('testBarcodeBtn');
+    if (testBarcodeBtn) {
+        testBarcodeBtn.addEventListener('click', testBarcode);
+    }
+    
+    // Save hardware settings button
+    const saveHardwareBtn = document.getElementById('saveHardwareBtn');
+    if (saveHardwareBtn) {
+        saveHardwareBtn.addEventListener('click', saveHardwareSettings);
+    }
+    
+    // System Reset functionality
+    const resetConfirmText = document.getElementById('resetConfirmText');
+    const resetSystemBtn = document.getElementById('resetSystemBtn');
+    
+    if (resetConfirmText && resetSystemBtn) {
+        resetConfirmText.addEventListener('input', function() {
+            if (this.value === 'RESET') {
+                resetSystemBtn.disabled = false;
+            } else {
+                resetSystemBtn.disabled = true;
+            }
+        });
+        
+        resetSystemBtn.addEventListener('click', function() {
+            if (confirm('Are you absolutely sure you want to reset the entire POS system? This action cannot be undone!')) {
+                if (confirm('This will delete ALL data including sales, products, customers, suppliers, and expenses. Are you REALLY sure?')) {
+                    this.disabled = true;
+                    this.innerHTML = '<i class="fas fa-spinner fa-spin me-2"></i>Resetting...';
+                    
+                    fetch('/api/settings/reset', {
+                        method: 'POST',
+                        headers: { 'Content-Type': 'application/json' }
+                    })
+                    .then(response => response.json())
+                    .then(data => {
+                        if (data.success) {
+                            alert('System has been reset successfully! You will need to log in again.');
+                            window.location.href = '/auth/login';
+                        } else {
+                            if (data && data.message) {
+                                alert('Failed to reset system: ' + data.message);
+                            } else if (data && data.error) {
+                                alert('Failed to reset system: ' + data.error);
+                            } else {
+                                alert('Failed to reset system. Server returned an invalid response.');
+                            }
+                            this.disabled = false;
+                            this.innerHTML = '<i class="fas fa-redo me-2"></i>Reset System';
+                        }
+                    })
+                    .catch(error => {
+                        console.error('Error resetting system:', error);
+                        alert('Error resetting system');
+                        this.disabled = false;
+                        this.innerHTML = '<i class="fas fa-redo me-2"></i>Reset System';
+                    });
+                }
+            }
+        });
+    }
+    
+    // ===== Simple Profile Picture Upload =====
+    const uploadBtn = document.getElementById('uploadBtn');
+    const deleteBtn = document.getElementById('deleteBtn');
+    const profilePictureInput = document.getElementById('profilePictureInput');
+    const imageCropperModal = document.getElementById('imageCropperModal');
+    const imageToCrop = document.getElementById('imageToCrop');
+    const cropAndUploadBtn = document.getElementById('cropAndUploadBtn');
+    const rotateCW = document.getElementById('rotateCW');
+    
+    // Store image rotation state
+    let imageRotation = 0;
+    let selectedFile = null;
+
+    // Click upload button to select file
+    if (uploadBtn) {
+        uploadBtn.addEventListener('click', () => profilePictureInput.click());
+    }
+
+    // Handle file selection
+    if (profilePictureInput) {
+        profilePictureInput.addEventListener('change', (e) => {
+            const file = e.target.files[0];
+            if (!file) return;
+
+            // Validate file type
+            const validTypes = ['image/png', 'image/jpeg', 'image/jpg', 'image/gif', 'image/webp'];
+            if (!validTypes.includes(file.type)) {
+                alert('❌ Please select PNG, JPG, GIF, or WebP');
+                return;
+            }
+
+            // Validate file size (5MB)
+            if (file.size > 5 * 1024 * 1024) {
+                alert('❌ File size must be less than 5MB');
+                return;
+            }
+
+            // Store file and show preview
+            selectedFile = file;
+            imageRotation = 0;
+            const reader = new FileReader();
+            reader.onload = (evt) => {
+                if (imageToCrop) {
+                    imageToCrop.src = evt.target.result;
+                    imageToCrop.style.transform = 'rotate(0deg)';
+                }
+                if (imageCropperModal) {
+                    const modal = new bootstrap.Modal(imageCropperModal);
+                    modal.show();
+                }
+            };
+            reader.readAsDataURL(file);
+        });
+    }
+
+    // Receipt Settings Form Handler
+    const receiptForm = document.getElementById('receiptSettingsForm');
+    if (receiptForm) {
+        // Load current settings
+        async function loadReceiptSettings() {
+            try {
+                const response = await fetch('/api/settings/categories/receipt');
+                const data = await response.json();
+                if (data.success && data.settings) {
+                    const settings = data.settings;
+                    document.getElementById('receiptBusinessName').value = settings.business_name || '';
+                    document.getElementById('businessAddress').value = settings.business_address || '';
+                    document.getElementById('businessPhone').value = settings.business_phone || '';
+                    document.getElementById('businessEmail').value = settings.business_email || '';
+                    document.getElementById('businessGst').value = settings.business_gst || '';
+                    document.getElementById('thankYouMessage').value = settings.thank_you_message || 'Thank you for your business!';
+                    document.getElementById('warrantyInfo').value = settings.warranty_info || '';
+                    document.getElementById('receiptFooterText').value = settings.footer_text || 'Generated by POS System';
+                    document.getElementById('defaultReceiptFormat').value = settings.default_receipt_format || 'thermal';
+                    document.getElementById('showQrCode').checked = settings.show_qr_code !== 'false' && settings.show_qr_code !== false;
+                }
+            } catch (error) {
+                console.error('Error loading receipt settings:', error);
+            }
+        }
+        
+        // Save settings
+        receiptForm.addEventListener('submit', async (e) => {
+            e.preventDefault();
+            
+            const settingsData = {
+                receipt: {
+                    business_name: document.getElementById('receiptBusinessName').value,
+                    business_address: document.getElementById('businessAddress').value,
+                    business_phone: document.getElementById('businessPhone').value,
+                    business_email: document.getElementById('businessEmail').value,
+                    business_gst: document.getElementById('businessGst').value,
+                    thank_you_message: document.getElementById('thankYouMessage').value,
+                    warranty_info: document.getElementById('warrantyInfo').value,
+                    footer_text: document.getElementById('receiptFooterText').value,
+                    default_receipt_format: document.getElementById('defaultReceiptFormat').value,
+                    show_qr_code: document.getElementById('showQrCode').checked ? 'true' : 'false'
+                }
+            };
+            
+            try {
+                const response = await fetch('/api/settings', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json'
+                    },
+                    body: JSON.stringify(settingsData)
+                });
+                
+                const data = await response.json();
+                if (data.success) {
+                    showNotification('Receipt settings saved successfully! Changes will appear on next receipt print.', 'success');
+                } else {
+                    showNotification('Error saving settings: ' + data.error, 'danger');
+                }
+            } catch (error) {
+                console.error('Error saving settings:', error);
+                showNotification('Error saving settings', 'danger');
+            }
+        });
+        
+        // Load settings on page load
+        loadReceiptSettings();
+    }
+
+    // Terminal Settings Form Handler
+    const terminalForm = document.getElementById('terminalSettingsForm');
+    if (terminalForm) {
+        // Load current settings
+        async function loadTerminalSettings() {
+            try {
+                const response = await fetch('/api/settings/categories/terminal');
+                const data = await response.json();
+                if (data.success && data.settings) {
+                    const settings = data.settings;
+                    document.getElementById('receiptType').value = settings.receipt_type || 'thermal';
+                    document.getElementById('receiptTheme').value = settings.receipt_theme || 'professional';
+                    document.getElementById('autoPrint').checked = settings.auto_print !== 'false' && settings.auto_print !== false;
+                    document.getElementById('showLogo').checked = settings.show_logo !== 'false' && settings.show_logo !== false;
+                    document.getElementById('showBarcode').checked = settings.show_barcode !== 'false' && settings.show_barcode !== false;
+                    document.getElementById('showTerms').checked = settings.show_terms !== 'false' && settings.show_terms !== false;
+                    document.getElementById('paperWidth').value = settings.paper_width || '80';
+                    document.getElementById('fontSize').value = settings.font_size || '10';
+                    document.getElementById('termsConditions').value = settings.terms_conditions || '';
+                    document.getElementById('returnPolicy').value = settings.return_policy || '7 days replacement policy';
+                }
+            } catch (error) {
+                console.error('Error loading terminal settings:', error);
+            }
+        }
+        
+        // Save settings
+        terminalForm.addEventListener('submit', async (e) => {
+            e.preventDefault();
+            
+            const settingsData = {
+                terminal: {
+                    receipt_type: document.getElementById('receiptType').value,
+                    receipt_theme: document.getElementById('receiptTheme').value,
+                    auto_print: document.getElementById('autoPrint').checked ? 'true' : 'false',
+                    show_logo: document.getElementById('showLogo').checked ? 'true' : 'false',
+                    show_barcode: document.getElementById('showBarcode').checked ? 'true' : 'false',
+                    show_terms: document.getElementById('showTerms').checked ? 'true' : 'false',
+                    paper_width: document.getElementById('paperWidth').value,
+                    font_size: document.getElementById('fontSize').value,
+                    terms_conditions: document.getElementById('termsConditions').value,
+                    return_policy: document.getElementById('returnPolicy').value
+                }
+            };
+            
+            try {
+                const response = await fetch('/api/settings', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json'
+                    },
+                    body: JSON.stringify(settingsData)
+                });
+                
+                const data = await response.json();
+                if (data.success) {
+                    showNotification('Terminal settings saved successfully! Changes will appear on next receipt print.', 'success');
+                } else {
+                    showNotification('Error saving settings: ' + data.error, 'danger');
+                }
+            } catch (error) {
+                console.error('Error saving settings:', error);
+                showNotification('Error saving settings', 'danger');
+            }
+        });
+        
+        // Test Print Button
+        const testPrintBtn = document.getElementById('testPrintBtn');
+        if (testPrintBtn) {
+            testPrintBtn.addEventListener('click', function() {
+                // Save settings first, then show test receipt
+                terminalForm.dispatchEvent(new Event('submit'));
+                setTimeout(() => {
+                    window.open('/invoices/preview/receipt', '_blank');
+                }, 500);
+            });
+        }
+        
+        // Load settings on page load
+        loadTerminalSettings();
+    }
+
+    // Simple rotate button
+    if (rotateCW && imageToCrop) {
+        rotateCW.addEventListener('click', () => {
+            imageRotation = (imageRotation + 90) % 360;
+            imageToCrop.style.transform = `rotate(${imageRotation}deg)`;
+        });
+    }
+
+    // Upload button (simplified)
+    if (cropAndUploadBtn) {
+        cropAndUploadBtn.addEventListener('click', async () => {
+            if (!selectedFile) {
+                alert('❌ Please select an image');
+                return;
+            }
+
+            cropAndUploadBtn.disabled = true;
+            cropAndUploadBtn.innerHTML = '<i class="fas fa-spinner fa-spin me-1"></i>Uploading...';
+
+            const formData = new FormData();
+            formData.append('profile_picture', selectedFile);
+            formData.append('rotation', imageRotation);
+
+            try {
+                const response = await fetch('/api/profile/upload-picture', {
+                    method: 'POST',
+                    body: formData,
+                    headers: {
+                        'X-CSRFToken': document.querySelector('meta[name="csrf-token"]').getAttribute('content')
+                    }
+                });
+
+                const data = await response.json();
+
+                if (data.success) {
+                    // Close modal
+                    const modal = bootstrap.Modal.getInstance(imageCropperModal);
+                    if (modal) modal.hide();
+
+                    // Update profile display
+                    const profileDisplay = document.getElementById('profilePictureDisplay');
+                    profileDisplay.innerHTML = `<img src="${data.profile_picture}?t=${Date.now()}" alt="Profile" class="rounded-circle" style="width: 200px; height: 200px; object-fit: cover; border: 3px solid #4F46E5;">`;
+
+                    // Show delete button
+                    if (!document.getElementById('deleteBtn')) {
+                        const newDeleteBtn = document.createElement('button');
+                        newDeleteBtn.type = 'button';
+                        newDeleteBtn.id = 'deleteBtn';
+                        newDeleteBtn.className = 'btn btn-outline-danger btn-sm ms-2';
+                        newDeleteBtn.innerHTML = '<i class="fas fa-trash me-1"></i>Delete';
+                        newDeleteBtn.addEventListener('click', deleteProfilePicture);
+                        uploadBtn.parentElement.appendChild(newDeleteBtn);
+                    }
+
+                    // Update header
+                    const headerTrigger = document.querySelector('.user-profile-trigger');
+                    if (headerTrigger) {
+                        let headerImg = headerTrigger.querySelector('img');
+                        if (!headerImg) {
+                            const gradDiv = Array.from(headerTrigger.children).find(el =>
+                                el.tagName === 'DIV' && el.style.background.includes('gradient')
+                            );
+                            if (gradDiv) gradDiv.remove();
+                            headerImg = document.createElement('img');
+                            headerImg.className = 'rounded-circle';
+                            headerImg.style.cssText = 'width: 40px; height: 40px; object-fit: cover; border: 2px solid #e2e8f0;';
+                            headerImg.alt = 'Profile';
+                            headerTrigger.insertBefore(headerImg, headerTrigger.firstChild);
+                        }
+                        headerImg.src = data.profile_picture + '?t=' + Date.now();
+                    }
+
+                    alert('✓ Picture updated successfully!');
+                    profilePictureInput.value = '';
+                    selectedFile = null;
+                } else {
+                    alert('❌ ' + (data.error || 'Upload failed'));
+                }
+            } catch (error) {
+                console.error(error);
+                alert('❌ Error uploading picture');
+            } finally {
+                cropAndUploadBtn.disabled = false;
+                cropAndUploadBtn.innerHTML = '<i class="fas fa-upload me-1"></i>Upload Picture';
+            }
+        });
+    }
+
+    // Delete picture function
+    if (deleteBtn) {
+        deleteBtn.addEventListener('click', deleteProfilePicture);
+    }
+
+    function deleteProfilePicture() {
+        if (!confirm('Delete profile picture?')) return;
+
+        const deleteBtn = document.getElementById('deleteBtn');
+        deleteBtn.disabled = true;
+        deleteBtn.innerHTML = '<i class="fas fa-spinner fa-spin me-1"></i>...';
+
+        fetch('/api/profile/delete-picture', {
+            method: 'POST',
+            headers: {
+                'X-CSRFToken': document.querySelector('meta[name="csrf-token"]').getAttribute('content')
+            }
+        })
+        .then(r => r.json())
+        .then(data => {
+            if (data.success) {
+                const username = '{{ current_user.username }}';
+                const initials = username.charAt(0).toUpperCase();
+
+                // Update profile
+                document.getElementById('profilePictureDisplay').innerHTML =
+                    `<div class="rounded-circle d-flex align-items-center justify-content-center text-white fw-bold" style="width: 200px; height: 200px; background: linear-gradient(135deg, #4F46E5 0%, #7C3AED 100%); font-size: 80px; margin: 0 auto;">${initials}</div>`;
+
+                // Update header
+                const headerTrigger = document.querySelector('.user-profile-trigger');
+                if (headerTrigger) {
+                    headerTrigger.querySelector('img')?.remove();
+                    const gradDiv = document.createElement('div');
+                    gradDiv.className = 'bg-gradient rounded-circle d-flex align-items-center justify-content-center fw-bold text-white';
+                    gradDiv.style.cssText = 'width: 40px; height: 40px; background: linear-gradient(135deg, #4F46E5 0%, #7C3AED 100%); font-size: 16px;';
+                    gradDiv.textContent = initials;
+                    headerTrigger.insertBefore(gradDiv, headerTrigger.firstChild);
+                }
+
+                deleteBtn.remove();
+                alert('✓ Picture deleted');
+            } else {
+                alert('❌ ' + data.error);
+                deleteBtn.disabled = false;
+                deleteBtn.innerHTML = '<i class="fas fa-trash me-1"></i>Delete';
+            }
+        })
+        .catch(e => {
+            console.error(e);
+            alert('❌ Error deleting picture');
+            deleteBtn.disabled = false;
+            deleteBtn.innerHTML = '<i class="fas fa-trash me-1"></i>Delete';
+        });
+    }
+});
+</script>
+{% endblock %}

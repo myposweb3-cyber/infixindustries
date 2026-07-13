@@ -1,0 +1,1114 @@
+{% extends "base.html" %}
+
+{% block title %}Inventory Management{% endblock %}
+
+{% block head %}
+<meta name="csrf-token" content="{{ csrf_token() }}">
+<style>
+    .inventory-card {
+        transition: transform 0.2s;
+    }
+    .inventory-card:hover {
+        transform: translateY(-2px);
+        box-shadow: 0 4px 8px rgba(0,0,0,0.1);
+    }
+    .low-stock-badge {
+        background-color: #ffc107 !important;
+        color: #000 !important;
+    }
+    .out-of-stock-badge {
+        background-color: #dc3545;
+        color: white;
+    }
+    .in-stock-badge {
+        background-color: #28a745;
+        color: white;
+    }
+    .table-row-low-stock {
+        background-color: #fff8e1;
+    }
+    .table-row-out-of-stock {
+        background-color: #ffeaea;
+    }
+</style>
+{% endblock %}
+
+{% block content %}
+<div class="row">
+    <div class="col-12">
+        <div class="d-flex justify-content-between align-items-center mb-4">
+            <h2><i class="fas fa-warehouse me-2"></i>Inventory Management</h2>
+            <div class="d-flex gap-2">
+                <button class="btn btn-success" data-bs-toggle="modal" data-bs-target="#addProductModal">
+                    <i class="fas fa-plus me-1"></i>Add Product
+                </button>
+                <button class="btn btn-primary" data-bs-toggle="modal" data-bs-target="#importProductsModal">
+                    <i class="fas fa-file-import me-1"></i>Import
+                </button>
+                <button class="btn btn-info" onclick="exportInventory()">
+                    <i class="fas fa-file-export me-1"></i>Export
+                </button>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Inventory Analytics Cards -->
+<div class="row mb-4">
+    <div class="col-md-3">
+        <div class="card inventory-card">
+            <div class="card-body text-center">
+                <i class="fas fa-boxes fa-2x text-primary mb-2"></i>
+                <h4 id="totalProducts">-</h4>
+                <small class="text-muted">Total Products</small>
+            </div>
+        </div>
+    </div>
+    <div class="col-md-3">
+        <div class="card inventory-card">
+            <div class="card-body text-center">
+                <i class="fas fa-rupee-sign fa-2x text-success mb-2"></i>
+                <h4 id="stockValue">Rs-</h4>
+                <small class="text-muted">Stock Value</small>
+            </div>
+        </div>
+    </div>
+    <div class="col-md-3">
+        <div class="card inventory-card">
+            <div class="card-body text-center">
+                <i class="fas fa-exclamation-triangle fa-2x text-warning mb-2"></i>
+                <h4 id="lowStockCount">-</h4>
+                <small class="text-muted">Low Stock Items</small>
+            </div>
+        </div>
+    </div>
+    <div class="col-md-3">
+        <div class="card inventory-card">
+            <div class="card-body text-center">
+                <i class="fas fa-times-circle fa-2x text-danger mb-2"></i>
+                <h4 id="outOfStockCount">-</h4>
+                <small class="text-muted">Out of Stock</small>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Low Stock Alerts -->
+{% if low_stock_products %}
+<div class="row mb-4">
+    <div class="col-12">
+        <div class="alert alert-warning">
+            <h5><i class="fas fa-exclamation-triangle me-2"></i>Low Stock Alert</h5>
+            <p class="mb-0">The following products are running low on stock:</p>
+            <ul class="mb-0" id="lowStockList">
+                {% for product in low_stock_products %}
+                <li>{{ product.name }} - {{ product.stock }} {{ product.unit_type }} remaining</li>
+                {% endfor %}
+            </ul>
+        </div>
+    </div>
+</div>
+{% endif %}
+
+<!-- Search and Filters -->
+<div class="row mb-4">
+    <div class="col-md-6">
+        <div class="input-group">
+            <input type="text" id="searchInput" class="form-control" placeholder="Search products by name or barcode...">
+            <button class="btn btn-primary" type="button" id="searchButton" title="Apply filters">
+                <i class="fas fa-search"></i> Search
+            </button>
+            <button class="btn btn-outline-secondary" type="button" id="clearSearch" title="Clear search">
+                <i class="fas fa-times"></i>
+            </button>
+        </div>
+    </div>
+    <div class="col-md-6">
+        <div class="row">
+            <div class="col-md-4">
+                <select id="categoryFilter" class="form-select">
+                    <option value="">All Categories</option>
+                </select>
+            </div>
+            <div class="col-md-4">
+                <select id="stockFilter" class="form-select">
+                    <option value="">All Stock Status</option>
+                    <option value="in_stock">In Stock</option>
+                    <option value="low_stock">Low Stock</option>
+                    <option value="out_of_stock">Out of Stock</option>
+                </select>
+            </div>
+            <div class="col-md-4">
+                <div class="form-check mt-2">
+                    <input class="form-check-input" type="checkbox" id="lowStockOnly">
+                    <label class="form-check-label" for="lowStockOnly">
+                        Low Stock Only
+                    </label>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Products Table -->
+<div class="row">
+    <div class="col-12">
+        <div class="card">
+            <div class="card-header d-flex justify-content-between align-items-center">
+                <h5 class="mb-0">Products</h5>
+                <span class="text-muted" id="productCount">0 products</span>
+            </div>
+            <div class="card-body">
+                <div class="table-responsive">
+                    <table class="table table-striped table-hover" id="productsTable">
+                        <thead>
+                            <tr>
+                                <th>ID</th>
+                                <th>Name</th>
+                                <th>Category</th>
+                                <th>Price</th>
+                                <th>Cost Price</th>
+                                <th>Stock</th>
+                                <th>Threshold</th>
+                                <th>Unit</th>
+                                <th>Barcode</th>
+                                <th>Last Updated</th>
+                                <th>Actions</th>
+                            </tr>
+                        </thead>
+                        <tbody id="productsTableBody">
+                        </tbody>
+                    </table>
+                </div>
+                <nav id="paginationNav" class="mt-3" aria-label="Products pagination">
+                    <ul class="pagination justify-content-center" id="pagination">
+                    </ul>
+                </nav>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Add/Edit Product Modal -->
+<div class="modal fade" id="addProductModal" tabindex="-1">
+    <div class="modal-dialog modal-lg">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title" id="productModalTitle">Add New Product</h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+            </div>
+            <form id="productForm">
+                <div class="modal-body">
+                    <div class="row">
+                        <div class="col-md-6">
+                            <div class="mb-3">
+                                <label for="productName" class="form-label">Product Name *</label>
+                                <input type="text" class="form-control" id="productName" required>
+                            </div>
+                        </div>
+                        <div class="col-md-6">
+                            <div class="mb-3">
+                                <label for="productCategory" class="form-label">Category</label>
+                                <input type="text" class="form-control" id="productCategory" placeholder="e.g., Electronics, Food, Beverages">
+                            </div>
+                        </div>
+                    </div>
+                    <div class="row">
+                        <div class="col-md-6">
+                            <div class="mb-3">
+                                <label for="productPrice" class="form-label">Selling Price *</label>
+                                <input type="number" class="form-control" id="productPrice" step="0.01" min="0" required>
+                            </div>
+                        </div>
+                        <div class="col-md-6">
+                            <div class="mb-3">
+                                <label for="productCostPrice" class="form-label">Cost Price</label>
+                                <input type="number" class="form-control" id="productCostPrice" step="0.01" min="0" value="0">
+                            </div>
+                        </div>
+                    </div>
+                    <div class="row">
+                        <div class="col-md-6">
+                            <div class="mb-3">
+                                <label for="productStock" class="form-label">Current Stock</label>
+                                <input type="number" class="form-control" id="productStock" step="0.01" min="0" value="0">
+                            </div>
+                        </div>
+                        <div class="col-md-6">
+                            <div class="mb-3">
+                                <label for="productUnit" class="form-label">Unit Type</label>
+                                <select class="form-select" id="productUnit">
+                                    <option value="unit">Unit</option>
+                                    <option value="kg">Kilogram (kg)</option>
+                                    <option value="g">Gram (g)</option>
+                                    <option value="l">Liter (L)</option>
+                                    <option value="ml">Milliliter (mL)</option>
+                                    <option value="m">Meter (m)</option>
+                                    <option value="cm">Centimeter (cm)</option>
+                                    <option value="box">Box</option>
+                                    <option value="pack">Pack</option>
+                                    <option value="case">Case</option>
+                                </select>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="row">
+                        <div class="col-md-6">
+                            <div class="mb-3">
+                                <label for="productBarcode" class="form-label">Barcode</label>
+                                <input type="text" class="form-control" id="productBarcode" placeholder="Enter barcode (optional)">
+                            </div>
+                        </div>
+                        <div class="col-md-6">
+                            <div class="mb-3">
+                                <label for="productBarcode" class="form-label">Barcode</label>
+                                <input type="text" class="form-control" id="productBarcode" placeholder="Enter barcode (optional)">
+                            </div>
+                        </div>
+                    </div>
+                    <div class="mb-3">
+                        <label for="productSupplier" class="form-label">Supplier</label>
+                        <select class="form-select" id="productSupplier">
+                            <option value="">Select Supplier (optional)</option>
+                        </select>
+                    </div>
+                    <div class="mb-3">
+                        <label for="productDescription" class="form-label">Description</label>
+                        <textarea class="form-control" id="productDescription" rows="3" placeholder="Product description (optional)"></textarea>
+                    </div>
+                    <div class="mb-3">
+                        <label for="productImagePath" class="form-label">Product Image</label>
+                        <input type="file" class="form-control" id="productImageFile" accept="image/*">
+                        <div class="form-text">Supported formats: PNG, JPG, JPEG, GIF, WebP (Max 5MB)</div>
+                        <div id="currentImagePreview" class="mt-2" style="display: none;">
+                            <img id="currentImage" src="" alt="Current image" class="img-thumbnail" style="max-width: 100px; max-height: 100px;">
+                            <button type="button" class="btn btn-sm btn-outline-danger ms-2" onclick="removeImage()">Remove</button>
+                        </div>
+                    </div>
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancel</button>
+                    <button type="submit" class="btn btn-primary" id="saveProductBtn">Save Product</button>
+                </div>
+            </form>
+        </div>
+    </div>
+</div>
+
+<!-- Product Details Modal -->
+<div class="modal fade" id="productDetailsModal" tabindex="-1">
+    <div class="modal-dialog modal-lg">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title">Product Details</h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+            </div>
+            <div class="modal-body">
+                <div class="row">
+                    <div class="col-md-6">
+                        <h6>Product Information</h6>
+                        <div id="productInfo">
+                        </div>
+                    </div>
+                    <div class="col-md-6">
+                        <h6>Stock Information</h6>
+                        <div id="productStockInfo">
+                        </div>
+                    </div>
+                </div>
+                <div class="row mt-4">
+                    <div class="col-12">
+                        <h6>Supplier Information</h6>
+                        <div id="productSupplierInfo">
+                        </div>
+                    </div>
+                </div>
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Close</button>
+                <button type="button" class="btn btn-primary" id="editFromDetailsBtn">Edit Product</button>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Import Products Modal -->
+<div class="modal fade" id="importProductsModal" tabindex="-1">
+    <div class="modal-dialog">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title">Import Products from Excel</h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+            </div>
+            <div class="modal-body">
+                <div class="mb-3">
+                    <label for="importFile" class="form-label">Select Excel File</label>
+                    <input type="file" class="form-control" id="importFile" accept=".xlsx,.xls">
+                    <div class="form-text">Supported formats: Excel (.xlsx, .xls)</div>
+                </div>
+                
+                <!-- Stock Import Mode -->
+                <div class="mb-3">
+                    <label class="form-label"><strong>Stock Import Mode:</strong></label>
+                    <div class="form-check">
+                        <input class="form-check-input" type="radio" name="importMode" id="importModeReplace" value="replace" checked>
+                        <label class="form-check-label" for="importModeReplace">
+                            <strong>Replace Stock</strong> - Set stock to value in Excel
+                        </label>
+                    </div>
+                    <div class="form-check">
+                        <input class="form-check-input" type="radio" name="importMode" id="importModeAdd" value="add">
+                        <label class="form-check-label" for="importModeAdd">
+                            <strong>Add Stock</strong> - Add to existing stock
+                        </label>
+                    </div>
+                </div>
+                
+                <div class="alert alert-info">
+                    <h6>Excel File Format:</h6>
+                    <p class="mb-1">The Excel file should have the following columns:</p>
+                    <ul class="mb-0 small">
+                        <li><strong>Name</strong> (required) - Product name</li>
+                        <li><strong>Price</strong> (required) - Selling price</li>
+                        <li><strong>Cost Price</strong> (optional) - Cost price</li>
+                        <li><strong>Stock</strong> (optional) - Initial stock quantity</li>
+                        <li><strong>Unit Type</strong> (optional) - e.g., unit, kg, g, l, ml</li>
+                        <li><strong>Category</strong> (optional) - Product category</li>
+                        <li><strong>Low Stock Threshold</strong> (optional) - Default: 5</li>
+                        <li><strong>Barcode</strong> (optional) - Product barcode</li>
+                        <li><strong>Description</strong> (optional) - Product description</li>
+                    </ul>
+                </div>
+                <div id="importProgress" style="display: none;">
+                    <div class="progress">
+                        <div class="progress-bar" role="progressbar" style="width: 100%">
+                            Importing...
+                        </div>
+                    </div>
+                </div>
+                <div id="importResult" class="mt-3" style="display: none;"></div>
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Close</button>
+                <button type="button" class="btn btn-primary" id="importProductsBtn" onclick="importProducts()">
+                    <i class="fas fa-file-import me-1"></i>Import
+                </button>
+            </div>
+        </div>
+    </div>
+</div>
+
+{% endblock %}
+
+{% block scripts %}
+<script>
+let currentPage = 1;
+let currentProductId = null;
+let isLoadingProducts = false;  // Prevent simultaneous requests
+let categories = [];
+let currencySymbol = '₨';
+
+// Load currency symbol and update display
+function loadCurrencySymbol() {
+    fetch('/api/currency-symbol')
+        .then(response => response.json())
+        .then(data => {
+            if (data && data.currency_symbol) {
+                currencySymbol = data.currency_symbol;
+                console.log('Currency symbol loaded for inventory:', currencySymbol);
+                // Reload products to show updated currency
+                loadProducts();
+            } else {
+                currencySymbol = '₨';
+            }
+        })
+        .catch(error => {
+            console.error('Error loading currency symbol:', error);
+            currencySymbol = '₨';
+        });
+}
+
+$(document).ready(function() {
+    console.log('Inventory page loaded - initializing...');
+    
+    try {
+        loadCurrencySymbol();
+    } catch(e) {
+        console.error('Error loading currency:', e);
+    }
+    
+    try {
+        loadInventoryAnalytics();
+    } catch(e) {
+        console.error('Error loading analytics:', e);
+    }
+    
+    try {
+        loadCategories();
+    } catch(e) {
+        console.error('Error loading categories:', e);
+    }
+    
+    try {
+        // Suppress supplier loading if user doesn't have permission
+        console.log('Attempting to load suppliers...');
+        $.get('/suppliers/api/suppliers', { per_page: 1000 })
+            .done(function(data) {
+                if (data && data.suppliers) {
+                    console.log('Suppliers loaded:', data.suppliers.length);
+                    const $supplierSelect = $('#productSupplier');
+                    $supplierSelect.find('option:not(:first)').remove();
+                    data.suppliers.forEach(function(supplier) {
+                        $supplierSelect.append('<option value="' + supplier.id + '">' + supplier.name + '</option>');
+                    });
+                }
+            })
+            .fail(function(xhr, status, error) {
+                console.warn('Suppliers API not accessible (permission denied or error):', error);
+                // Continue without suppliers - just log the warning
+            });
+    } catch(e) {
+        console.error('Error loading suppliers:', e);
+    }
+    
+    try {
+        loadProducts();
+    } catch(e) {
+        console.error('Error loading products:', e);
+    }
+
+    // Attach event handlers using delegation to ensure they work even if elements are added dynamically
+    $(document).on('input keyup paste', '#searchInput', debounce(function() {
+        currentPage = 1;
+        console.log('Search input changed to:', $(this).val());
+        loadProducts();
+    }, 300));
+
+    // Handle Enter key for immediate search
+    $(document).on('keypress', '#searchInput', function(e) {
+        if (e.which === 13) { // Enter key
+            e.preventDefault();
+            currentPage = 1;
+            console.log('Enter key pressed, searching for:', $(this).val());
+            loadProducts();
+        }
+    });
+
+    // Clear search button
+    $(document).on('click', '#clearSearch', function(e) {
+        e.preventDefault();
+        $('#searchInput').val('').focus();
+        currentPage = 1;
+        console.log('Search cleared');
+        loadProducts();
+    });
+
+    // Search button
+    $(document).on('click', '#searchButton', function(e) {
+        e.preventDefault();
+        currentPage = 1;
+        const searchTerm = $('#searchInput').val();
+        console.log('Search button clicked - searching for:', searchTerm);
+        loadProducts();
+    });
+
+    // Category filter
+    $(document).on('change', '#categoryFilter', function() {
+        console.log('Category filter changed to:', $(this).val());
+        currentPage = 1;
+        loadProducts();
+    });
+
+    // Stock status filter
+    $(document).on('change', '#stockFilter', function() {
+        console.log('Stock filter changed to:', $(this).val());
+        currentPage = 1;
+        loadProducts();
+    });
+
+    // Low stock only checkbox
+    $(document).on('change', '#lowStockOnly', function() {
+        console.log('Low stock only toggled to:', $(this).is(':checked'));
+        currentPage = 1;
+        loadProducts();
+    });
+
+    // Product form submission
+    $(document).on('submit', '#productForm', function(e) {
+        e.preventDefault();
+        saveProduct();
+    });
+
+    // Edit from details button
+    $(document).on('click', '#editFromDetailsBtn', function() {
+        if (currentProductId) {
+            $('#productDetailsModal').modal('hide');
+            editProduct(currentProductId);
+        }
+    });
+    
+    console.log('All event handlers attached successfully');
+});
+
+function debounce(func, wait) {
+    let timeout;
+    return function executedFunction(...args) {
+        const later = () => {
+            clearTimeout(timeout);
+            func(...args);
+        };
+        clearTimeout(timeout);
+        timeout = setTimeout(later, wait);
+    };
+}
+
+function loadInventoryAnalytics() {
+    $.ajax({
+        url: '/inventory/api/products',
+        type: 'GET',
+        data: { per_page: 1 },
+        dataType: 'json',
+        timeout: 5000
+    })
+        .done(function(data) {
+            try {
+                $('#totalProducts').text(data.total);
+            } catch(e) {
+                console.error('Error processing total products:', e, 'data:', data);
+            }
+        })
+        .fail(function(xhr, status, error) {
+            console.warn('Failed to load total products:', status, error);
+        });
+
+    $.ajax({
+        url: '/inventory/api/products',
+        type: 'GET',
+        data: { per_page: 1000 },
+        dataType: 'json',
+        timeout: 15000
+    })
+        .done(function(data) {
+            try {
+                if (!data || !data.products) {
+                    console.error('Invalid analytics response: missing products array', data);
+                    return;
+                }
+                let totalValue = 0;
+                let lowStock = 0;
+                let outOfStock = 0;
+
+                data.products.forEach(function(product) {
+                    totalValue += (product.cost_price || 0) * (product.stock || 0);
+                    if (product.stock <= 0) {
+                        outOfStock++;
+                    } else if (product.stock <= (product.low_stock_threshold || 5)) {
+                        lowStock++;
+                    }
+                });
+
+                $('#stockValue').text('₨ ' + totalValue.toFixed(2));
+                $('#lowStockCount').text(lowStock);
+                $('#outOfStockCount').text(outOfStock);
+            } catch(e) {
+                console.error('Error processing inventory analytics:', e, 'data:', data);
+            }
+        })
+        .fail(function(xhr, status, error) {
+            console.warn('Failed to load inventory analytics:', status, error);
+        });
+
+    $.ajax({
+        url: '/inventory/api/inventory/low-stock',
+        type: 'GET',
+        dataType: 'json',
+        timeout: 5000
+    })
+        .done(function(data) {
+            try {
+                if (!Array.isArray(data)) {
+                    console.error('Invalid low-stock response: not an array', data);
+                    return;
+                }
+                if (data.length > 0) {
+                    const lowStockList = $('#lowStockList');
+                    lowStockList.empty();
+                    data.slice(0, 5).forEach(function(product) {
+                        lowStockList.append('<li>' + product.name + ' - ' + product.stock + ' ' + product.unit_type + ' remaining</li>');
+                    });
+                    if (data.length > 5) {
+                        lowStockList.append('<li>... and ' + (data.length - 5) + ' more</li>');
+                    }
+                    $('#lowStockList').parent().show();
+                }
+            } catch(e) {
+                console.error('Error processing low-stock products:', e, 'data:', data);
+            }
+        })
+        .fail(function(xhr, status, error) {
+            console.warn('Failed to load low stock products:', status, error);
+        });
+}
+
+function loadCategories() {
+    $.ajax({
+        url: '/inventory/api/products',
+        type: 'GET',
+        data: { per_page: 1000 },
+        dataType: 'json',
+        timeout: 15000
+    })
+        .done(function(data) {
+            try {
+                if (!data || !data.products || !Array.isArray(data.products)) {
+                    console.error('Invalid categories response:', data);
+                    return;
+                }
+                console.log('Loaded products for categories:', data.products.length);
+                const categorySet = new Set();
+                data.products.forEach(function(product) {
+                    if (product.category) {
+                        categorySet.add(product.category);
+                    }
+                });
+
+                categories = Array.from(categorySet).sort();
+                console.log('Found categories:', categories);
+                const $categoryFilter = $('#categoryFilter');
+                $categoryFilter.find('option:not(:first)').remove();
+                categories.forEach(function(category) {
+                    $categoryFilter.append('<option value="' + category + '">' + category + '</option>');
+                });
+                console.log('Categories dropdown loaded with', categories.length, 'options');
+            } catch(e) {
+                console.error('Error processing categories:', e, 'data:', data);
+            }
+        })
+        .fail(function(xhr, status, error) {
+            console.error('Failed to load categories:', error, status, xhr);
+        });
+}
+
+function loadProducts() {
+    // Prevent simultaneous requests
+    if (isLoadingProducts) {
+        console.log('Products already loading, skipping request');
+        return;
+    }
+    
+    isLoadingProducts = true;
+    const search = $('#searchInput').val();
+    const category = $('#categoryFilter').val();
+    const stockStatus = $('#stockFilter').val();
+    const lowStockOnly = $('#lowStockOnly').is(':checked');
+
+    console.log('Loading products with filters:', { search, category, stockStatus, lowStockOnly, currentPage });
+
+    $.ajax({
+        url: '/inventory/api/products',
+        type: 'GET',
+        data: {
+            page: currentPage,
+            per_page: 50,
+            search: search,
+            category: category,
+            low_stock: lowStockOnly
+        },
+        timeout: 15000,
+        cache: false
+    })
+    .done(function(data) {
+        console.log('API response received - Total:', data.total, 'Products returned:', data.products.length, 'Data:', data);
+        let products = data.products;
+        
+        if (stockStatus && stockStatus !== '') {
+            console.log('Filtering by stock status:', stockStatus);
+            const beforeFilter = products.length;
+            products = products.filter(function(p) {
+                if (stockStatus === 'in_stock') return p.stock > (p.low_stock_threshold || 5);
+                if (stockStatus === 'low_stock') return p.stock > 0 && p.stock <= (p.low_stock_threshold || 5);
+                if (stockStatus === 'out_of_stock') return p.stock <= 0;
+                return true;
+            });
+            console.log('After stock status filter, products count:', products.length, '(before: ' + beforeFilter + ')');
+        }
+        
+        renderProducts(products);
+        renderPagination(data);
+        $('#productCount').text(data.total + ' products');
+        console.log('Products rendered successfully - ' + products.length + ' items on this page');
+    })
+    .fail(function(xhr, status, error) {
+        console.error('Error loading products - Status:', status, 'Error:', error, 'XHR:', xhr.responseText);
+        console.error('Full XHR object:', xhr);
+        showAlert('Error loading products: ' + (error || status), 'danger');
+    })
+    .always(function() {
+        isLoadingProducts = false;  // Release the lock
+    });
+}
+
+function renderProducts(products) {
+    const $tbody = $('#productsTableBody');
+    $tbody.empty();
+
+    if (products.length === 0) {
+        $tbody.append('<tr><td colspan="11" class="text-center">No products found</td></tr>');
+        return;
+    }
+
+    products.forEach(function(product) {
+        let rowClass = '';
+        let stockBadge = '';
+        
+        if (product.stock <= 0) {
+            rowClass = 'table-row-out-of-stock';
+            stockBadge = '<span class="badge out-of-stock-badge" style="background-color: #dc3545; color: #fff; font-weight: 700;">Out of Stock</span>';
+        } else if (product.stock <= (product.low_stock_threshold || 5)) {
+            rowClass = 'table-row-low-stock';
+            stockBadge = '<span class="badge low-stock-badge" style="background-color: #ffc107; color: #000; font-weight: 700;">Low Stock</span>';
+        } else {
+            stockBadge = '<span class="badge in-stock-badge" style="background-color: #28a745; color: #fff; font-weight: 700;">In Stock</span>';
+        }
+
+        const row = `
+            <tr class="${rowClass}">
+                <td>${product.id}</td>
+                <td><strong>${product.name}</strong></td>
+                <td>${product.category || '-'}</td>
+                <td>${currencySymbol} ${parseFloat(product.price || 0).toFixed(2)}</td>
+                <td>${currencySymbol} ${parseFloat(product.cost_price || 0).toFixed(2)}</td>
+                <td>${product.stock} ${stockBadge}</td>
+                <td>${product.low_stock_threshold || 5}</td>
+                <td>${product.unit_type || 'unit'}</td>
+                <td>${product.barcode || '-'}</td>
+                <td>${product.last_updated ? product.last_updated.substring(0, 10) : 'Never'}</td>
+                <td>
+                    <div class="btn-group" role="group">
+                        <button class="btn btn-sm btn-outline-info" onclick="viewProductDetails(${product.id})" title="View Details">
+                            <i class="fas fa-eye"></i>
+                        </button>
+                        <button class="btn btn-sm btn-outline-secondary" onclick="editProduct(${product.id})" title="Edit">
+                            <i class="fas fa-edit"></i>
+                        </button>
+                        <button class="btn btn-sm btn-outline-danger" onclick="deleteProduct(${product.id}, '${product.name}')" title="Delete">
+                            <i class="fas fa-trash"></i>
+                        </button>
+                    </div>
+                </td>
+            </tr>
+        `;
+        $tbody.append(row);
+    });
+}
+
+function renderPagination(data) {
+    const $pagination = $('#pagination');
+    $pagination.empty();
+
+    if (data.pages <= 1) return;
+
+    if (data.current_page > 1) {
+        $pagination.append('<li class="page-item"><a class="page-link" href="#" onclick="changePage(' + (data.current_page - 1) + ')">Previous</a></li>');
+    }
+
+    for (let i = Math.max(1, data.current_page - 2); i <= Math.min(data.pages, data.current_page + 2); i++) {
+        const activeClass = i === data.current_page ? 'active' : '';
+        $pagination.append('<li class="page-item ' + activeClass + '"><a class="page-link" href="#" onclick="changePage(' + i + ')">' + i + '</a></li>');
+    }
+
+    if (data.current_page < data.pages) {
+        $pagination.append('<li class="page-item"><a class="page-link" href="#" onclick="changePage(' + (data.current_page + 1) + ')">Next</a></li>');
+    }
+}
+
+function changePage(page) {
+    currentPage = page;
+    loadProducts();
+}
+
+function editProduct(productId) {
+    $.get('/inventory/api/products/' + productId)
+        .done(function(product) {
+            currentProductId = product.id;
+            $('#productModalTitle').text('Edit Product');
+            $('#productName').val(product.name);
+            $('#productCategory').val(product.category || '');
+            $('#productPrice').val(product.price);
+            $('#productCostPrice').val(product.cost_price || 0);
+            $('#productStock').val(product.stock);
+            $('#productUnit').val(product.unit_type || 'unit');
+            $('#productThreshold').val(product.low_stock_threshold || 5);
+            $('#productBarcode').val(product.barcode || '');
+            $('#productDescription').val(product.description || '');
+            $('#productSupplier').val(product.supplier_id || '');
+
+            if (product.image_path) {
+                $('#currentImage').attr('src', product.image_path);
+                $('#currentImagePreview').show();
+            } else {
+                $('#currentImagePreview').hide();
+            }
+
+            $('#addProductModal').modal('show');
+        })
+        .fail(function() {
+            showAlert('Error loading product details', 'danger');
+        });
+}
+
+function saveProduct() {
+    const productData = {
+        name: $('#productName').val(),
+        category: $('#productCategory').val(),
+        price: $('#productPrice').val(),
+        cost_price: $('#productCostPrice').val(),
+        stock: $('#productStock').val(),
+        unit_type: $('#productUnit').val(),
+        low_stock_threshold: $('#productThreshold').val(),
+        barcode: $('#productBarcode').val(),
+        description: $('#productDescription').val(),
+        image_path: $('#currentImage').attr('src') || null,
+        supplier_id: $('#productSupplier').val() || null
+    };
+
+    // Handle file upload if a file is selected
+    const fileInput = document.getElementById('productImageFile');
+    if (fileInput.files.length > 0) {
+        const formData = new FormData();
+        formData.append('file', fileInput.files[0]);
+
+        // First upload the image
+        $.ajax({
+            url: '/inventory/api/products/upload',
+            method: 'POST',
+            data: formData,
+            processData: false,
+            contentType: false,
+            headers: {
+                'X-CSRFToken': $('meta[name="csrf-token"]').attr('content')
+            }
+        })
+        .done(function(uploadResponse) {
+            if (uploadResponse.success) {
+                productData.image_path = uploadResponse.image_path;
+                saveProductData(productData);
+            } else {
+                showAlert(uploadResponse.error || 'Error uploading image', 'danger');
+            }
+        })
+        .fail(function() {
+            showAlert('Error uploading image', 'danger');
+        });
+    } else {
+        // No file to upload, save product directly
+        saveProductData(productData);
+    }
+}
+
+function saveProductData(productData) {
+    const url = currentProductId ? '/inventory/api/products/' + currentProductId : '/inventory/api/products';
+    const method = currentProductId ? 'PUT' : 'POST';
+
+    $.ajax({
+        url: url,
+        method: method,
+        contentType: 'application/json',
+        data: JSON.stringify(productData),
+        headers: {
+            'X-CSRFToken': $('meta[name="csrf-token"]').attr('content')
+        }
+    })
+    .done(function(response) {
+        if (response.success) {
+            $('#addProductModal').modal('hide');
+            $('#productForm')[0].reset();
+            currentProductId = null;
+            $('#currentImagePreview').hide();
+            loadProducts();
+            loadInventoryAnalytics();
+            loadCategories();
+            showAlert(response.message, 'success');
+        } else {
+            showAlert(response.error || 'Error saving product', 'danger');
+        }
+    })
+    .fail(function() {
+        showAlert('Error saving product', 'danger');
+    });
+}
+
+function deleteProduct(productId, productName) {
+    if (confirm('Are you sure you want to delete "' + productName + '"? This action cannot be undone.')) {
+        $.ajax({
+            url: '/inventory/api/products/' + productId,
+            method: 'DELETE',
+            headers: {
+                'X-CSRFToken': $('meta[name="csrf-token"]').attr('content')
+            }
+        })
+        .done(function(response) {
+            if (response.success) {
+                loadProducts();
+                loadInventoryAnalytics();
+                if (response.stock_set_to_zero) {
+                    showAlert(response.message, 'warning');
+                } else {
+                    showAlert(response.message, 'success');
+                }
+            } else {
+                showAlert(response.error || 'Error deleting product', 'danger');
+            }
+        })
+        .fail(function() {
+            showAlert('Error deleting product', 'danger');
+        });
+    }
+}
+
+function viewProductDetails(productId) {
+    currentProductId = productId;
+
+    $.get('/inventory/api/products/' + productId)
+        .done(function(product) {
+            const infoHtml = `
+                <p><strong>Name:</strong> ${product.name}</p>
+                <p><strong>Category:</strong> ${product.category || '-'}</p>
+                <p><strong>Price:</strong> ₨ ${parseFloat(product.price || 0).toFixed(2)}</p>
+                <p><strong>Cost Price:</strong> ₨ ${parseFloat(product.cost_price || 0).toFixed(2)}</p>
+                <p><strong>Barcode:</strong> ${product.barcode || '-'}</p>
+                <p><strong>Description:</strong> ${product.description || '-'}</p>
+            `;
+            $('#productInfo').html(infoHtml);
+
+            const stockInfoHtml = `
+                <p><strong>Current Stock:</strong> ${product.stock} ${product.unit_type}</p>
+                <p><strong>Low Stock Threshold:</strong> ${product.low_stock_threshold || 5}</p>
+                <p><strong>Unit Type:</strong> ${product.unit_type || 'unit'}</p>
+                <p><strong>Last Updated:</strong> ${product.last_updated || 'Never'}</p>
+            `;
+            $('#productStockInfo').html(stockInfoHtml);
+
+            const supplierInfoHtml = `
+                <p><strong>Supplier Name:</strong> ${product.supplier_name || '-'}</p>
+                <p><strong>Phone:</strong> ${product.supplier_phone || '-'}</p>
+                <p><strong>Email:</strong> ${product.supplier_email || '-'}</p>
+            `;
+            $('#productSupplierInfo').html(supplierInfoHtml);
+        })
+        .fail(function() {
+            showAlert('Error loading product details', 'danger');
+        });
+
+    $('#productDetailsModal').modal('show');
+}
+
+function exportInventory() {
+    // Show loading indicator
+    showAlert('Exporting products...', 'info');
+    
+    // Call the export endpoint
+    window.location.href = '/inventory/api/products/export';
+}
+
+function importProducts() {
+    const fileInput = document.getElementById('importFile');
+    const file = fileInput.files[0];
+    
+    if (!file) {
+        showAlert('Please select a file to import', 'warning');
+        return;
+    }
+    
+    // Show progress
+    $('#importProgress').show();
+    $('#importResult').hide();
+    $('#importProductsBtn').prop('disabled', true);
+    
+    // Create form data
+    const formData = new FormData();
+    formData.append('file', file);
+    formData.append('import_mode', document.querySelector('input[name="importMode"]:checked').value);
+    
+    // Send AJAX request
+    $.ajax({
+        url: '/inventory/api/products/import',
+        method: 'POST',
+        data: formData,
+        processData: false,
+        contentType: false,
+        headers: {
+            'X-CSRFToken': $('meta[name="csrf-token"]').attr('content')
+        }
+    })
+    .done(function(response) {
+        $('#importProgress').hide();
+        $('#importProductsBtn').prop('disabled', false);
+        
+        if (response.success) {
+            let resultHtml = '<div class="alert alert-success">' + response.message + '</div>';
+            if (response.errors && response.errors.length > 0) {
+                resultHtml += '<div class="alert alert-warning mt-2"><strong>Errors:</strong><ul class="mb-0">';
+                response.errors.forEach(function(error) {
+                    resultHtml += '<li>' + error + '</li>';
+                });
+                resultHtml += '</ul></div>';
+            }
+            $('#importResult').html(resultHtml).show();
+            
+            // Refresh the products list and analytics
+            loadProducts();
+            loadInventoryAnalytics();
+            loadCategories();
+            
+            // Close modal after success
+            setTimeout(function() {
+                $('#importProductsModal').modal('hide');
+                $('#importFile').val('');
+                $('#importResult').hide();
+            }, 3000);
+        } else {
+            $('#importResult').html('<div class="alert alert-danger">' + (response.error || 'Import failed') + '</div>').show();
+        }
+    })
+    .fail(function(xhr) {
+        $('#importProgress').hide();
+        $('#importProductsBtn').prop('disabled', false);
+        
+        let errorMsg = 'Error importing products';
+        try {
+            const response = JSON.parse(xhr.responseText);
+            errorMsg = response.error || errorMsg;
+        } catch (e) {}
+        
+        $('#importResult').html('<div class="alert alert-danger">' + errorMsg + '</div>').show();
+    });
+}
+
+function showAlert(message, type) {
+    const alertHtml = `
+        <div class="alert alert-${type} alert-dismissible fade show">
+            ${message}
+            <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
+        </div>
+    `;
+    $('.container-fluid').prepend(alertHtml);
+    setTimeout(() => $('.alert').fadeOut(), 5000);
+}
+
+function removeImage() {
+    $('#currentImage').attr('src', '');
+    $('#currentImagePreview').hide();
+    $('#productImageFile').val('');
+}
+
+// Reset modal when closed
+$('#addProductModal').on('hidden.bs.modal', function() {
+    $('#productForm')[0].reset();
+    currentProductId = null;
+    $('#productModalTitle').text('Add New Product');
+    $('#currentImagePreview').hide();
+    $('#productImageFile').val('');
+});
+</script>
+{% endblock %}
