@@ -79,7 +79,7 @@ services:
     volumes:
       - ./nginx.production.conf:/etc/nginx/nginx.conf:ro
       - ./ssl:/etc/nginx/ssl:ro
-      - ./letsencrypt_certs:/etc/letsencrypt:ro
+      - /etc/letsencrypt:/etc/letsencrypt:ro
       - ./certbot/www:/var/www/certbot:ro
       - ./app/static:/app/static:ro
       - ./app/uploads:/app/uploads:ro
