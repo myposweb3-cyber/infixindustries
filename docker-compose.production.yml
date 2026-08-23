@@ -74,12 +74,12 @@ services:
     container_name: pos_nginx
     restart: always
     ports:
-      - "80:80"
-      - "443:443"
+      - "8080:80"
+      - "8443:443"
     volumes:
       - ./nginx.production.conf:/etc/nginx/nginx.conf:ro
       - ./ssl:/etc/nginx/ssl:ro
-      - /etc/letsencrypt:/etc/letsencrypt:ro
+      - ./letsencrypt_certs:/etc/letsencrypt:ro
       - ./certbot/www:/var/www/certbot:ro
       - ./app/static:/app/static:ro
       - ./app/uploads:/app/uploads:ro

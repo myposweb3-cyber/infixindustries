@@ -397,19 +397,22 @@ function proceedWithDelete(returnId) {
         alert('Error deleting purchase return: ' + error.message);
     });
 }
-}
 
 document.addEventListener('DOMContentLoaded', function() {
     const modal = document.getElementById('newPurchaseReturnModal');
-    const purchaseSelect = modal.querySelector('#original_purchase_id');
-    const itemsTableBody = modal.querySelector('#itemsTable tbody');
-    const itemsJsonInput = modal.querySelector('#items_json');
-    const totalRefundInput = modal.querySelector('#total_refund_amount');
-    const totalRefundDisplay = modal.querySelector('#totalRefundDisplay');
+    const purchaseSelect = modal?.querySelector('#original_purchase_id');
+    const itemsTableBody = modal?.querySelector('#itemsTable tbody');
+    const itemsJsonInput = modal?.querySelector('#items_json');
+    const totalRefundInput = modal?.querySelector('#total_refund_amount');
+    const totalRefundDisplay = modal?.querySelector('#totalRefundDisplay');
     let returnItems = [];
 
-    purchaseSelect.addEventListener('change', async function() {
-        const purchaseId = this.value;
+    if (!modal || !purchaseSelect || !itemsTableBody || !itemsJsonInput || !totalRefundInput || !totalRefundDisplay) {
+        console.error('Purchase return modal elements not found');
+        return;
+    }
+
+    async function loadPurchaseItems(purchaseId) {
         if (!purchaseId) {
             itemsTableBody.innerHTML = '<tr><td colspan="5" class="text-center">Select a purchase to see items.</td></tr>';
             return;
@@ -417,12 +420,24 @@ document.addEventListener('DOMContentLoaded', function() {
 
         const response = await fetch(`/api/purchases/${purchaseId}/items`);
         if (!response.ok) {
+            const errorText = await response.text();
+            console.error('Failed to fetch purchase items:', response.status, errorText);
             alert('Failed to fetch purchase items.');
             return;
         }
 
         const data = await response.json();
         renderTable(data.items);
+    }
+
+    purchaseSelect.addEventListener('change', function() {
+        loadPurchaseItems(this.value);
+    });
+
+    modal.addEventListener('shown.bs.modal', function () {
+        if (purchaseSelect.value) {
+            loadPurchaseItems(purchaseSelect.value);
+        }
     });
 
     function renderTable(purchaseItems) {
@@ -497,6 +512,15 @@ document.addEventListener('DOMContentLoaded', function() {
         itemsTableBody.innerHTML = '<tr><td colspan="5" class="text-center">Select a purchase to see items.</td></tr>';
         updateSummary();
     });
+
+    const loadSelectedPurchase = () => {
+        if (purchaseSelect.value) {
+            loadPurchaseItems(purchaseSelect.value);
+        }
+    };
+
+    setTimeout(loadSelectedPurchase, 100);
+    window.addEventListener('pageshow', loadSelectedPurchase);
 
     const urlParams = new URLSearchParams(window.location.search);
     if (urlParams.get('open_modal') === 'new_purchase_return') {

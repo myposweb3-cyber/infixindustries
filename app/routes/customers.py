@@ -6,6 +6,7 @@ from app.utils.security import get_company_id, require_company_context
 from app.utils.audit import log_create, log_update, log_delete, log_audit
 from datetime import datetime, timedelta
 from sqlalchemy import func, desc, or_
+from flask import current_app
 
 customers_bp = Blueprint('customers', __name__, template_folder='../../templates')
 
@@ -142,6 +143,380 @@ def get_customer(customer_id):
         'credit_limit': float(customer.credit_limit) if customer.credit_limit else 0.0,
         'current_balance': float(customer.current_balance) if customer.current_balance else 0.0
     })
+
+
+@customers_bp.route('/api/products/search')
+@login_required
+@require_company_context
+@require_permission('can_access_customers')
+def search_products_for_customers():
+    """API endpoint for product search from the customer UI."""
+    query = request.args.get('search', '').strip()
+    category = request.args.get('category', '').strip()
+    company_id = get_company_id()
+
+    products_query = Product.query
+    if company_id and hasattr(Product, 'company_id'):
+        products_query = products_query.filter(Product.company_id == company_id)
+
+    if query:
+        products_query = products_query.filter(
+            db.or_(
+                Product.name.ilike(f'%{query}%'),
+                Product.barcode.ilike(query)
+            )
+        ).order_by(Product.name)
+    else:
+        products_query = products_query.order_by(Product.name)
+
+    if category:
+        products_query = products_query.filter(Product.category == category)
+
+    products = products_query.limit(50).all()
+
+    result = []
+    for product in products:
+        result.append({
+            'id': product.id,
+            'name': product.name,
+            'price': float(product.price) if product.price else 0,
+            'stock': float(product.stock) if product.stock else 0,
+            'unit_type': product.unit_type or '',
+            'image_path': product.image_path or '',
+            'category': product.category or '',
+            'price_per_kg': float(product.price_per_kg) if hasattr(product, 'price_per_kg') and product.price_per_kg else None
+        })
+
+    return jsonify(result)
+
+
+@customers_bp.route('/api/orders')
+@login_required
+def list_orders():
+    """List orders (sales) optionally filtered by customer_id or customer name."""
+    company_id = get_company_id()
+    page = int(request.args.get('page', 1))
+    per_page = int(request.args.get('per_page', 50))
+    customer_id = request.args.get('customer_id')
+    customer_name = request.args.get('customer_name')
+
+    query = Sale.query.filter(Sale.company_id == company_id)
+
+    # Filter by customer id -> translate to customer name if possible
+    if customer_id:
+        try:
+            from app.models import Customer
+            cust = Customer.query.filter(Customer.id == int(customer_id), Customer.company_id == company_id).first()
+            if cust:
+                query = query.filter(Sale.customer == cust.name)
+        except Exception:
+            pass
+
+    if customer_name:
+        query = query.filter(Sale.customer.ilike(f"%{customer_name}%"))
+
+    orders = query.order_by(desc(Sale.date)).paginate(page=page, per_page=per_page)
+
+    result = {
+        'orders': [],
+        'total': orders.total,
+        'pages': orders.pages,
+        'current_page': orders.page
+    }
+
+    for s in orders.items:
+        order = {
+            'id': s.id,
+            'date': s.date.strftime('%Y-%m-%d %H:%M:%S'),
+            'customer': s.customer,
+            'total': s.total,
+            'payment': s.payment,
+            'balance': s.balance,
+            'items': []
+        }
+        for it in s.items:
+            order['items'].append({
+                'product_name': it.product.name if it.product else 'Unknown',
+                'quantity': it.quantity,
+                'price': it.price
+            })
+        result['orders'].append(order)
+
+    return jsonify(result)
+
+
+@customers_bp.route('/api/ping')
+def ping():
+    """Simple ping to verify customers blueprint is reachable."""
+    return jsonify({'ok': True, 'endpoint': '/customers/api/ping'})
+
+
+@customers_bp.route('/api/debug/routes')
+@login_required
+def debug_routes():
+    """Return customer-related routes for debugging (requires login)."""
+    try:
+        rules = [str(r) for r in current_app.url_map.iter_rules() if str(r).startswith('/customers')]
+        return jsonify({'routes': sorted(rules)})
+    except Exception as e:
+        return jsonify({'error': str(e)}), 500
+
+
+@customers_bp.route('/api/orders', methods=['POST'])
+@login_required
+@require_permission('can_access_customers')
+def create_order():
+    """Create a customer order from the customer details screen."""
+    data = request.get_json() or {}
+    try:
+        current_app.logger.info('create_order called by user %s with payload: %s', getattr(current_user, 'id', 'anon'), data)
+    except Exception:
+        pass
+    customer_id = data.get('customer_id')
+    customer_name = data.get('customer_name')
+    items = data.get('items') or []
+
+    if not items:
+        return jsonify({'error': 'Order items are required'}), 400
+
+    if customer_id:
+        customer = get_customer_secure(int(customer_id))
+    elif customer_name:
+        company_id = get_company_id()
+        customer = Customer.query.filter(
+            Customer.name == customer_name,
+            Customer.company_id == company_id
+        ).first()
+    else:
+        customer = None
+
+    if not customer:
+        return jsonify({'error': 'Customer not found'}), 404
+
+    try:
+        total = float(data.get('total', 0.0) or 0.0)
+        if total <= 0:
+            total = sum(float(item.get('quantity', 0.0) or 0.0) * float(item.get('price', 0.0) or 0.0) for item in items)
+        payment_method = data.get('payment_method', 'Cash')
+        balance = float(data.get('balance', 0.0) or 0.0)
+        notes = data.get('notes', '')
+
+        if payment_method.lower() == 'cheque':
+            cheque_number = (data.get('cheque_number') or '').strip()
+            cheque_bank = (data.get('cheque_bank') or '').strip()
+            cheque_date = (data.get('cheque_date') or '').strip()
+            if not cheque_number or not cheque_bank or not cheque_date:
+                return jsonify({'error': 'Cheque number, bank name, and date are required'}), 400
+
+        sale = Sale(
+            customer=customer.name,
+            payment=payment_method,
+            cash_given=float(data.get('cash_given', 0.0) or 0.0),
+            total=total,
+            discount=float(data.get('discount', 0.0) or 0.0),
+            tax=float(data.get('tax', 0.0) or 0.0),
+            balance=balance,
+            user_id=current_user.id,
+            company_id=get_company_id(),
+        )
+        db.session.add(sale)
+        db.session.flush()
+
+        if payment_method.lower() == 'cheque':
+            cheque = Cheque(
+                cheque_number=(data.get('cheque_number') or '').strip(),
+                bank_name=(data.get('cheque_bank') or 'Unknown').strip() or 'Unknown',
+                branch=None,
+                cheque_date=datetime.strptime((data.get('cheque_date') or '').strip(), '%Y-%m-%d').date() if (data.get('cheque_date') or '').strip() else datetime.utcnow().date(),
+                amount=total,
+                payer_name=customer.name,
+                customer_id=customer.id,
+                notes=notes,
+                created_by=current_user.id if hasattr(current_user, 'id') else None,
+                company_id=get_company_id(),
+                sale_id=sale.id
+            )
+            db.session.add(cheque)
+
+        for item in items:
+            product_id = item.get('product_id')
+            if product_id is None:
+                continue
+            quantity = float(item.get('quantity', 0.0) or 0.0)
+            price = float(item.get('price', 0.0) or 0.0)
+            if quantity <= 0:
+                continue
+
+            sale_item = SaleItem(
+                sale_id=sale.id,
+                product_id=product_id,
+                quantity=quantity,
+                price=price,
+                discount=float(item.get('discount', 0.0) or 0.0),
+                tax=float(item.get('tax', 0.0) or 0.0),
+                company_id=get_company_id(),
+            )
+            db.session.add(sale_item)
+
+        db.session.commit()
+        try:
+            current_app.logger.info('Order created: id=%s customer=%s total=%s', sale.id, sale.customer, sale.total)
+        except Exception:
+            pass
+        return jsonify({
+            'success': True,
+            'message': 'Order created successfully',
+            'order_id': sale.id
+        })
+    except Exception as e:
+        db.session.rollback()
+        current_app.logger.exception('Error creating order')
+        # Return a clearer error message for the client
+        return jsonify({'error': 'Server error while creating order', 'detail': str(e)}), 500
+
+
+@customers_bp.route('/api/orders/<int:order_id>', methods=['GET'])
+@login_required
+def get_order(order_id):
+    """Get a single customer order."""
+    company_id = get_company_id()
+    sale = Sale.query.filter(Sale.id == order_id, Sale.company_id == company_id).first()
+    if not sale:
+        return jsonify({'error': 'Order not found'}), 404
+
+    items = []
+    for it in sale.items:
+        items.append({
+            'product_id': it.product_id,
+            'product_name': it.product.name if it.product else 'Unknown',
+            'quantity': it.quantity,
+            'price': it.price,
+            'total': float(it.quantity * it.price)
+        })
+
+    return jsonify({
+        'id': sale.id,
+        'customer': sale.customer,
+        'date': sale.date.strftime('%Y-%m-%d %H:%M:%S') if sale.date else None,
+        'total': sale.total,
+        'payment': sale.payment,
+        'balance': sale.balance,
+        'items': items
+    })
+
+
+@customers_bp.route('/api/orders/<int:order_id>', methods=['PUT'])
+@login_required
+@require_permission('can_access_sales')
+def update_order(order_id):
+    """Update basic order fields: payment, balance, total."""
+    company_id = get_company_id()
+    sale = Sale.query.filter(Sale.id == order_id, Sale.company_id == company_id).first()
+    if not sale:
+        return jsonify({'error': 'Order not found'}), 404
+
+    data = request.get_json()
+    if not data:
+        return jsonify({'error': 'No data provided'}), 400
+
+    try:
+        old_values = {'payment': sale.payment, 'total': sale.total, 'balance': sale.balance}
+
+        if 'payment' in data:
+            sale.payment = data.get('payment')
+        if 'total' in data:
+            try:
+                sale.total = float(data.get('total'))
+            except Exception:
+                pass
+        if 'balance' in data:
+            try:
+                sale.balance = float(data.get('balance'))
+            except Exception:
+                pass
+
+        items = data.get('items')
+        if items is not None:
+            SaleItem.query.filter(SaleItem.sale_id == sale.id).delete()
+            recomputed_total = 0.0
+            for item in items:
+                if not item:
+                    continue
+                try:
+                    product_id = int(item.get('product_id'))
+                    quantity = float(item.get('quantity', 0) or 0)
+                    price = float(item.get('price', 0) or 0)
+                except Exception:
+                    continue
+                if product_id <= 0 or quantity <= 0:
+                    continue
+                new_item = SaleItem(
+                    sale_id=sale.id,
+                    product_id=product_id,
+                    quantity=quantity,
+                    price=price,
+                    discount=float(item.get('discount', 0.0) or 0.0),
+                    tax=float(item.get('tax', 0.0) or 0.0),
+                    company_id=get_company_id(),
+                )
+                db.session.add(new_item)
+                recomputed_total += quantity * price
+            if items:
+                sale.total = recomputed_total
+                if data.get('balance') is not None:
+                    try:
+                        sale.balance = float(data.get('balance'))
+                    except Exception:
+                        pass
+
+        db.session.commit()
+
+        new_values = {'payment': sale.payment, 'total': sale.total, 'balance': sale.balance}
+        try:
+            log_update('Sale', sale.id, old_values, new_values, description=f"Order {sale.id} updated")
+        except Exception:
+            pass
+
+        return jsonify({'success': True, 'message': 'Order updated successfully'})
+    except Exception as e:
+        db.session.rollback()
+        return jsonify({'error': str(e)}), 500
+
+
+@customers_bp.route('/api/orders/<int:order_id>', methods=['DELETE'])
+@login_required
+@require_permission('can_access_sales')
+def delete_order(order_id):
+    """Delete an order (sale) by ID."""
+    company_id = get_company_id()
+    sale = Sale.query.filter(Sale.id == order_id, Sale.company_id == company_id).first()
+    if not sale:
+        return jsonify({'error': 'Order not found'}), 404
+
+    try:
+        # Delete associated sale items
+        from app.models import SaleItem
+        SaleItem.query.filter(SaleItem.sale_id == order_id).delete()
+        
+        # Delete associated cheques if any
+        Cheque.query.filter(Cheque.sale_id == order_id).delete()
+        
+        # Log the deletion
+        try:
+            log_delete('Sale', sale.id, {'customer': sale.customer, 'total': sale.total}, 
+                      description=f"Order {sale.id} deleted")
+        except Exception:
+            pass
+        
+        # Delete the sale
+        db.session.delete(sale)
+        db.session.commit()
+        
+        return jsonify({'success': True, 'message': 'Order deleted successfully'})
+    except Exception as e:
+        db.session.rollback()
+        current_app.logger.exception('Error deleting order')
+        return jsonify({'error': 'Error deleting order: ' + str(e)}), 500
 
 @customers_bp.route('/api/customers', methods=['POST'])
 @login_required

@@ -88,8 +88,12 @@ document.addEventListener('DOMContentLoaded', function() {
     const totalRefundDisplay = document.getElementById('totalRefundDisplay');
     let returnItems = [];
 
-    purchaseSelect.addEventListener('change', async function() {
-        const purchaseId = this.value;
+    if (!purchaseSelect || !itemsTableBody || !itemsJsonInput || !totalRefundInput || !totalRefundDisplay) {
+        console.error('Purchase return page elements not found');
+        return;
+    }
+
+    async function loadPurchaseItems(purchaseId) {
         if (!purchaseId) {
             itemsTableBody.innerHTML = '<tr><td colspan="5" class="text-center">Select a purchase to see items.</td></tr>';
             return;
@@ -97,12 +101,18 @@ document.addEventListener('DOMContentLoaded', function() {
 
         const response = await fetch(`/api/purchases/${purchaseId}/items`);
         if (!response.ok) {
+            const errorText = await response.text();
+            console.error('Failed to fetch purchase items:', response.status, errorText);
             alert('Failed to fetch purchase items.');
             return;
         }
 
         const data = await response.json();
         renderTable(data.items);
+    }
+
+    purchaseSelect.addEventListener('change', function() {
+        loadPurchaseItems(this.value);
     });
 
     function renderTable(purchaseItems) {
@@ -163,6 +173,15 @@ document.addEventListener('DOMContentLoaded', function() {
         totalRefundInput.value = totalRefund.toFixed(2);
         itemsJsonInput.value = JSON.stringify(returnItems);
     }
+
+    const loadSelectedPurchase = () => {
+        if (purchaseSelect.value) {
+            loadPurchaseItems(purchaseSelect.value);
+        }
+    };
+
+    setTimeout(loadSelectedPurchase, 100);
+    window.addEventListener('pageshow', loadSelectedPurchase);
 });
 </script>
 {% endblock %}

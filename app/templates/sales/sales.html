@@ -908,7 +908,11 @@ function displayProducts(products) {
         item.className = `product-item ${stockClass}`;
         item.setAttribute('role', 'button');
         item.setAttribute('tabindex', '0');
-        item.onclick = function() { addToCart(product.id, product.name.replace(/'/g, "\\'"), product.price, product.unit_type); };
+        // If customer-specific price exists, use it for display and add-to-cart
+        const displayPrice = (window.customerLastPrices && window.customerLastPrices[product.id] !== undefined)
+            ? window.customerLastPrices[product.id]
+            : product.price;
+        item.onclick = function() { addToCart(product.id, product.name.replace(/'/g, "\\'"), displayPrice, product.unit_type); };
         item.onkeydown = function(e) { if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); this.click(); } };
 
         item.innerHTML = `
@@ -917,7 +921,7 @@ function displayProducts(products) {
             </div>
             <div class="product-info">
                 <div class="product-name">${product.name}</div>
-                <div class="product-price">${currencySymbol} ${product.price.toFixed(2)}</div>
+                <div class="product-price">${currencySymbol} ${displayPrice.toFixed(2)}</div>
                 <div class="product-stock">${product.stock} ${product.unit_type}</div>
             </div>
         `;
@@ -940,6 +944,11 @@ function addToCart(productId, name, price, unitType) {
                 return;
             }
             
+            // If customer has last-used prices, override the displayed price for this product
+            if (window.customerLastPrices && window.customerLastPrices[productId] !== undefined) {
+                price = window.customerLastPrices[productId];
+            }
+
             const existingItem = cart.find(item => item.product_id === productId);
             let cartQty = existingItem ? existingItem.quantity : 0;
 
@@ -1053,33 +1062,47 @@ function updateCartDisplay() {
 
         html += `
             <div class="cart-item">
-                <div class="cart-item-info">
+                <div class="cart-item-top">
                     <div class="cart-item-name">${item.name}</div>
-                    <div class="cart-item-price">${currencySymbol} ${item.price.toFixed(2)} each</div>
-                </div>
-                <div class="cart-item-controls">
-                    <button class="btn-qty" onclick="changeQuantity(${index}, -1)">-</button>
-                    <input type="number" class="qty-input" value="${item.quantity}" 
-                           onchange="setQuantity(${index}, this.value)" min="0.01" step="0.01">
-                    <button class="btn-qty" onclick="changeQuantity(${index}, 1)">+</button>
-                </div>
-                <div class="cart-item-discount d-flex align-items-center">
-                    <div class="me-2">
-                        <label class="small">Discount</label>
-                        <input type="number" class="item-discount form-control form-control-sm" value="${discountValue}" onchange="setItemDiscount(${index}, this.value)" step="0.01" min="0" style="width:120px">
-                    </div>
-                    <div>
-                        <label class="small d-block">Type</label>
-                        <select class="form-select form-select-sm" onchange="setItemDiscountType(${index}, this.value)">
-                            <option value="amount" ${discountType === 'amount' ? 'selected' : ''}>Rs</option>
-                            <option value="percent" ${discountType === 'percent' ? 'selected' : ''}>%</option>
-                        </select>
+                    <div class="cart-item-top-right">
+                        <div class="cart-item-total-top">${currencySymbol} ${itemTotal.toFixed(2)}</div>
+                        <button class="btn-remove" onclick="removeFromCart(${index})">
+                            <i class="fas fa-times"></i>
+                        </button>
                     </div>
                 </div>
-                <div class="cart-item-total">${currencySymbol} ${itemTotal.toFixed(2)}</div>
-                <button class="btn-remove" onclick="removeFromCart(${index})">
-                    <i class="fas fa-times"></i>
-                </button>
+                <div class="cart-item-bottom">
+                    <div class="cart-item-price-row">
+                        <div class="cart-item-price">
+                            <label class="small d-block mb-1">Price</label>
+                            <div class="d-flex align-items-center gap-2">
+                                <input type="number" class="item-price form-control form-control-sm" value="${item.price.toFixed(2)}" onchange="setItemPrice(${index}, this.value)" step="0.01" min="0" style="width: 100px;">
+                                <button type="button" class="btn btn-outline-secondary btn-sm cust-price-btn" onclick="useCustomerPrice(${index})">Cust Price</button>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="cart-item-actions-row">
+                        <div class="cart-item-controls">
+                            <button class="btn-qty" onclick="changeQuantity(${index}, -1)">-</button>
+                            <input type="number" class="qty-input" value="${item.quantity}" 
+                                   onchange="setQuantity(${index}, this.value)" min="0.01" step="0.01">
+                            <button class="btn-qty" onclick="changeQuantity(${index}, 1)">+</button>
+                        </div>
+                        <div class="cart-item-discount d-flex align-items-center">
+                            <div class="me-2">
+                                <label class="small">Discount</label>
+                                <input type="number" class="item-discount form-control form-control-sm" value="${discountValue}" onchange="setItemDiscount(${index}, this.value)" step="0.01" min="0" style="width:120px">
+                            </div>
+                            <div>
+                                <label class="small d-block">Type</label>
+                                <select class="form-select form-select-sm" onchange="setItemDiscountType(${index}, this.value)">
+                                    <option value="amount" ${discountType === 'amount' ? 'selected' : ''}>Rs</option>
+                                    <option value="percent" ${discountType === 'percent' ? 'selected' : ''}>%</option>
+                                </select>
+                            </div>
+                        </div>
+                    </div>
+                </div>
             </div>
         `;
     });
@@ -1170,6 +1193,33 @@ function setItemDiscount(index, value) {
         cart[index].discount_value = 0;
     } else {
         cart[index].discount_value = v;
+    }
+    updateCartDisplay();
+}
+
+function setItemPrice(index, value) {
+    const price = parseFloat(value);
+    if (isNaN(price) || price < 0) {
+        return;
+    }
+    cart[index].price = price;
+    if (enableTax && showTaxInSales) {
+        cart[index].tax = price * (taxRate / 100);
+    }
+    updateCartDisplay();
+}
+
+function useCustomerPrice(index) {
+    const item = cart[index];
+    if (!item) return;
+    const customerPrice = window.customerLastPrices && window.customerLastPrices[item.product_id];
+    if (customerPrice === undefined) {
+        showNotification('No previous customer price available for this item', 'warning');
+        return;
+    }
+    cart[index].price = customerPrice;
+    if (enableTax && showTaxInSales) {
+        cart[index].tax = customerPrice * (taxRate / 100);
     }
     updateCartDisplay();
 }
@@ -1296,6 +1346,32 @@ function selectCustomer(id, name) {
     }
     // Load customer credit info when customer is selected
     loadCustomerCreditInfo(id);
+
+    // Load customer's last used prices and apply to cart and future additions
+    fetch(`/sales/api/customers/${id}/last-prices`)
+        .then(r => r.json())
+        .then(res => {
+            window.customerLastPrices = {};
+            if (res && res.prices && Array.isArray(res.prices)) {
+                res.prices.forEach(p => {
+                    window.customerLastPrices[p.product_id] = p.price;
+                });
+
+                // Update existing cart items to use customer-specific prices where applicable
+                let changed = false;
+                cart.forEach(item => {
+                    if (window.customerLastPrices[item.product_id] !== undefined) {
+                        item.price = window.customerLastPrices[item.product_id];
+                        changed = true;
+                    }
+                });
+                if (changed) updateCartDisplay();
+            }
+        })
+        .catch(err => {
+            console.error('Failed to load customer last prices:', err);
+            window.customerLastPrices = {};
+        });
 }
 
 // Load customer credit info for display
@@ -1530,17 +1606,24 @@ function checkout() {
             return response.json();
         })
         .then(data => {
-            if (data.success) {
+                if (data.success) {
                 lastSaleId = data.sale_id;
                 pendingSaleId = data.sale_id;  // Store for receipt actions
                 showNotification(`âœ“ Sale completed successfully! Sale #${data.sale_id}`, 'success');
                 showReceiptOptionsModal();
-                
+
+                // Hide loading overlay and restore checkout button
+                if (loadingOverlay) {
+                    loadingOverlay.style.display = 'none';
+                }
+                checkoutBtn.disabled = false;
+                checkoutBtn.innerHTML = originalText;
+
                 // Delete the held bill if one was loaded
                 if (heldBillIdToDelete) {
                     deleteHeldBillSilent(heldBillIdToDelete);
                 }
-                
+
                 // Set timeout for auto-reset, can be cancelled if user takes action
                 receiptActionTimeout = setTimeout(() => resetSale(), 5000);
             } else {
@@ -1554,12 +1637,19 @@ function checkout() {
             console.error('Error message:', error.message);
             console.error('Full error details:', error);
             showNotification(`❌ ${error.message}`, 'danger');
+            // Hide loading overlay and restore button
+            if (loadingOverlay) {
+                loadingOverlay.style.display = 'none';
+            }
             checkoutBtn.disabled = false;
             checkoutBtn.innerHTML = originalText;
         });
     } catch (error) {
         console.error('Checkout error:', error);
         showNotification(`Error: ${error.message}`, 'danger');
+        if (loadingOverlay) {
+            loadingOverlay.style.display = 'none';
+        }
         checkoutBtn.disabled = false;
         checkoutBtn.innerHTML = originalText;
     }
@@ -1872,12 +1962,19 @@ function processCreditCheckout(customerId, total, heldBillIdToDelete, checkoutBt
                 : `âœ“ Credit sale completed successfully! Sale #${data.sale_id}`;
             showNotification(msg, 'success');
             showReceiptActions();
-            
+
+            // Hide loading overlay and restore checkout button
+            if (loadingOverlay) {
+                loadingOverlay.style.display = 'none';
+            }
+            checkoutBtn.disabled = false;
+            checkoutBtn.innerHTML = originalText;
+
             // Delete the held bill if one was loaded
             if (heldBillIdToDelete) {
                 deleteHeldBillSilent(heldBillIdToDelete);
             }
-            
+
             setTimeout(() => resetSale(), 1500);
         } else {
             showNotification(`Error: ${data.error || 'Failed to complete credit sale'}`, 'danger');
@@ -1888,6 +1985,9 @@ function processCreditCheckout(customerId, total, heldBillIdToDelete, checkoutBt
     .catch(error => {
         console.error('Error:', error);
         showNotification(`Network error: ${error.message}`, 'danger');
+        if (loadingOverlay) {
+            loadingOverlay.style.display = 'none';
+        }
         checkoutBtn.disabled = false;
         checkoutBtn.innerHTML = originalText;
     });
@@ -2403,6 +2503,10 @@ function resetSale() {
     lastSaleId = null;
     pendingSaleId = null;  // Clear pending sale ID
     currentHeldBillId = null;
+    // Clear any cached customer-specific prices
+    if (window.customerLastPrices) {
+        window.customerLastPrices = {};
+    }
     if (receiptActionTimeout) {
         clearTimeout(receiptActionTimeout);
         receiptActionTimeout = null;
@@ -2628,28 +2732,75 @@ function resetSale() {
 
 .cart-item {
     display: flex;
-    align-items: center;
-    padding: 10px;
+    flex-direction: column;
+    padding: 12px;
     background: #f8fafc;
     border-radius: 10px;
-    margin-bottom: 8px;
+    margin-bottom: 10px;
+    gap: 12px;
+}
+
+.cart-item-top {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
     gap: 10px;
 }
 
-.cart-item-info {
-    flex: 1;
-    min-width: 0;
-}
-
 .cart-item-name {
-    font-weight: 600;
+    font-weight: 700;
     font-size: 14px;
     color: #1E293B;
+}
+
+.cart-item-bottom {
+    display: flex;
+    flex-direction: column;
+    gap: 8px;
+}
+
+.cart-item-price-row {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+}
+
+.cart-item-actions-row {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 12px;
+    flex-wrap: wrap;
+}
+
+.cart-item-top-right {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+}
+
+.cart-item-total-top {
+    font-weight: 700;
+    font-size: 16px;
+    color: #1E293B;
+    text-align: right;
+    white-space: nowrap;
 }
 
 .cart-item-price {
     font-size: 12px;
     color: #64748B;
+}
+
+.cart-item-price input.item-price {
+    min-width: 90px;
+}
+
+.cust-price-btn {
+    white-space: nowrap;
+    padding: 0.3rem 0.55rem;
+    font-size: 11px;
+    line-height: 1.2;
 }
 
 .cart-item-controls {

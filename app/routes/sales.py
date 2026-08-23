@@ -316,6 +316,40 @@ def search_customers():
 
     return jsonify(result)
 
+
+@sales_bp.route('/api/customers/<int:customer_id>/last-prices')
+@csrf.exempt
+@login_required
+def customer_last_prices(customer_id):
+    """Return a mapping of product_id -> price from the customer's most recent sale.
+
+    This uses Sale.customer (name) to find the latest Sale for the given Customer.id
+    because the Sale model stores the customer name at the time of sale.
+    """
+    try:
+        customer = Customer.query.get(customer_id)
+        if not customer:
+            return jsonify({'error': 'Customer not found'}), 404
+
+        # Filter sales by company if applicable
+        company_id = get_company_id()
+        sales_query = Sale.query.filter(Sale.customer == customer.name)
+        if company_id and hasattr(Sale, 'company_id'):
+            sales_query = sales_query.filter(Sale.company_id == company_id)
+
+        last_sale = sales_query.order_by(desc(Sale.date)).first()
+        if not last_sale:
+            return jsonify({'prices': []})
+
+        prices = []
+        for item in last_sale.items:
+            prices.append({'product_id': item.product_id, 'price': float(item.price)})
+
+        return jsonify({'prices': prices})
+    except Exception as e:
+        current_app.logger.exception('Error fetching customer last prices')
+        return jsonify({'error': str(e)}), 500
+
 @sales_bp.route('/api/sales/create', methods=['POST'])
 @csrf.exempt
 @login_required
