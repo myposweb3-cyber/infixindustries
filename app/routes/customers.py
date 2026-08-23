@@ -18,6 +18,19 @@ def get_customer_secure(customer_id):
         customer_query = customer_query.filter(Customer.company_id == company_id)
     return customer_query.first()
 
+
+def get_sale_secure(sale_id):
+    """Get a sale in the active company, including legacy unassigned sales."""
+    company_id = get_company_id()
+    sale_query = Sale.query.filter(Sale.id == sale_id)
+    if company_id:
+        sale_query = sale_query.filter(
+            or_(Sale.company_id == company_id, Sale.company_id.is_(None))
+        )
+    else:
+        sale_query = sale_query.filter(Sale.company_id.is_(None))
+    return sale_query.first()
+
 @customers_bp.route('/customers')
 @login_required
 @require_company_context
@@ -200,17 +213,31 @@ def list_orders():
     customer_id = request.args.get('customer_id')
     customer_name = request.args.get('customer_name')
 
-    query = Sale.query.filter(Sale.company_id == company_id)
+    query = Sale.query
+    if company_id:
+        # Older sales may not have a company ID; retain them for the active
+        # company so historical orders are not silently omitted.
+        query = query.filter(
+            or_(Sale.company_id == company_id, Sale.company_id.is_(None))
+        )
+    else:
+        query = query.filter(Sale.company_id.is_(None))
 
-    # Filter by customer id -> translate to customer name if possible
+    # Filter by customer id -> translate to the historical customer name.
     if customer_id:
         try:
-            from app.models import Customer
-            cust = Customer.query.filter(Customer.id == int(customer_id), Customer.company_id == company_id).first()
+            cust = Customer.query.filter(
+                Customer.id == int(customer_id),
+                Customer.company_id == company_id
+            ).first()
             if cust:
-                query = query.filter(Sale.customer == cust.name)
-        except Exception:
-            pass
+                query = query.filter(
+                    func.lower(func.trim(Sale.customer)) == cust.name.strip().lower()
+                )
+            else:
+                query = query.filter(Sale.id == -1)
+        except (TypeError, ValueError):
+            query = query.filter(Sale.id == -1)
 
     if customer_name:
         query = query.filter(Sale.customer.ilike(f"%{customer_name}%"))
@@ -379,8 +406,7 @@ def create_order():
 @login_required
 def get_order(order_id):
     """Get a single customer order."""
-    company_id = get_company_id()
-    sale = Sale.query.filter(Sale.id == order_id, Sale.company_id == company_id).first()
+    sale = get_sale_secure(order_id)
     if not sale:
         return jsonify({'error': 'Order not found'}), 404
 
@@ -410,8 +436,7 @@ def get_order(order_id):
 @require_permission('can_access_sales')
 def update_order(order_id):
     """Update basic order fields: payment, balance, total."""
-    company_id = get_company_id()
-    sale = Sale.query.filter(Sale.id == order_id, Sale.company_id == company_id).first()
+    sale = get_sale_secure(order_id)
     if not sale:
         return jsonify({'error': 'Order not found'}), 404
 
@@ -488,8 +513,7 @@ def update_order(order_id):
 @require_permission('can_access_sales')
 def delete_order(order_id):
     """Delete an order (sale) by ID."""
-    company_id = get_company_id()
-    sale = Sale.query.filter(Sale.id == order_id, Sale.company_id == company_id).first()
+    sale = get_sale_secure(order_id)
     if not sale:
         return jsonify({'error': 'Order not found'}), 404
 
@@ -624,6 +648,7 @@ def update_customer(customer_id):
 
     try:
         # Store old values for audit log
+        old_customer_name = customer.name
         old_values = {
             'name': customer.name,
             'phone': customer.phone,
@@ -659,8 +684,26 @@ def update_customer(customer_id):
                             setattr(customer, field, float(value))
                     except (ValueError, TypeError):
                         setattr(customer, field, 0.0)
+                elif field == 'name':
+                    setattr(customer, field, data[field].strip())
                 else:
                     setattr(customer, field, data[field])
+
+        # Sales historically store the customer's name as text. Keep those
+        # records attached to the customer after a rename so order history
+        # does not disappear when the profile name changes.
+        if customer.name != old_customer_name:
+            sales_to_update = Sale.query.filter(
+                func.lower(func.trim(Sale.customer)) == old_customer_name.strip().lower()
+            )
+            if company_id:
+                sales_to_update = sales_to_update.filter(
+                    or_(Sale.company_id == company_id, Sale.company_id.is_(None))
+                )
+            sales_to_update.update(
+                {Sale.customer: customer.name},
+                synchronize_session=False
+            )
 
         db.session.commit()
         
@@ -797,10 +840,20 @@ def get_customer_purchase_history(customer_id):
     if not customer:
         return jsonify({'error': 'Customer not found'}), 404
 
-    # Get sales for this customer
+    # Historical sales store the customer name rather than a customer foreign key.
+    # Match normalized names and include legacy sales without a company ID so
+    # previously recorded orders remain visible for the customer.
     company_id = get_company_id()
-    sales = Sale.query.filter(Sale.customer == customer.name, Sale.company_id == company_id)\
-                     .order_by(desc(Sale.date))\
+    customer_name = (customer.name or '').strip()
+    sales_query = Sale.query.filter(
+        func.lower(func.trim(Sale.customer)) == customer_name.lower()
+    )
+    if company_id:
+        sales_query = sales_query.filter(
+            or_(Sale.company_id == company_id, Sale.company_id.is_(None))
+        )
+
+    sales = sales_query.order_by(desc(Sale.date)) \
                      .paginate(page=page, per_page=per_page)
 
     result = {
