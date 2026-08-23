@@ -13,7 +13,7 @@
                         <h5 class="mb-0">
                             <i class="fas fa-boxes me-2"></i>Products
                         </h5>
-                        <button class="btn btn-sm btn-outline-primary" id="heldBillsBtn">
+                        <button class="btn btn-sm btn-outline-primary" id="heldBillsBtn" title="Held bills (Alt+H)">
                             <i class="fas fa-clock me-1"></i>Held Bills
                         </button>
                     </div>
@@ -31,7 +31,18 @@
                         <div class="input-group">
                             <span class="input-group-text"><i class="fas fa-search"></i></span>
                             <input type="text" id="productSearch" class="form-control"
-                                   placeholder="Search by name, barcode, or SKU... (F1)">
+                                   placeholder="Search by name, barcode, or SKU... (F1, F2, or /)"
+                                   autocomplete="off" spellcheck="false"
+                                   aria-controls="productGrid" aria-autocomplete="list">
+                        </div>
+                        <div class="keyboard-shortcuts-bar" role="note" aria-label="Sales keyboard shortcuts">
+                            <span><kbd>F1/F2</kbd> Search</span>
+                            <span><kbd>Enter</kbd> Add</span>
+                            <span><kbd>F3</kbd> Customer</span>
+                            <span><kbd>F7</kbd> Payment</span>
+                            <span><kbd>F8</kbd> Pay</span>
+                            <span><kbd>F9</kbd> Hold</span>
+                            <span><kbd>Esc</kbd> Cancel</span>
                         </div>
                     </div>
 
@@ -51,7 +62,7 @@
                         <h5 class="mb-0">
                             <i class="fas fa-shopping-cart me-2"></i>Current Sale
                         </h5>
-                        <button class="btn btn-sm btn-outline-secondary" id="selectCustomerBtn">
+                        <button class="btn btn-sm btn-outline-secondary" id="selectCustomerBtn" title="Select customer (F3)">
                             <i class="fas fa-user me-1"></i><span id="customerName">Walk-in</span>
                         </button>
                     </div>
@@ -145,7 +156,7 @@
                             </div>
                         </div>
                         <div class="cash-given" id="cashGivenGroup">
-                            <label>Cash Given (F2)</label>
+                            <label>Cash Given</label>
                             <input type="number" class="form-control" id="cashGiven" step="0.01" placeholder="0.00">
                         </div>
                         <div class="change-amount" id="changeGroup" style="display: none;">
@@ -156,17 +167,17 @@
 
                     <!-- Action Buttons -->
                     <div class="action-buttons mt-3">
-                        <button class="btn btn-success btn-pay" id="checkoutBtn" disabled>
+                        <button class="btn btn-success btn-pay" id="checkoutBtn" disabled title="Complete sale (F8 or Ctrl+Enter)">
                             <i class="fas fa-credit-card me-2"></i>Pay Now
                         </button>
                         <div class="row g-2 mt-2">
                             <div class="col-6">
-                                <button class="btn btn-warning w-100" id="holdBtn">
+                                <button class="btn btn-warning w-100" id="holdBtn" title="Hold bill (F9)">
                                     <i class="fas fa-clock me-1"></i>Hold Bill
                                 </button>
                             </div>
                             <div class="col-6">
-                                <button class="btn btn-danger w-100" id="cancelBtn">
+                                <button class="btn btn-danger w-100" id="cancelBtn" title="Cancel sale (Esc)">
                                     <i class="fas fa-times me-1"></i>Cancel
                                 </button>
                             </div>
@@ -469,6 +480,11 @@ let enableTax = true;
 let currencySymbol = 'Rs. ';  // Default, will be loaded from settings
 let enableLoyaltyPoints = true;  // Default, will be loaded from settings
 let loyaltyPointsConversionRate = 1.0;  // Default, will be loaded from settings
+let productResults = [];
+let activeProductIndex = -1;
+let selectedCartIndex = -1;
+let customerResults = [];
+let selectedCustomerIndex = -1;
 
 // Notification helper (if not already defined in app.js)
 if (typeof showNotification === 'undefined') {
@@ -510,14 +526,20 @@ document.addEventListener('DOMContentLoaded', function() {
     } else {
         loadProducts();
     }
+
+    // Start every new sale in the product search field.
+    focusProductSearch();
 });
 
 function setupEventListeners() {
-    // Product search
-    document.getElementById('productSearch').addEventListener('input', function() {
-        var searchValue = this.value;
-        loadProducts(searchValue);
+    // Product search: typing filters results; Enter adds the highlighted or
+    // exact barcode/product result without requiring a mouse click.
+    const productSearch = document.getElementById('productSearch');
+    productSearch.addEventListener('input', function() {
+        activeProductIndex = -1;
+        loadProducts(this.value);
     });
+    productSearch.addEventListener('keydown', handleProductSearchKeydown);
 
     // Category filter
     document.getElementById('categoryFilter').addEventListener('change', function() {
@@ -530,10 +552,15 @@ function setupEventListeners() {
     });
 
     // Select customer button
-    document.getElementById('selectCustomerBtn').addEventListener('click', function() {
-        loadCustomers();
-        new bootstrap.Modal(document.getElementById('customerModal')).show();
-    });
+    document.getElementById('selectCustomerBtn').addEventListener('click', openCustomerModal);
+
+    // Customer search: search as the cashier types and select with Enter.
+    const customerSearch = document.getElementById('customerSearch');
+    customerSearch.addEventListener('input', debounce(function() {
+        selectedCustomerIndex = -1;
+        loadCustomers(customerSearch.value);
+    }, 120));
+    customerSearch.addEventListener('keydown', handleCustomerSearchKeydown);
 
     // Add new customer button (in customer modal)
     document.getElementById('addNewCustomerBtn').addEventListener('click', function() {
@@ -551,10 +578,7 @@ function setupEventListeners() {
     });
 
     // Held bills button
-    document.getElementById('heldBillsBtn').addEventListener('click', function() {
-        loadHeldBills();
-        new bootstrap.Modal(document.getElementById('heldBillsModal')).show();
-    });
+    document.getElementById('heldBillsBtn').addEventListener('click', openHeldBillsModal);
 
     // Checkout button
     document.getElementById('checkoutBtn').addEventListener('click', checkout);
@@ -654,48 +678,372 @@ function debounce(func, wait) {
     };
 }
 
+function isEditableTarget(target = document.activeElement) {
+    if (!target) return false;
+    return target.tagName === 'INPUT' || target.tagName === 'TEXTAREA' ||
+        target.tagName === 'SELECT' || target.isContentEditable;
+}
+
+function getOpenModal() {
+    return document.querySelector('.modal.show');
+}
+
+function focusProductSearch() {
+    const searchInput = document.getElementById('productSearch');
+    if (!searchInput) return;
+
+    const openModal = getOpenModal();
+    if (openModal) {
+        openModal.addEventListener('hidden.bs.modal', () => {
+            setTimeout(() => focusProductSearch(), 80);
+        }, { once: true });
+        return;
+    }
+
+    setTimeout(() => {
+        searchInput.focus({ preventScroll: true });
+        searchInput.select();
+    }, 80);
+}
+
+function focusCustomerSearch() {
+    const customerSearch = document.getElementById('customerSearch');
+    if (customerSearch) {
+        customerSearch.focus();
+        customerSearch.select();
+    }
+}
+
+function normalizeLookupValue(value) {
+    return String(value || '').trim().toLowerCase();
+}
+
+function setActiveProduct(index, shouldFocus = false) {
+    if (!productResults.length) {
+        activeProductIndex = -1;
+        return;
+    }
+
+    activeProductIndex = Math.max(0, Math.min(index, productResults.length - 1));
+    document.querySelectorAll('#productGrid .product-item').forEach((item, itemIndex) => {
+        const active = itemIndex === activeProductIndex;
+        item.classList.toggle('keyboard-selected', active);
+        item.setAttribute('aria-selected', active ? 'true' : 'false');
+        if (active && shouldFocus) {
+            item.focus({ preventScroll: true });
+            item.scrollIntoView({ block: 'nearest' });
+        }
+    });
+}
+
+function addProductToCart(product, quantity = 1, unitPrice = null, useCustomerPrice = true) {
+    if (!product || !product.id) return;
+    const price = unitPrice === null || unitPrice === undefined
+        ? Number(product.price) || 0
+        : Number(unitPrice) || 0;
+    addToCart(product.id, product.name, price, product.unit_type || 'unit', quantity, useCustomerPrice);
+}
+
+function addWeightedBarcodeProduct(barcode) {
+    const csrfToken = document.querySelector('meta[name="csrf-token"]')?.getAttribute('content') || '';
+    fetch('/sales/api/products/barcode/parse', {
+        method: 'POST',
+        headers: {
+            'Content-Type': 'application/json',
+            'X-CSRFToken': csrfToken
+        },
+        body: JSON.stringify({ barcode })
+    })
+        .then(response => {
+            if (!response.ok) throw new Error('Product not found');
+            return response.json();
+        })
+        .then(data => {
+            if (data.type === 'weighted' && data.weight_kg > 0) {
+                const unitPrice = Number(data.total) / Number(data.weight_kg);
+                addProductToCart(data.product, data.weight_kg, unitPrice, false);
+            } else if (data.product) {
+                addProductToCart(data.product);
+            } else {
+                throw new Error('Product not found');
+            }
+        })
+        .catch(error => {
+            console.error('Barcode lookup failed:', error);
+            showNotification(`No product found for barcode/SKU "${barcode}"`, 'warning');
+        });
+}
+
+function searchAndAddProduct(query) {
+    const search = String(query || '').trim();
+    if (!search) {
+        if (activeProductIndex >= 0 && productResults[activeProductIndex]) {
+            addProductToCart(productResults[activeProductIndex]);
+        } else {
+            showNotification('Type a product name or barcode, or use the arrow keys to choose a product', 'info');
+        }
+        return;
+    }
+
+    fetch(`/sales/api/products/search?search=${encodeURIComponent(search)}`)
+        .then(response => {
+            if (!response.ok) throw new Error('Product search failed');
+            return response.json();
+        })
+        .then(results => {
+            const normalizedSearch = normalizeLookupValue(search);
+            const exact = results.find(product => [product.barcode, product.product_code]
+                .some(identifier => normalizeLookupValue(identifier) === normalizedSearch));
+            const selected = exact || (results.length === 1 ? results[0] : null);
+
+            if (selected) {
+                addProductToCart(selected);
+                return;
+            }
+            if (results.length > 1) {
+                productResults = results;
+                activeProductIndex = -1;
+                displayProducts(results);
+                showNotification('Use Arrow Up/Down to choose a product, then press Enter', 'info');
+                return;
+            }
+
+            // A weighted barcode may not match the normal product search endpoint.
+            addWeightedBarcodeProduct(search);
+        })
+        .catch(() => addWeightedBarcodeProduct(search));
+}
+
+function handleProductSearchKeydown(e) {
+    if (e.key === 'ArrowDown' || e.key === 'ArrowUp') {
+        if (!productResults.length) return;
+        e.preventDefault();
+        const direction = e.key === 'ArrowDown' ? 1 : -1;
+        const nextIndex = activeProductIndex < 0
+            ? (direction > 0 ? 0 : productResults.length - 1)
+            : activeProductIndex + direction;
+        setActiveProduct(nextIndex);
+        return;
+    }
+
+    if (e.key === 'Home' || e.key === 'End') {
+        if (!productResults.length) return;
+        e.preventDefault();
+        setActiveProduct(e.key === 'Home' ? 0 : productResults.length - 1);
+        return;
+    }
+
+    if (e.key === 'Enter') {
+        e.preventDefault();
+        const selected = activeProductIndex >= 0 ? productResults[activeProductIndex] : null;
+        if (selected) {
+            addProductToCart(selected);
+        } else {
+            searchAndAddProduct(e.target.value);
+        }
+    }
+}
+
+function setSelectedCartItem(index, shouldFocus = true) {
+    if (!cart.length) {
+        selectedCartIndex = -1;
+        return;
+    }
+
+    selectedCartIndex = Math.max(0, Math.min(index, cart.length - 1));
+    document.querySelectorAll('#cartItems .cart-item').forEach((row, rowIndex) => {
+        const selected = rowIndex === selectedCartIndex;
+        row.classList.toggle('keyboard-selected', selected);
+        row.setAttribute('aria-selected', selected ? 'true' : 'false');
+        if (selected && shouldFocus) {
+            row.focus({ preventScroll: true });
+            row.scrollIntoView({ block: 'nearest' });
+        }
+    });
+}
+
+function moveSelectedCartItem(direction) {
+    if (!cart.length) return;
+    const startIndex = selectedCartIndex < 0 ? (direction > 0 ? 0 : cart.length - 1) : selectedCartIndex;
+    setSelectedCartItem(startIndex + direction);
+}
+
+function openCustomerModal() {
+    const modalElement = document.getElementById('customerModal');
+    if (!modalElement) return;
+    modalElement.addEventListener('shown.bs.modal', focusCustomerSearch, { once: true });
+    modalElement.addEventListener('hidden.bs.modal', focusProductSearch, { once: true });
+    loadCustomers('');
+    new bootstrap.Modal(modalElement).show();
+}
+
+function openHeldBillsModal() {
+    const modalElement = document.getElementById('heldBillsModal');
+    if (!modalElement) return;
+    modalElement.addEventListener('hidden.bs.modal', focusProductSearch, { once: true });
+    loadHeldBills();
+    new bootstrap.Modal(modalElement).show();
+}
+
+function handleCustomerSearchKeydown(e) {
+    if (e.key === 'ArrowDown' || e.key === 'ArrowUp') {
+        if (!customerResults.length) return;
+        e.preventDefault();
+        const direction = e.key === 'ArrowDown' ? 1 : -1;
+        const nextIndex = selectedCustomerIndex < 0
+            ? (direction > 0 ? 0 : customerResults.length - 1)
+            : selectedCustomerIndex + direction;
+        selectedCustomerIndex = Math.max(0, Math.min(nextIndex, customerResults.length - 1));
+        updateCustomerHighlight();
+        return;
+    }
+
+    if (e.key === 'Enter') {
+        e.preventDefault();
+        const customer = customerResults[selectedCustomerIndex] ||
+            (customerResults.length === 1 ? customerResults[0] : null);
+        if (customer) {
+            selectCustomer(customer.id, customer.name);
+        } else if (customerResults.length > 1) {
+            showNotification('Use Arrow Up/Down to choose a customer, then press Enter', 'info');
+        }
+    }
+}
+
+function updateCustomerHighlight() {
+    document.querySelectorAll('#customerList tr').forEach((row, rowIndex) => {
+        const selected = rowIndex === selectedCustomerIndex;
+        row.classList.toggle('keyboard-selected', selected);
+        row.setAttribute('aria-selected', selected ? 'true' : 'false');
+    });
+}
+
 function setupKeyboardShortcuts() {
+    // Capture sale shortcuts before the shared navigation handler can treat
+    // modified keys such as Alt+H or Ctrl+N as page navigation.
     document.addEventListener('keydown', function(e) {
-        // Only handle shortcuts when not in an input field
-        if (e.target.tagName === 'INPUT' || e.target.tagName === 'TEXTAREA') {
+        const openModal = getOpenModal();
+        if (openModal) {
+            // Dynamic modals such as notes and admin override use their own
+            // Enter handlers. Escape should still close non-static dialogs.
+            if (e.key === 'Escape') {
+                const modalInstance = bootstrap.Modal.getInstance(openModal);
+                if (modalInstance) {
+                    e.preventDefault();
+                    openModal.addEventListener('hidden.bs.modal', focusProductSearch, { once: true });
+                    modalInstance.hide();
+                }
+            }
             return;
         }
 
-        // F1 - Focus product search
-        if (e.key === 'F1') {
+        const target = e.target;
+        const isEditable = isEditableTarget(target);
+        const cartRow = target.closest ? target.closest('.cart-item') : null;
+        const productItem = target.closest ? target.closest('.product-item') : null;
+
+        if ((e.ctrlKey || e.metaKey) && e.key.toLowerCase() === 'enter') {
             e.preventDefault();
-            document.getElementById('productSearch').focus();
+            checkout();
+            return;
         }
-        // F2 - Focus cash given
-        else if (e.key === 'F2') {
-            e.preventDefault();
-            document.getElementById('cashGiven').focus();
-        }
-        // F3 - Complete sale
-        else if (e.key === 'F3') {
-            e.preventDefault();
-            if (!document.getElementById('checkoutBtn').disabled) {
-                checkout();
-            }
-        }
-        // F4 - Hold sale
-        else if (e.key === 'F4') {
-            e.preventDefault();
-            holdSale();
-        }
-        // F5 - Cancel sale
-        else if (e.key === 'F5') {
+
+        if ((e.ctrlKey || e.metaKey) && e.key.toLowerCase() === 'n') {
             e.preventDefault();
             cancelSale();
+            return;
         }
-        // Escape - Clear cart
-        else if (e.key === 'Escape') {
+
+        if (e.key === 'Escape') {
             e.preventDefault();
-            if (cart.length > 0 && confirm('Cancel the current sale?')) {
-                resetSale();
+            cancelSale();
+            return;
+        }
+
+        // Function-key shortcuts work even when the cashier is in a field.
+        if (e.key === 'F1' || e.key === 'F2' || (e.key === '/' && !isEditable && !e.ctrlKey && !e.metaKey)) {
+            e.preventDefault();
+            focusProductSearch();
+            return;
+        }
+        if (e.key === 'F3') {
+            e.preventDefault();
+            openCustomerModal();
+            return;
+        }
+        if (e.key === 'F4' || e.key === 'F9') {
+            e.preventDefault();
+            holdSale();
+            return;
+        }
+        if (e.key === 'F5') {
+            e.preventDefault();
+            cancelSale();
+            return;
+        }
+        if (e.key === 'F6') {
+            e.preventDefault();
+            document.getElementById('discountInput')?.focus();
+            return;
+        }
+        if (e.key === 'F7') {
+            e.preventDefault();
+            if (cart.length) {
+                showPaymentSection();
+                document.getElementById('paymentMethod')?.focus();
+            } else {
+                showNotification('Add an item before choosing payment', 'info');
+            }
+            return;
+        }
+        if (e.key === 'F8') {
+            e.preventDefault();
+            checkout();
+            return;
+        }
+        if (e.altKey && e.key.toLowerCase() === 'h') {
+            e.preventDefault();
+            document.getElementById('heldBillsBtn')?.click();
+            return;
+        }
+
+        // Arrow navigation on a product card or the page body selects cart rows.
+        if ((e.key === 'ArrowDown' || e.key === 'ArrowUp') && !isEditable) {
+            e.preventDefault();
+            if (productItem) {
+                const direction = e.key === 'ArrowDown' ? 1 : -1;
+                setActiveProduct((activeProductIndex < 0 ? 0 : activeProductIndex) + direction, true);
+            } else {
+                moveSelectedCartItem(e.key === 'ArrowDown' ? 1 : -1);
+            }
+            return;
+        }
+
+        if ((e.key === '+' || (e.key === '=' && e.shiftKey)) && !isEditable && cart.length) {
+            e.preventDefault();
+            const index = selectedCartIndex >= 0 ? selectedCartIndex : 0;
+            changeQuantity(index, 1);
+            setSelectedCartItem(Math.min(index, cart.length - 1), false);
+            return;
+        }
+        if (e.key === '-' && !isEditable && cart.length) {
+            e.preventDefault();
+            const index = selectedCartIndex >= 0 ? selectedCartIndex : 0;
+            changeQuantity(index, -1);
+            if (cart.length) setSelectedCartItem(Math.min(index, cart.length - 1), false);
+            return;
+        }
+        if ((e.key === 'Delete' || e.key === 'Backspace') && !isEditable) {
+            const index = selectedCartIndex >= 0
+                ? selectedCartIndex
+                : (cartRow ? Number(cartRow.dataset.cartIndex) : -1);
+            if (index >= 0) {
+                e.preventDefault();
+                removeFromCart(index);
+                if (cart.length) setSelectedCartItem(Math.min(index, cart.length - 1), false);
             }
         }
-    });
+    }, true);
 }
 
 function loadTaxRate() {
@@ -880,7 +1228,9 @@ function loadProducts(search = '', category = '') {
         .then(products => {
             console.log('Products loaded:', products);
             console.log('Products count:', products.length);
-            displayProducts(products);
+            productResults = Array.isArray(products) ? products : [];
+            activeProductIndex = -1;
+            displayProducts(productResults);
         })
         .catch(error => {
             console.error('Error loading products:', error);
@@ -891,13 +1241,15 @@ function loadProducts(search = '', category = '') {
 function displayProducts(products) {
     const grid = document.getElementById('productGrid');
     grid.innerHTML = '';
+    productResults = Array.isArray(products) ? products : [];
 
-    if (products.length === 0) {
+    if (productResults.length === 0) {
+        activeProductIndex = -1;
         grid.innerHTML = '<div class="col-12 text-center text-muted py-4">No products found</div>';
         return;
     }
 
-    products.forEach(product => {
+    productResults.forEach((product, productIndex) => {
         const imageHtml = product.image_path 
             ? `<img src="${product.image_path}" alt="${product.name}" class="product-img">`
             : `<div class="product-img-placeholder"><i class="fas fa-box"></i></div>`;
@@ -906,14 +1258,22 @@ function displayProducts(products) {
 
         const item = document.createElement('div');
         item.className = `product-item ${stockClass}`;
-        item.setAttribute('role', 'button');
+        item.setAttribute('role', 'option');
         item.setAttribute('tabindex', '0');
-        // If customer-specific price exists, use it for display and add-to-cart
+        item.setAttribute('aria-selected', 'false');
+        item.setAttribute('aria-label', `${product.name}, ${currencySymbol} ${(Number(product.price) || 0).toFixed(2)}, stock ${product.stock}`);
+        item.dataset.productIndex = productIndex;
+        // If customer-specific price exists, use it for display and add-to-cart.
         const displayPrice = (window.customerLastPrices && window.customerLastPrices[product.id] !== undefined)
             ? window.customerLastPrices[product.id]
             : product.price;
-        item.onclick = function() { addToCart(product.id, product.name.replace(/'/g, "\\'"), displayPrice, product.unit_type); };
-        item.onkeydown = function(e) { if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); this.click(); } };
+        item.onclick = function() { addProductToCart(product, 1, displayPrice); };
+        item.onkeydown = function(e) {
+            if (e.key === 'Enter' || e.key === ' ') {
+                e.preventDefault();
+                addProductToCart(product, 1, displayPrice);
+            }
+        };
 
         item.innerHTML = `
             <div class="product-image">
@@ -930,12 +1290,66 @@ function displayProducts(products) {
     });
 }
 
-function addToCart(productId, name, price, unitType) {
-    // Find the product to check current stock
+function addToCart(productId, name, price, unitType, quantity = 1, useCustomerPrice = true) {
+    const requestedQuantity = Number(quantity);
+    if (!Number.isFinite(requestedQuantity) || requestedQuantity <= 0) {
+        showNotification('Invalid product quantity', 'warning');
+        return;
+    }
+
+    const finishAdd = (stockProduct = null) => {
+        const existingItem = cart.find(item => item.product_id === productId);
+        const currentQuantity = existingItem ? Number(existingItem.quantity) : 0;
+        const availableStock = stockProduct ? Number(stockProduct.stock) : null;
+
+        if (availableStock !== null && Number.isFinite(availableStock) &&
+            currentQuantity + requestedQuantity > availableStock) {
+            showNotification(`Insufficient stock for ${name}. Available: ${availableStock}`, 'warning');
+            return;
+        }
+
+        if (useCustomerPrice && window.customerLastPrices && window.customerLastPrices[productId] !== undefined) {
+            price = window.customerLastPrices[productId];
+        }
+
+        if (existingItem) {
+            existingItem.quantity = currentQuantity + requestedQuantity;
+        } else {
+            let itemTax = 0;
+            if (enableTax && showTaxInSales) {
+                itemTax = price * (taxRate / 100);
+            }
+            cart.push({
+                product_id: productId,
+                name: name,
+                price: Number(price) || 0,
+                quantity: requestedQuantity,
+                unit_type: unitType,
+                discount_value: 0,
+                discount_type: 'amount',
+                tax: itemTax
+            });
+        }
+
+        selectedCartIndex = cart.findIndex(item => item.product_id === productId);
+        updateCartDisplay();
+        showPaymentSection();
+        setupPointsListener();
+
+        // Prepare immediately for the next item or barcode scan.
+        const searchInput = document.getElementById('productSearch');
+        const category = document.getElementById('categoryFilter')?.value || '';
+        if (searchInput) searchInput.value = '';
+        loadProducts('', category);
+        focusProductSearch();
+    };
+
+    // Verify stock from the server, but keep the existing fallback behavior if
+    // a transient search request fails.
     fetch(`/sales/api/products/search?search=${encodeURIComponent(name)}`)
         .then(response => {
-            if (response.ok) return response.json();
-            throw new Error('Cannot verify product stock');
+            if (!response.ok) throw new Error('Cannot verify product stock');
+            return response.json();
         })
         .then(products => {
             const product = products.find(p => p.id === productId);
@@ -943,92 +1357,11 @@ function addToCart(productId, name, price, unitType) {
                 showNotification('Product not found', 'danger');
                 return;
             }
-            
-            // If customer has last-used prices, override the displayed price for this product
-            if (window.customerLastPrices && window.customerLastPrices[productId] !== undefined) {
-                price = window.customerLastPrices[productId];
-            }
-
-            const existingItem = cart.find(item => item.product_id === productId);
-            let cartQty = existingItem ? existingItem.quantity : 0;
-
-            if (product.stock <= cartQty) {
-                showNotification(`Insufficient stock for ${name}. Available: ${product.stock}`, 'warning');
-                return;
-            }
-
-            if (existingItem) {
-                existingItem.quantity += 1;
-            } else {
-            // Calculate tax for this item (only if tax is enabled)
-            let itemTax = 0;
-            if (enableTax && showTaxInSales) {
-                itemTax = price * (taxRate / 100);
-            }
-            cart.push({
-                    product_id: productId,
-                    name: name,
-                    price: price,
-                    quantity: 1,
-                    unit_type: unitType,
-                    discount_value: 0,
-                    discount_type: 'amount', // or 'percent'
-                    tax: itemTax
-                });
-            }
-
-            updateCartDisplay();
-            showPaymentSection();
-    setupPointsListener();
-            // Clear search and reload all products for fast cashier workflow
-            document.getElementById('productSearch').value = '';
-            loadProducts();
-            
-            // Focus on search bar for next item - use setTimeout for mobile keyboard
-            setTimeout(function() {
-                var searchInput = document.getElementById('productSearch');
-                searchInput.focus();
-                // Select all text to help trigger keyboard on mobile
-                searchInput.setSelectionRange(0, searchInput.value.length);
-            }, 100);
+            finishAdd(product);
         })
         .catch(error => {
             console.error('Error checking stock:', error);
-            // Fallback - add to cart anyway but it will fail at checkout
-            const existingItem = cart.find(item => item.product_id === productId);
-            if (existingItem) {
-                existingItem.quantity += 1;
-            } else {
-            // Calculate tax for this item (only if tax is enabled)
-            let itemTax = 0;
-            if (enableTax && showTaxInSales) {
-                itemTax = price * (taxRate / 100);
-            }
-            cart.push({
-                    product_id: productId,
-                    name: name,
-                    price: price,
-                    quantity: 1,
-                    unit_type: unitType,
-                    discount_value: 0,
-                    discount_type: 'amount', // or 'percent'
-                    tax: itemTax
-                });
-            }
-            updateCartDisplay();
-            showPaymentSection();
-            
-            // Clear search and reload all products for fast cashier workflow
-            document.getElementById('productSearch').value = '';
-            loadProducts();
-            
-            // Focus on search bar for next item - use setTimeout for mobile keyboard
-            setTimeout(function() {
-                var searchInput = document.getElementById('productSearch');
-                searchInput.focus();
-                // Select all text to help trigger keyboard on mobile
-                searchInput.setSelectionRange(0, searchInput.value.length);
-            }, 100);
+            finishAdd();
         });
 }
 
@@ -1036,6 +1369,7 @@ function updateCartDisplay() {
     const cartItems = document.getElementById('cartItems');
     
     if (cart.length === 0) {
+        selectedCartIndex = -1;
         cartItems.innerHTML = `
             <div class="empty-cart text-center text-muted py-5">
                 <i class="fas fa-shopping-basket fa-3x mb-3"></i>
@@ -1061,7 +1395,11 @@ function updateCartDisplay() {
         subtotal += itemTotal;
 
         html += `
-            <div class="cart-item">
+            <div class="cart-item ${index === selectedCartIndex ? 'keyboard-selected' : ''}"
+                 role="option" aria-selected="${index === selectedCartIndex ? 'true' : 'false'}"
+                 tabindex="0" data-cart-index="${index}"
+                 onclick="setSelectedCartItem(${index}, false)"
+                 onfocus="setSelectedCartItem(${index}, false)">
                 <div class="cart-item-top">
                     <div class="cart-item-name">${item.name}</div>
                     <div class="cart-item-top-right">
@@ -1084,8 +1422,10 @@ function updateCartDisplay() {
                     <div class="cart-item-actions-row">
                         <div class="cart-item-controls">
                             <button class="btn-qty" onclick="changeQuantity(${index}, -1)">-</button>
-                            <input type="number" class="qty-input" value="${item.quantity}" 
-                                   onchange="setQuantity(${index}, this.value)" min="0.01" step="0.01">
+                            <input type="number" class="qty-input" value="${item.quantity}"
+                                   onchange="setQuantity(${index}, this.value)"
+                                   onkeydown="if (event.key === 'Enter') { event.preventDefault(); setQuantity(${index}, this.value); this.blur(); }"
+                                   min="0.01" step="0.01" title="Quantity; press Enter to apply">
                             <button class="btn-qty" onclick="changeQuantity(${index}, 1)">+</button>
                         </div>
                         <div class="cart-item-discount d-flex align-items-center">
@@ -1109,6 +1449,9 @@ function updateCartDisplay() {
 
     cartItems.innerHTML = html;
     document.getElementById('checkoutBtn').disabled = false;
+    if (selectedCartIndex >= 0) {
+        setSelectedCartItem(Math.min(selectedCartIndex, cart.length - 1), false);
+    }
     
     // Calculate totals - check showTaxInSales setting
     const discount = parseFloat(document.getElementById('discountInput').value) || 0;
@@ -1164,14 +1507,20 @@ function updateTotals(subtotal, discount, tax, total = 0) {
 }
 
 function changeQuantity(index, delta) {
+    if (!cart[index]) return;
+    selectedCartIndex = index;
     cart[index].quantity += delta;
     if (cart[index].quantity <= 0) {
         cart.splice(index, 1);
+        selectedCartIndex = Math.min(index, cart.length - 1);
     }
     updateCartDisplay();
+    showPaymentSection();
 }
 
 function setQuantity(index, quantity) {
+    if (!cart[index]) return;
+    selectedCartIndex = index;
     const qty = parseFloat(quantity);
     if (qty <= 0 || isNaN(qty)) {
         removeFromCart(index);
@@ -1182,9 +1531,12 @@ function setQuantity(index, quantity) {
 }
 
 function removeFromCart(index) {
+    if (!cart[index]) return;
     cart.splice(index, 1);
+    selectedCartIndex = Math.min(index, cart.length - 1);
     updateCartDisplay();
     showPaymentSection();
+    if (!cart.length) focusProductSearch();
 }
 
 function setItemDiscount(index, value) {
@@ -1306,43 +1658,96 @@ function calculateChange() {
     }
 }
 
-function loadCustomers() {
-    fetch('/customers/api/customers')
-        .then(response => response.json())
-        .then(data => {
-            const customers = data.customers || data;
-            displayCustomers(customers);
+function loadCustomers(search = '') {
+    const url = search
+        ? `/sales/api/customers/search?search=${encodeURIComponent(search)}`
+        : '/customers/api/customers?per_page=100';
+
+    fetch(url)
+        .then(response => {
+            if (!response.ok) throw new Error('Failed to load customers');
+            return response.json();
         })
-        .catch(error => console.error('Error loading customers:', error));
+        .then(data => {
+            customerResults = Array.isArray(data) ? data : (data.customers || []);
+            selectedCustomerIndex = -1;
+            displayCustomers(customerResults);
+        })
+        .catch(error => {
+            console.error('Error loading customers:', error);
+            customerResults = [];
+            selectedCustomerIndex = -1;
+            displayCustomers([]);
+            showNotification('Failed to load customers', 'danger');
+        });
 }
 
 function displayCustomers(customers) {
     const customerList = document.getElementById('customerList');
     customerList.innerHTML = '';
 
-    customers.forEach(customer => {
+    if (!customers.length) {
+        const emptyRow = document.createElement('tr');
+        const emptyCell = document.createElement('td');
+        emptyCell.colSpan = 5;
+        emptyCell.className = 'text-center text-muted py-3';
+        emptyCell.textContent = 'No customers found';
+        emptyRow.appendChild(emptyCell);
+        customerList.appendChild(emptyRow);
+        return;
+    }
+
+    customers.forEach((customer, customerIndex) => {
         const row = document.createElement('tr');
-        row.innerHTML = `
-            <td>${customer.name}</td>
-            <td>${customer.phone || ''}</td>
-            <td>${customer.email || ''}</td>
-            <td>${customer.loyalty_points || 0}</td>
-            <td>
-                <button class="btn btn-primary btn-sm" onclick="selectCustomer(${customer.id}, '${customer.name.replace(/'/g, "\\'")}')">
-                    Select
-                </button>
-            </td>
-        `;
+        row.setAttribute('role', 'option');
+        row.setAttribute('tabindex', '0');
+        row.setAttribute('aria-selected', 'false');
+        row.dataset.customerIndex = customerIndex;
+
+        const values = [
+            customer.name || '',
+            customer.phone || '',
+            customer.email || '',
+            customer.loyalty_points || 0
+        ];
+        values.forEach(value => {
+            const cell = document.createElement('td');
+            cell.textContent = value;
+            row.appendChild(cell);
+        });
+
+        const actionCell = document.createElement('td');
+        const selectButton = document.createElement('button');
+        selectButton.type = 'button';
+        selectButton.className = 'btn btn-primary btn-sm';
+        selectButton.textContent = 'Select';
+        selectButton.addEventListener('click', event => {
+            event.stopPropagation();
+            selectCustomer(customer.id, customer.name);
+        });
+        actionCell.appendChild(selectButton);
+        row.appendChild(actionCell);
+
+        row.addEventListener('click', () => selectCustomer(customer.id, customer.name));
+        row.addEventListener('focus', () => {
+            selectedCustomerIndex = customerIndex;
+            updateCustomerHighlight();
+        });
         customerList.appendChild(row);
     });
 }
 
+
 function selectCustomer(id, name) {
     currentCustomer = { id, name };
     document.getElementById('customerName').textContent = name;
-    const customerModalInstance = bootstrap.Modal.getInstance(document.getElementById('customerModal'));
+    const customerModalElement = document.getElementById('customerModal');
+    const customerModalInstance = bootstrap.Modal.getInstance(customerModalElement);
     if (customerModalInstance) {
+        customerModalElement.addEventListener('hidden.bs.modal', focusProductSearch, { once: true });
         customerModalInstance.hide();
+    } else {
+        focusProductSearch();
     }
     // Load customer credit info when customer is selected
     loadCustomerCreditInfo(id);
@@ -2172,7 +2577,15 @@ function loadHeldBill(billId) {
             document.getElementById('discountInput').value = data.discount || 0;
             updateCartDisplay();
             showPaymentSection();
-            bootstrap.Modal.getInstance(document.getElementById('heldBillsModal')).hide();
+            selectedCartIndex = cart.length ? 0 : -1;
+            setSelectedCartItem(selectedCartIndex, false);
+            const heldBillsModal = bootstrap.Modal.getInstance(document.getElementById('heldBillsModal'));
+            if (heldBillsModal) {
+                document.getElementById('heldBillsModal').addEventListener('hidden.bs.modal', focusProductSearch, { once: true });
+                heldBillsModal.hide();
+            } else {
+                focusProductSearch();
+            }
         })
         .catch(error => console.error('Error loading held bill:', error));
 }
@@ -2518,6 +2931,7 @@ function resetSale() {
     document.getElementById('receiptActions').classList.add('d-none');
     updateCartDisplay();
     showPaymentSection();
+    focusProductSearch();
 }
 </script>
 
@@ -2535,6 +2949,32 @@ function resetSale() {
 .sales-card .card-body, .billing-card .card-body {
     overflow-y: auto;
     height: calc(100% - 60px);
+}
+
+/* Keyboard shortcut guide */
+.keyboard-shortcuts-bar {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 6px 10px;
+    align-items: center;
+    margin-top: 8px;
+    color: #64748B;
+    font-size: 11px;
+}
+
+.keyboard-shortcuts-bar span {
+    white-space: nowrap;
+}
+
+.keyboard-shortcuts-bar kbd {
+    padding: 2px 5px;
+    border: 1px solid #CBD5E1;
+    border-bottom-width: 2px;
+    border-radius: 4px;
+    background: #F8FAFC;
+    color: #334155;
+    font-size: 10px;
+    font-family: inherit;
 }
 
 /* Product Search */
@@ -2588,6 +3028,14 @@ function resetSale() {
     border-color: #4F46E5;
     transform: translateY(-2px);
     box-shadow: 0 4px 12px rgba(79, 70, 229, 0.15);
+}
+
+.product-item:focus-visible,
+.product-item.keyboard-selected {
+    outline: 3px solid rgba(79, 70, 229, 0.28);
+    outline-offset: 2px;
+    border-color: #4F46E5;
+    box-shadow: 0 0 0 3px rgba(79, 70, 229, 0.12);
 }
 
 .product-item.out-of-stock {
@@ -2738,6 +3186,20 @@ function resetSale() {
     border-radius: 10px;
     margin-bottom: 10px;
     gap: 12px;
+}
+
+.cart-item:focus-visible,
+.cart-item.keyboard-selected {
+    outline: 3px solid rgba(79, 70, 229, 0.28);
+    outline-offset: 2px;
+    background: #EEF2FF;
+}
+
+#customerList tr:focus-visible,
+#customerList tr.keyboard-selected {
+    outline: 2px solid rgba(79, 70, 229, 0.35);
+    outline-offset: -2px;
+    background: #EEF2FF;
 }
 
 .cart-item-top {

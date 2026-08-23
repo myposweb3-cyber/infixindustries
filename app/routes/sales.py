@@ -68,12 +68,14 @@ def search_products():
         # Prioritize exact barcode match at the top of the results
         order_logic = case(
             (Product.barcode.ilike(query), 0),
+            (Product.product_code.ilike(query), 0),
             else_=1
         )
         products_query = products_query.filter(
             db.or_(
                 Product.name.ilike(f'%{query}%'),
-                Product.barcode.ilike(query)
+                Product.barcode.ilike(f'%{query}%'),
+                Product.product_code.ilike(f'%{query}%')
             )
         ).order_by(order_logic, Product.name)
     else:
@@ -95,6 +97,8 @@ def search_products():
             'unit_type': product.unit_type or '',
             'image_path': product.image_path or '',
             'category': product.category or '',
+            'barcode': product.barcode or '',
+            'product_code': product.product_code or '',
             'price_per_kg': float(product.price_per_kg) if hasattr(product, 'price_per_kg') and product.price_per_kg else None
         })
 
