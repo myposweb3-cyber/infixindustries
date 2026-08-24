@@ -863,6 +863,12 @@
                             <input type="hidden" id="orderPaymentOrderId">
                             <div class="mb-3"><label class="form-label" for="orderPaymentAmount">Payment amount</label><input type="number" class="form-control form-control-lg" id="orderPaymentAmount" min="0.01" step="0.01" required></div>
                             <div class="mb-3"><label class="form-label" for="orderPaymentMethod">Payment method</label><select class="form-select" id="orderPaymentMethod"><option>Cash</option><option>Card</option><option>Bank Transfer</option><option>Cheque</option><option>Other</option></select></div>
+                            <div id="orderChequeDetails" class="border rounded bg-light p-3 mb-3 d-none">
+                                <div class="fw-semibold mb-2"><i class="fas fa-money-check me-1"></i>Cheque details</div>
+                                <div class="mb-2"><label class="form-label" for="orderChequeNumber">Cheque number <span class="text-danger">*</span></label><input type="text" class="form-control" id="orderChequeNumber" maxlength="50" placeholder="Enter cheque number"></div>
+                                <div class="mb-2"><label class="form-label" for="orderChequeBank">Bank name <span class="text-danger">*</span></label><input type="text" class="form-control" id="orderChequeBank" maxlength="100" placeholder="Enter bank name"></div>
+                                <div><label class="form-label" for="orderChequeDate">Cheque date <span class="text-danger">*</span></label><input type="date" class="form-control" id="orderChequeDate"></div>
+                            </div>
                             <div class="mb-3"><label class="form-label" for="orderPaymentReference">Reference number</label><input type="text" class="form-control" id="orderPaymentReference" placeholder="Receipt, cheque, or transfer reference"></div>
                             <div><label class="form-label" for="orderPaymentNotes">Notes</label><textarea class="form-control" id="orderPaymentNotes" rows="2" placeholder="Optional notes"></textarea></div>
                             <div id="orderPaymentAlert" class="alert d-none mt-3 mb-0" role="alert"></div>
@@ -2384,6 +2390,14 @@ function openEditOrderModal(orderId) {
         .catch(() => showAlert('Error opening order', 'danger'));
 }
 
+function toggleOrderChequeFields() {
+    const isCheque = String($('#orderPaymentMethod').val() || '').toLowerCase() === 'cheque';
+    $('#orderChequeDetails').toggleClass('d-none', !isCheque);
+    $('#orderChequeNumber, #orderChequeBank, #orderChequeDate').prop('required', isCheque);
+}
+
+$(document).on('change', '#orderPaymentMethod', toggleOrderChequeFields);
+
 async function openOrderPaymentModal(orderId) {
     try {
         const response = await fetch('/customers/api/orders/' + encodeURIComponent(orderId));
@@ -2399,8 +2413,10 @@ async function openOrderPaymentModal(orderId) {
         $('#orderPaymentCustomer').text(order.customer || 'Walk-in Customer');
         $('#orderPaymentOutstanding').text('₨ ' + balance.toFixed(2));
         $('#orderPaymentAmount').val(balance.toFixed(2)).attr('max', balance.toFixed(2));
-        $('#orderPaymentReference, #orderPaymentNotes').val('');
+        $('#orderPaymentReference, #orderPaymentNotes, #orderChequeNumber, #orderChequeBank').val('');
+        $('#orderChequeDate').val(new Date().toISOString().slice(0, 10));
         $('#orderPaymentMethod').val('Cash');
+        toggleOrderChequeFields();
         $('#orderPaymentAlert').addClass('d-none').text('');
         $('#orderPaymentModal').modal('show');
     } catch (error) {
@@ -2412,9 +2428,18 @@ async function openOrderPaymentModal(orderId) {
 $('#saveOrderPaymentBtn').on('click', async function() {
     const orderId = $('#orderPaymentOrderId').val();
     const amount = Number.parseFloat($('#orderPaymentAmount').val());
+    const paymentMethod = $('#orderPaymentMethod').val();
+    const isCheque = String(paymentMethod || '').toLowerCase() === 'cheque';
+    const chequeNumber = $('#orderChequeNumber').val().trim();
+    const chequeBank = $('#orderChequeBank').val().trim();
+    const chequeDate = $('#orderChequeDate').val();
     const button = this;
     if (!orderId || !Number.isFinite(amount) || amount <= 0) {
         $('#orderPaymentAlert').removeClass('d-none alert-success').addClass('alert-danger').text('Enter a valid payment amount.');
+        return;
+    }
+    if (isCheque && (!chequeNumber || !chequeBank || !chequeDate)) {
+        $('#orderPaymentAlert').removeClass('d-none alert-success').addClass('alert-danger').text('Cheque number, bank name, and cheque date are required.');
         return;
     }
     const original = button.innerHTML;
@@ -2427,9 +2452,12 @@ $('#saveOrderPaymentBtn').on('click', async function() {
             headers: { 'Content-Type': 'application/json', 'X-CSRFToken': csrfToken || '' },
             body: JSON.stringify({
                 amount,
-                payment_method: $('#orderPaymentMethod').val(),
-                reference_number: $('#orderPaymentReference').val().trim(),
-                notes: $('#orderPaymentNotes').val().trim()
+                payment_method: paymentMethod,
+                reference_number: $('#orderPaymentReference').val().trim() || chequeNumber,
+                notes: $('#orderPaymentNotes').val().trim(),
+                cheque_number: chequeNumber,
+                cheque_bank: chequeBank,
+                cheque_date: chequeDate
             })
         });
         const raw = await response.text();

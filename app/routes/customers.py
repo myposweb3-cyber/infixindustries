@@ -532,7 +532,20 @@ def record_order_payment(order_id):
     payment_method = str(data.get('payment_method') or 'Cash').strip()[:20]
     reference_number = str(data.get('reference_number') or '').strip()[:50]
     notes = str(data.get('notes') or '').strip()
-    company_id = get_company_id()
+    company_id = get_company_id() or sale.company_id
+    is_cheque = payment_method.lower() == 'cheque'
+    cheque_number = str(data.get('cheque_number') or reference_number).strip()[:50]
+    cheque_bank = str(data.get('cheque_bank') or '').strip()[:100]
+    cheque_date_str = str(data.get('cheque_date') or '').strip()
+    if is_cheque and (not cheque_number or not cheque_bank or not cheque_date_str):
+        return jsonify({'error': 'Cheque number, bank name, and cheque date are required'}), 400
+    cheque_date = None
+    if is_cheque:
+        try:
+            cheque_date = datetime.strptime(cheque_date_str, '%Y-%m-%d').date()
+        except ValueError:
+            return jsonify({'error': 'Cheque date must be valid'}), 400
+
     try:
         # Keep the sale balance authoritative even for walk-in customers.
         sale.balance = round(max(0.0, outstanding - amount), 2)
@@ -556,6 +569,37 @@ def record_order_payment(order_id):
                 user_id=current_user.id if hasattr(current_user, 'id') else None,
                 company_id=customer.company_id if hasattr(customer, 'company_id') else company_id
             ))
+
+        if is_cheque:
+            existing_cheque = Cheque.query.filter(
+                Cheque.cheque_number == cheque_number,
+                Cheque.bank_name == cheque_bank
+            ).first()
+            if existing_cheque and existing_cheque.sale_id not in (None, sale.id):
+                db.session.rollback()
+                return jsonify({'error': 'A cheque with this number and bank is already linked to another order'}), 409
+            if existing_cheque:
+                existing_cheque.sale_id = sale.id
+                existing_cheque.amount = amount
+                existing_cheque.payer_name = sale.customer or 'Walk-in Customer'
+                existing_cheque.notes = notes or existing_cheque.notes
+                existing_cheque.company_id = company_id
+            else:
+                db.session.add(Cheque(
+                    cheque_number=cheque_number,
+                    bank_name=cheque_bank,
+                    branch=str(data.get('cheque_branch') or '').strip()[:100] or None,
+                    cheque_date=cheque_date,
+                    amount=amount,
+                    payer_name=sale.customer or 'Walk-in Customer',
+                    customer_id=customer.id if customer else None,
+                    notes=notes,
+                    status='pending',
+                    created_by=current_user.id if hasattr(current_user, 'id') else None,
+                    updated_by=current_user.id if hasattr(current_user, 'id') else None,
+                    sale_id=sale.id,
+                    company_id=company_id
+                ))
         db.session.commit()
         return jsonify({
             'success': True,
