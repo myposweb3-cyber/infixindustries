@@ -86,8 +86,31 @@
 <script>
 const money = v => `₨ ${Number(v || 0).toFixed(2)}`;
 const csrf = document.querySelector('meta[name="csrf-token"]')?.content || '';
-const countModal = document.getElementById('viewCountModal') ? bootstrap.Modal.getOrCreateInstance(document.getElementById('viewCountModal')) : null;
-const countEntryModal = document.getElementById('countEntryModal') ? bootstrap.Modal.getOrCreateInstance(document.getElementById('countEntryModal')) : null;
+const countModal = document.getElementById('viewCountModal') && window.bootstrap?.Modal ? bootstrap.Modal.getOrCreateInstance(document.getElementById('viewCountModal')) : null;
+let countEntryModal = null;
+function showCountEntryModal() {
+  const element = document.getElementById('countEntryModal');
+  if (!element) throw new Error('Stock-count entry window is unavailable');
+  if (window.bootstrap?.Modal) {
+    countEntryModal = bootstrap.Modal.getOrCreateInstance(element);
+    countEntryModal.show();
+  } else if (window.jQuery && $.fn.modal) {
+    $(element).modal('show');
+  } else {
+    element.classList.add('show');
+    element.style.display = 'block';
+    element.removeAttribute('aria-hidden');
+    element.setAttribute('aria-modal', 'true');
+    document.body.classList.add('modal-open');
+  }
+}
+function hideCountEntryModal() {
+  const element = document.getElementById('countEntryModal');
+  if (!element) return;
+  if (countEntryModal) countEntryModal.hide();
+  else if (window.jQuery && $.fn.modal) $(element).modal('hide');
+  else { element.classList.remove('show'); element.style.display = 'none'; element.setAttribute('aria-hidden', 'true'); document.body.classList.remove('modal-open'); }
+}
 function alertMsg(text, type = 'success') {
   const e = document.getElementById('alert');
   e.className = `alert alert-${type}`;
@@ -206,8 +229,8 @@ async function openCount(id) {
     document.getElementById('countEntrySubtitle').textContent = `Count #${count.id} · ${new Date(count.created_at).toLocaleString()} · ${editingCountItems.length} products`;
     document.getElementById('countEntryAlert').className = 'alert d-none';
     renderCountEntryItems();
-    countEntryModal?.show();
-  } catch (error) { alertMsg(error.message || 'Unable to open stock count', 'danger'); }
+    showCountEntryModal();
+  } catch (error) { console.error('Unable to open stock count', error); alertMsg(error.message || 'Unable to open stock count', 'danger'); }
 }
 
 async function saveCount(complete = false) {
@@ -226,12 +249,15 @@ async function saveCount(complete = false) {
     if (!done.ok) { alertMsg(completeResult.error || 'Unable to complete count', 'danger'); return; }
     alertMsg('Stock count completed successfully.', 'success');
   } else alertMsg('Stock count saved successfully.', 'success');
-  countEntryModal?.hide();
+  hideCountEntryModal();
   await refresh();
 }
 
 document.getElementById('saveCountBtn').onclick = () => saveCount(false);
 document.getElementById('completeCountBtn').onclick = () => saveCount(true);
+window.openCount = openCount;
+window.viewCount = viewCount;
+window.deleteCount = deleteCount;
 
 document.getElementById('newCountBtn').onclick = async () => {
   const r = await fetch('/api/inventory/stock-counts', { method: 'POST', headers: { 'Content-Type': 'application/json', 'X-CSRFToken': csrf }, body: JSON.stringify({}) });
