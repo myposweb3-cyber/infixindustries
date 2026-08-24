@@ -4251,6 +4251,15 @@ body.payment-bar-open { padding-bottom: 118px; }
     .sticky-total-summary strong { font-size: 12px; }
     .sticky-total-summary .sticky-grand-total strong { font-size: 15px; }
 }
+
+/* Keep the fixed bar inside the usable main-content area beside the sidebar. */
+@media (min-width: 992px) {
+    .payment-section { left: var(--sidebar-width); right: 0; }
+    .sidebar.collapsed + .main-wrapper .payment-section { left: 80px; }
+}
+@media (max-width: 991.98px) {
+    .payment-section { left: 0; right: 0; }
+}
 </style>
 {% endblock %}
 
