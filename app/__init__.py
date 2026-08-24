@@ -64,6 +64,7 @@ def create_app(config_class=None):
     from app.routes.audit import audit_bp
     from app.routes.invoices import invoices_bp
     from app.routes.shifts import shifts_bp
+    from app.routes.stock_counts import stock_counts_bp
 
     app.register_blueprint(main_bp)
     app.register_blueprint(auth_bp, url_prefix='/auth')
@@ -82,6 +83,7 @@ def create_app(config_class=None):
     app.register_blueprint(audit_bp, url_prefix='/audit')
     app.register_blueprint(invoices_bp)
     app.register_blueprint(shifts_bp)
+    app.register_blueprint(stock_counts_bp)
 
     # ✅ REGISTER MULTI-COMPANY SECURITY MIDDLEWARE
     from app.utils.security import before_request_company_check

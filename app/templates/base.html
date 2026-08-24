@@ -109,6 +109,14 @@
                                 <span class="nav-text">Products</span>
                             </a>
                         </li>
+                        {% if current_user.can_view_inventory %}
+                        <li>
+                            <a href="{{ url_for('stock_counts.stock_count_page') }}" class="nav-dropdown-link {% if request.endpoint == 'stock_counts.stock_count_page' %}active{% endif %}">
+                                <i class="nav-icon fas fa-clipboard-check"></i>
+                                <span class="nav-text">Stock Count & Valuation</span>
+                            </a>
+                        </li>
+                        {% endif %}
                         {% endif %}
                         {% if current_user.can_access_warehouse %}
                         <li>

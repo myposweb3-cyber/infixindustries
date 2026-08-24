@@ -516,6 +516,34 @@ class InventoryTransaction(db.Model):
     product = db.relationship('Product', backref='inventory_transactions')
     company = db.relationship('Company', backref='inventory_transactions', foreign_keys=[company_id])
 
+class StockCount(db.Model):
+    """Physical inventory count session."""
+    __tablename__ = 'stock_counts'
+    id = db.Column(db.Integer, primary_key=True)
+    company_id = db.Column(db.Integer, db.ForeignKey('companies.id'), nullable=True, index=True)
+    warehouse_id = db.Column(db.Integer, db.ForeignKey('warehouses.id'), nullable=True)
+    created_by_id = db.Column(db.Integer, db.ForeignKey('users.id'), nullable=False)
+    status = db.Column(db.String(20), default='open', nullable=False)
+    created_at = db.Column(db.DateTime, default=datetime.utcnow, nullable=False)
+    completed_at = db.Column(db.DateTime)
+    notes = db.Column(db.Text)
+    company = db.relationship('Company', backref='stock_counts', foreign_keys=[company_id])
+    warehouse = db.relationship('Warehouse', backref='stock_counts')
+    created_by = db.relationship('User', backref='stock_counts')
+    items = db.relationship('StockCountItem', backref='stock_count', cascade='all, delete-orphan')
+
+class StockCountItem(db.Model):
+    """Product line in a physical stock count."""
+    __tablename__ = 'stock_count_items'
+    id = db.Column(db.Integer, primary_key=True)
+    stock_count_id = db.Column(db.Integer, db.ForeignKey('stock_counts.id'), nullable=False)
+    product_id = db.Column(db.Integer, db.ForeignKey('products.id'), nullable=False)
+    system_quantity = db.Column(db.Float, nullable=False)
+    counted_quantity = db.Column(db.Float, nullable=False)
+    variance = db.Column(db.Float, nullable=False)
+    reason = db.Column(db.String(255))
+    product = db.relationship('Product', backref='stock_count_items')
+
 class SerialNumber(db.Model):
     """Serial number model for serial/lot tracking."""
     __tablename__ = 'serial_numbers'
