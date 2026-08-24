@@ -96,10 +96,14 @@ async function refresh() {
       <td>${x.items?.length || 0}</td>
       <td class="text-nowrap">${String(x.status).toLowerCase() === 'open'
         ? `<button class="btn btn-sm btn-outline-primary" onclick="openCount(${x.id})"><i class="fas fa-folder-open me-1"></i>Open</button>`
-        : `<button class="btn btn-sm btn-outline-secondary" onclick="viewCount(${x.id})"><i class="fas fa-eye me-1"></i>View</button>`}</td>
+        : `<button class="btn btn-sm btn-outline-secondary" onclick="viewCount(${x.id})" data-bs-toggle="modal" data-bs-target="#viewCountModal"><i class="fas fa-eye me-1"></i>View</button>`}</td>
     </tr>`).join('') : '<tr><td colspan="5" class="text-center text-muted py-4">No stock counts yet.</td></tr>';
 }
 async function viewCount(id) {
+  const modalElement = document.getElementById('viewCountModal');
+  if (modalElement && window.bootstrap?.Modal) {
+    bootstrap.Modal.getOrCreateInstance(modalElement).show();
+  }
   try {
     const count = await getCount(id);
     if (!count) throw new Error('Stock count not found');
@@ -111,8 +115,12 @@ async function viewCount(id) {
     const body = document.getElementById('viewCountItemsBody');
     body.innerHTML = (count.items || []).length ? count.items.map(item => `
       <tr><td>${item.product_name || 'Unknown product'}</td><td class="text-end">${Number(item.system_quantity || 0)}</td><td class="text-end">${Number(item.counted_quantity || 0)}</td><td class="text-end ${Number(item.variance || 0) < 0 ? 'text-danger' : Number(item.variance || 0) > 0 ? 'text-success' : ''}">${Number(item.variance || 0)}</td><td>${item.reason || '—'}</td></tr>`).join('') : '<tr><td colspan="5" class="text-center text-muted">No items recorded.</td></tr>';
-    countModal?.show();
-  } catch (error) { alertMsg(error.message, 'danger'); }
+  } catch (error) {
+    console.error('Unable to view stock count', error);
+    const body = document.getElementById('viewCountItemsBody');
+    if (body) body.innerHTML = '<tr><td colspan="5" class="text-center text-danger">Unable to load stock-count details.</td></tr>';
+    alertMsg(error.message || 'Unable to view stock count', 'danger');
+  }
 }
 async function openCount(id) {
   try {
