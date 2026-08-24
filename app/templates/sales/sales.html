@@ -40,6 +40,7 @@
                             <span><kbd>Enter</kbd> Add</span>
                             <span><kbd>F3</kbd> Customer</span>
                             <span><kbd>F7</kbd> Payment</span>
+                            <span><kbd>F10</kbd> Cash Given</span>
                             <span><kbd>F8</kbd> Pay</span>
                             <span><kbd>F9</kbd> Hold</span>
                             <span><kbd>Esc</kbd> Cancel</span>
@@ -156,8 +157,8 @@
                             </div>
                         </div>
                         <div class="cash-given" id="cashGivenGroup">
-                            <label>Cash Given</label>
-                            <input type="number" class="form-control" id="cashGiven" step="0.01" placeholder="0.00">
+                            <label for="cashGiven">Cash Given <kbd>F10</kbd></label>
+                            <input type="number" class="form-control" id="cashGiven" step="0.01" placeholder="0.00" aria-keyshortcuts="F10">
                         </div>
                         <div class="change-amount" id="changeGroup" style="display: none;">
                             <label>Change</label>
@@ -706,6 +707,30 @@ function focusProductSearch() {
     }, 80);
 }
 
+function focusCashGivenInput() {
+    const cashInput = document.getElementById('cashGiven');
+    const paymentMethod = document.getElementById('paymentMethod');
+
+    if (!cart.length) {
+        showNotification('Add an item before entering cash received', 'info');
+        return;
+    }
+
+    showPaymentSection();
+
+    // F10 is the cashier's direct cash workflow: select Cash when another
+    // method is active, reveal the field, and place the cursor in the amount.
+    if (paymentMethod && paymentMethod.value !== 'Cash') {
+        paymentMethod.value = 'Cash';
+        toggleCashFields('Cash');
+    }
+
+    if (cashInput) {
+        cashInput.focus({ preventScroll: true });
+        cashInput.select();
+    }
+}
+
 function focusCustomerSearch() {
     const customerSearch = document.getElementById('customerSearch');
     if (customerSearch) {
@@ -999,6 +1024,11 @@ function setupKeyboardShortcuts() {
         if (e.key === 'F8') {
             e.preventDefault();
             checkout();
+            return;
+        }
+        if (e.key === 'F10') {
+            e.preventDefault();
+            focusCashGivenInput();
             return;
         }
         if (e.altKey && e.key.toLowerCase() === 'h') {
