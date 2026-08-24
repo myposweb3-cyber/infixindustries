@@ -211,6 +211,13 @@
                             </div>
                         </div>
                     </div>
+                    <div class="row mb-4 mt-3">
+                        <div class="col-md-3 mb-3"><div class="card metric-card border-primary"><div class="card-body"><small class="text-muted">Shifts</small><h4 id="shiftReportCount">-</h4></div></div></div>
+                        <div class="col-md-3 mb-3"><div class="card metric-card border-info"><div class="card-body"><small class="text-muted">Expected Cash</small><h4 id="shiftReportExpected">₨-</h4></div></div></div>
+                        <div class="col-md-3 mb-3"><div class="card metric-card border-success"><div class="card-body"><small class="text-muted">Actual Cash</small><h4 id="shiftReportActual">₨-</h4></div></div></div>
+                        <div class="col-md-3 mb-3"><div class="card metric-card border-warning"><div class="card-body"><small class="text-muted">Total Variance</small><h4 id="shiftReportVariance">₨-</h4></div></div></div>
+                    </div>
+                    <div class="card mb-4"><div class="card-header"><h5 class="mb-0">Cashier Shift Reconciliation</h5></div><div class="card-body"><div class="table-responsive"><table class="table table-striped table-sm" id="shiftReportTable"><thead><tr><th>Shift</th><th>Cashier</th><th>Opened</th><th>Closed</th><th>Opening</th><th>Expected</th><th>Actual</th><th>Variance</th><th>Status</th></tr></thead><tbody id="shiftReportTableBody"><tr><td colspan="9" class="text-center">Loading shift report...</td></tr></tbody></table></div></div></div>
                 </div>
 
                 <!-- Category Performance Tab -->
@@ -854,7 +861,23 @@ function loadPaymentData(startDate, endDate) {
         .catch(error => console.error('Error:', error));
 }
 
+function loadShiftReportData(startDate, endDate) {
+    fetch('/reports/api/cashier-shift-report?start_date='+startDate+'&end_date='+endDate)
+        .then(response => response.json())
+        .then(data => {
+            const summary = data.summary || {};
+            document.getElementById('shiftReportCount').textContent = summary.count || 0;
+            document.getElementById('shiftReportExpected').textContent = '₨'+Number(summary.expected_cash || 0).toFixed(2);
+            document.getElementById('shiftReportActual').textContent = '₨'+Number(summary.actual_cash || 0).toFixed(2);
+            document.getElementById('shiftReportVariance').textContent = '₨'+Number(summary.variance || 0).toFixed(2);
+            const body = document.getElementById('shiftReportTableBody');
+            body.innerHTML = data.shifts && data.shifts.length ? data.shifts.map(shift => '<tr><td>#'+shift.id+'</td><td>'+shift.cashier+'</td><td>'+shift.opened_at+'</td><td>'+(shift.closed_at || '—')+'</td><td>₨'+Number(shift.opening_cash || 0).toFixed(2)+'</td><td>₨'+Number(shift.expected_cash || 0).toFixed(2)+'</td><td>'+(shift.actual_cash === null ? '—' : '₨'+Number(shift.actual_cash).toFixed(2))+'</td><td>₨'+Number(shift.variance || 0).toFixed(2)+'</td><td>'+shift.status+'</td></tr>').join('') : '<tr><td colspan="9" class="text-center">No shift data found</td></tr>';
+        })
+        .catch(error => { console.error('Error loading shift report:', error); document.getElementById('shiftReportTableBody').innerHTML = '<tr><td colspan="9" class="text-center text-danger">Unable to load shift report</td></tr>'; });
+}
+
 function loadCashierData(startDate, endDate) {
+    loadShiftReportData(startDate, endDate);
     fetch('/reports/api/cashier-report?start_date='+startDate+'&end_date='+endDate)
         .then(response => response.json())
         .then(data => {

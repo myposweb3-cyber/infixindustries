@@ -1,6 +1,6 @@
 from flask import Blueprint, render_template, request, jsonify, flash, send_file
 from flask_login import login_required, current_user
-from app.models import db, Sale, SaleItem, Product, Customer, InventoryTransaction, User, Return, ReturnItem, Expense, CustomerPayment
+from app.models import db, Sale, SaleItem, Product, Customer, InventoryTransaction, User, Return, ReturnItem, Expense, CustomerPayment, CashierShift
 from app.utils.permissions import require_permission
 from app.utils.security import get_company_id, require_company_context
 from datetime import datetime, timedelta
@@ -22,6 +22,47 @@ def get_company_filter(model):
     if company_id and hasattr(model, 'company_id'):
         return model.company_id == company_id
     return None
+
+@reports_bp.route('/api/cashier-shift-report')
+@login_required
+@require_permission('can_view_reports')
+def cashier_shift_report():
+    """Return cashier shift reconciliation rows for the selected date range."""
+    company_id = get_company_id()
+    query = CashierShift.query.filter(CashierShift.company_id == company_id)
+    start = request.args.get('start_date')
+    end = request.args.get('end_date')
+    if start:
+        query = query.filter(CashierShift.opened_at >= datetime.strptime(start, '%Y-%m-%d'))
+    if end:
+        query = query.filter(CashierShift.opened_at < datetime.strptime(end, '%Y-%m-%d') + timedelta(days=1))
+    shifts = query.order_by(CashierShift.opened_at.desc()).limit(500).all()
+    rows = []
+    for shift in shifts:
+        rows.append({
+            'id': shift.id,
+            'cashier': shift.user.username if shift.user else 'Unknown',
+            'opened_at': to_local_datetime(shift.opened_at).strftime('%Y-%m-%d %H:%M:%S'),
+            'closed_at': to_local_datetime(shift.closed_at).strftime('%Y-%m-%d %H:%M:%S') if shift.closed_at else None,
+            'opening_cash': round(float(shift.opening_cash or 0), 2),
+            'expected_cash': round(float(shift.expected_cash or 0), 2),
+            'actual_cash': round(float(shift.actual_cash), 2) if shift.actual_cash is not None else None,
+            'variance': round(float(shift.variance), 2) if shift.variance is not None else None,
+            'status': shift.status,
+            'notes': shift.notes or ''
+        })
+    closed = [row for row in rows if row['status'] == 'closed']
+    return jsonify({
+        'shifts': rows,
+        'summary': {
+            'count': len(rows),
+            'open_count': sum(1 for row in rows if row['status'] == 'open'),
+            'closed_count': len(closed),
+            'expected_cash': round(sum(row['expected_cash'] for row in closed), 2),
+            'actual_cash': round(sum(row['actual_cash'] or 0 for row in closed), 2),
+            'variance': round(sum(row['variance'] or 0 for row in closed), 2)
+        }
+    })
 
 def to_local_datetime(dt):
     """Convert UTC datetime to local timezone."""
