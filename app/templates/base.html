@@ -271,34 +271,6 @@
                         <div id="clockDate" class="text-muted" style="font-size: 0.7rem; line-height: 1; letter-spacing: 0.1px;"></div>
                     </div>
 
-                    <!-- Quick Nav Buttons -->
-                    <div class="d-none d-lg-flex align-items-center gap-2 quick-nav-buttons">
-                        <a href="{{ url_for('customers.customers') }}" class="btn btn-link text-secondary text-decoration-none quick-nav-btn quick-nav-button" data-url="{{ url_for('customers.customers') }}" data-shortcut="C" data-bs-toggle="tooltip" title="Customers (C)" aria-label="Customers">
-                            <i class="fas fa-users"></i>
-                        </a>
-                        <a href="{{ url_for('inventory.inventory') }}" class="btn btn-link text-secondary text-decoration-none quick-nav-btn quick-nav-button" data-url="{{ url_for('inventory.inventory') }}" data-shortcut="P" data-bs-toggle="tooltip" title="Products / Inventory (P)" aria-label="Products and Inventory">
-                            <i class="fas fa-box"></i>
-                        </a>
-                        <a href="{{ url_for('sales.sales_history') }}" class="btn btn-link text-secondary text-decoration-none quick-nav-btn quick-nav-button" data-url="{{ url_for('sales.sales_history') }}" data-shortcut="H" data-bs-toggle="tooltip" title="Sales History (H)" aria-label="Sales History">
-                            <i class="fas fa-receipt"></i>
-                        </a>
-                        <a href="{{ url_for('sales.returns') }}" class="btn btn-link text-secondary text-decoration-none quick-nav-btn quick-nav-button" data-url="{{ url_for('sales.returns') }}" data-shortcut="R" data-bs-toggle="tooltip" title="Returns (R)" aria-label="Returns">
-                            <i class="fas fa-rotate-left"></i>
-                        </a>
-                        <a href="{{ url_for('expenses.expenses') }}" class="btn btn-link text-secondary text-decoration-none quick-nav-btn quick-nav-button" data-url="{{ url_for('expenses.expenses') }}" data-shortcut="E" data-bs-toggle="tooltip" title="Expenses (E)" aria-label="Expenses">
-                            <i class="fas fa-wallet"></i>
-                        </a>
-                        <a href="{{ url_for('shifts.shifts_page') }}" class="btn btn-link text-secondary text-decoration-none quick-nav-btn quick-nav-button" data-url="{{ url_for('shifts.shifts_page') }}" data-shortcut="S" data-bs-toggle="tooltip" title="Cashier Shifts (S)" aria-label="Cashier Shifts">
-                            <i class="fas fa-user-clock"></i>
-                        </a>
-                        <a href="{{ url_for('reports.reports') }}" class="btn btn-link text-secondary text-decoration-none quick-nav-btn quick-nav-button" data-url="{{ url_for('reports.reports') }}" data-shortcut="T" data-bs-toggle="tooltip" title="Reports (T)" aria-label="Reports">
-                            <i class="fas fa-chart-bar"></i>
-                        </a>
-                        <button type="button" class="btn btn-link text-secondary text-decoration-none quick-nav-btn" id="calculatorBtn" data-bs-toggle="tooltip" title="Calculator" aria-label="Calculator">
-                            <i class="fas fa-calculator"></i>
-                        </button>
-                    </div>
-
                     <!-- New Sale Button -->
                     <a href="{{ url_for('sales.sales') }}" class="btn btn-primary d-none d-md-flex align-items-center gap-3 px-5" style="font-size: 15px; letter-spacing: 0.2px;">
                         <i class="fas fa-plus"></i>
@@ -311,12 +283,6 @@
                     <div class="d-flex align-items-center gap-1">
                         <button class="btn btn-link text-secondary text-decoration-none header-actions-btn" id="fullscreenBtn" title="Toggle Fullscreen">
                             <i class="fas fa-expand" id="fullscreenIcon"></i>
-                        </button>
-                        <button class="btn btn-link text-secondary text-decoration-none header-actions-btn" id="onScreenKeyboardBtn" title="On-screen Keyboard">
-                            <i class="fas fa-keyboard"></i>
-                        </button>
-                        <button class="btn btn-link text-secondary text-decoration-none header-actions-btn" id="shortcutHelpBtn" title="Keyboard Shortcuts (?)">
-                            <i class="fas fa-question-circle"></i>
                         </button>
                         <!-- Notification Dropdown -->
                         <div class="dropdown">
