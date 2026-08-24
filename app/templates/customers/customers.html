@@ -1113,6 +1113,7 @@
 <script>
 let currentPage = 1;
 let currentCustomerId = null;
+let ordersCustomerFilterId = null;
 let pendingTakeOrderAfterCustomerSave = false;
 let pendingTakeOrderCustomerName = '';
 
@@ -2151,14 +2152,14 @@ function loadOrders(page = 1) {
     const customerName = $('#ordersCustomerSearch').val();
     const params = { page: page, per_page: 50 };
     
-    // Use customer_id if available (most specific filter), otherwise use customer_name
-    if (currentCustomerId) {
-        params.customer_id = currentCustomerId;
+    // Only apply a customer filter when the user explicitly opened that customer's orders.
+    if (ordersCustomerFilterId) {
+        params.customer_id = ordersCustomerFilterId;
     } else if (customerName) {
         params.customer_name = customerName;
     }
     
-    console.log('loadOrders called with params:', params, 'currentCustomerId:', currentCustomerId);
+    console.log('loadOrders called with params:', params, 'ordersCustomerFilterId:', ordersCustomerFilterId, 'currentCustomerId:', currentCustomerId);
     
     $.get('/customers/api/orders', params)
         .done(function(data) {
@@ -2551,6 +2552,7 @@ $('#editOrderProductSearch').on('input', function() {
 
 function openCustomerOrders(customerId, customerName) {
     currentCustomerId = customerId;
+    ordersCustomerFilterId = customerId;
     const ordersTabEl = document.querySelector('#orders-tab');
     if (ordersTabEl) {
         const tab = bootstrap.Tab.getOrCreateInstance(ordersTabEl);
@@ -2757,7 +2759,10 @@ function submitTakeOrderHandler(e) {
         if (data.success) {
             $('#takeOrderModal').modal('hide');
             showAlert(data.message || 'Order created successfully', 'success');
-            if (typeof loadOrders === 'function') loadOrders();
+            // A newly created order should not replace the previous order history.
+            ordersCustomerFilterId = null;
+            $('#ordersCustomerSearch').val('');
+            if (typeof loadOrders === 'function') loadOrders(1);
         } else {
             showModalAlert(data.error || 'Error creating order', 'danger');
         }
