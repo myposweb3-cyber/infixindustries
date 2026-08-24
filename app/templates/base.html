@@ -263,6 +263,19 @@
                     </div>
                 </div>
 
+                <!-- Compact high-use POS shortcuts; hidden automatically when header space is limited. -->
+                <div class="header-quick-actions quick-nav-buttons d-none d-xl-flex align-items-center gap-2" aria-label="Quick POS actions">
+                    <a href="{{ url_for('sales.sales_history') }}" class="btn btn-link text-secondary text-decoration-none quick-nav-btn quick-nav-button" data-url="{{ url_for('sales.sales_history') }}" data-shortcut="H" data-bs-toggle="tooltip" title="Sales History (H)" aria-label="Sales History">
+                        <i class="fas fa-receipt"></i>
+                    </a>
+                    <a href="{{ url_for('customers.customers') }}" class="btn btn-link text-secondary text-decoration-none quick-nav-btn quick-nav-button" data-url="{{ url_for('customers.customers') }}" data-shortcut="C" data-bs-toggle="tooltip" title="Customers (C)" aria-label="Customers">
+                        <i class="fas fa-users"></i>
+                    </a>
+                    <a href="{{ url_for('shifts.shifts_page') }}" class="btn btn-link text-secondary text-decoration-none quick-nav-btn quick-nav-button" data-url="{{ url_for('shifts.shifts_page') }}" data-shortcut="S" data-bs-toggle="tooltip" title="Cashier Shifts (S)" aria-label="Cashier Shifts">
+                        <i class="fas fa-user-clock"></i>
+                    </a>
+                </div>
+
                 <!-- Right: Actions & User -->
                 <div class="d-flex align-items-center gap-4">
                     <!-- Real-time Clock -->
