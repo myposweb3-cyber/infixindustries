@@ -518,8 +518,18 @@ def delete_order(order_id):
         return jsonify({'error': 'Order not found'}), 404
 
     try:
-        # Delete associated sale items
-        from app.models import SaleItem
+        # Returned orders are part of the audit trail. Their return_items rows
+        # reference both the sale and its sale_items, so deleting the sale would
+        # break return history and violate the foreign-key constraints.
+        linked_returns = Return.query.filter(Return.original_sale_id == sale.id).count()
+        if linked_returns:
+            return jsonify({
+                'success': False,
+                'code': 'ORDER_HAS_RETURN_HISTORY',
+                'error': f'Order #{sale.id} cannot be deleted because it has {linked_returns} linked return record(s). Preserve it for audit and return reporting.'
+            }), 409
+
+        # Delete associated sale items only after confirming no return history exists.
         SaleItem.query.filter(SaleItem.sale_id == order_id).delete()
         
         # Delete associated cheques if any
