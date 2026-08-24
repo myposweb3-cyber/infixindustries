@@ -20,6 +20,53 @@ from app import csrf
 
 sales_bp = Blueprint('sales', __name__, template_folder='../../templates')
 
+
+def _receipt_logo_data_uri(logo_setting):
+    """Resolve an uploaded logo setting into a browser/PDF-safe data URI."""
+    if not logo_setting or not getattr(logo_setting, 'setting_value', None):
+        return ''
+    import base64
+    import os
+    from io import BytesIO
+
+    raw = str(logo_setting.setting_value).strip()
+    if raw.startswith('data:image/'):
+        return raw
+
+    filename = os.path.basename(raw.replace('\\', '/'))
+    candidates = []
+    if os.path.isabs(raw):
+        candidates.append(raw)
+    candidates.append(os.path.abspath(os.path.join(os.path.dirname(__file__), '..', 'static', 'uploads', filename)))
+    candidates.append(os.path.abspath(os.path.join(current_app.root_path, 'static', 'uploads', filename)))
+    logo_path = next((candidate for candidate in candidates if os.path.isfile(candidate)), None)
+    if not logo_path:
+        current_app.logger.warning('Receipt logo file not found for setting: %s', raw)
+        return ''
+
+    try:
+        from PIL import Image
+        image = Image.open(logo_path)
+        if image.mode == 'RGBA':
+            background = Image.new('RGB', image.size, (255, 255, 255))
+            background.paste(image, mask=image.getchannel('A'))
+            image = background
+        elif image.mode != 'RGB':
+            image = image.convert('RGB')
+        output = BytesIO()
+        extension = os.path.splitext(logo_path)[1].lower()
+        if extension in ('.jpg', '.jpeg'):
+            image.save(output, format='JPEG', quality=95)
+            mime_type = 'image/jpeg'
+        else:
+            image.save(output, format='PNG', optimize=True)
+            mime_type = 'image/png'
+        encoded = base64.b64encode(output.getvalue()).decode('ascii')
+        return f'data:{mime_type};base64,{encoded}'
+    except Exception as exc:
+        current_app.logger.warning('Unable to encode receipt logo %s: %s', logo_path, exc)
+        return ''
+
 def get_company_filter(model_class):
     """Get company filter for a model if company_id column exists."""
     company_id = get_company_id()
@@ -803,103 +850,26 @@ def receipt_html(sale_id):
     
     currency_symbol_value = currency_symbol.setting_value if currency_symbol else 'Rs. '
     
-    # Logo path resolution - convert to base64 data URI for xhtml2pdf
-    import os
-    import base64
-    from app.models import Setting
-    logo_data_uri = ''
-    
-    # Try to get logo from general settings first (upload-logo saves here)
+    # Resolve the uploaded business logo, including legacy unscoped settings.
     logo_setting = Setting.query.filter_by(
-        setting_category='general',
-        setting_key='logo_path',
-        company_id=company_id
+        setting_category='general', setting_key='logo_path', company_id=company_id
     ).first()
-    
     if not logo_setting:
-        # Fallback to receipt settings
         logo_setting = Setting.query.filter_by(
-            setting_category='receipt',
-            setting_key='receipt_logo',
-            company_id=company_id
+            setting_category='receipt', setting_key='receipt_logo', company_id=company_id
         ).first()
-    
-    # Convert to base64 if logo setting exists
-    if logo_setting and logo_setting.setting_value:
-        logo_path_raw = logo_setting.setting_value.strip()
-        
-        # Remove leading '/' or '/static/uploads/' if present
-        if logo_path_raw.startswith('/static/uploads/'):
-            logo_path_raw = logo_path_raw[16:]
-        elif logo_path_raw.startswith('/'):
-            logo_path_raw = logo_path_raw[1:]
-        elif logo_path_raw.startswith('static/uploads/'):
-            logo_path_raw = logo_path_raw[15:]
-        elif logo_path_raw.startswith('uploads/'):
-            logo_path_raw = logo_path_raw[8:]
-        
-        # Build absolute path
-        logo_abs_path = os.path.abspath(os.path.join(
-            os.path.dirname(__file__), '..', 'static', 'uploads', os.path.basename(logo_path_raw)
-        ))
-        
-        # Convert to base64 if file exists
-        if os.path.isfile(logo_abs_path):
-            try:
-                # Try to use PIL for better image handling and optimization
-                try:
-                    from PIL import Image
-                    from io import BytesIO
-                    
-                    # Open image with PIL
-                    img = Image.open(logo_abs_path)
-                    
-                    # Convert RGBA to RGB if necessary (for JPEG)
-                    if img.mode == 'RGBA':
-                        # Create white background
-                        background = Image.new('RGB', img.size, (255, 255, 255))
-                        background.paste(img, mask=img.split()[3] if len(img.split()) == 4 else None)
-                        img = background
-                    elif img.mode != 'RGB':
-                        img = img.convert('RGB')
-                    
-                    # Optimize image - don't resize, just encode at high quality
-                    img_bytes = BytesIO()
-                    ext = os.path.splitext(logo_abs_path)[1].lower()
-                    
-                    if ext in ['.jpg', '.jpeg']:
-                        img.save(img_bytes, format='JPEG', quality=95, optimize=False)
-                        mime_type = 'image/jpeg'
-                    else:  # PNG
-                        img.save(img_bytes, format='PNG', optimize=True)
-                        mime_type = 'image/png'
-                    
-                    logo_bytes = img_bytes.getvalue()
-                    logo_b64 = base64.b64encode(logo_bytes).decode('utf-8')
-                    logo_data_uri = f'data:{mime_type};base64,{logo_b64}'
-                    current_app.logger.info(f"Logo optimized and encoded as data URI from {logo_abs_path}, size: {len(logo_data_uri)} bytes")
-                    
-                except ImportError:
-                    # Fallback to direct file encoding if PIL not available
-                    current_app.logger.warning("PIL not available, encoding logo directly")
-                    with open(logo_abs_path, 'rb') as f:
-                        logo_bytes = f.read()
-                        logo_b64 = base64.b64encode(logo_bytes).decode('utf-8')
-                        ext = os.path.splitext(logo_abs_path)[1].lower()
-                        mime_types = {'.jpg': 'image/jpeg', '.jpeg': 'image/jpeg', '.png': 'image/png', '.gif': 'image/gif'}
-                        mime_type = mime_types.get(ext, 'image/jpeg')
-                        logo_data_uri = f'data:{mime_type};base64,{logo_b64}'
-                        current_app.logger.info(f"Logo encoded as data URI from {logo_abs_path}, size: {len(logo_data_uri)} bytes")
-                
-            except Exception as e:
-                current_app.logger.warning(f"Failed to encode logo: {str(e)}")
-                logo_data_uri = ''
-        else:
-            current_app.logger.warning(f"Logo file not found: {logo_abs_path}")
-            logo_data_uri = ''
-    
-    # Pass to template as logo_url (will be used in img src)
-    logo_url = logo_data_uri
+    if not logo_setting:
+        logo_setting = Setting.query.filter(
+            Setting.setting_category == 'general', Setting.setting_key == 'logo_path',
+            Setting.company_id.is_(None)
+        ).order_by(Setting.id.desc()).first()
+    if not logo_setting:
+        logo_setting = Setting.query.filter(
+            Setting.setting_category == 'receipt', Setting.setting_key == 'receipt_logo',
+            Setting.company_id.is_(None)
+        ).order_by(Setting.id.desc()).first()
+    logo_url = _receipt_logo_data_uri(logo_setting)
+
     
     # Cashier name from user
     cashier_name = getattr(getattr(sale, 'user', None), 'username', 'Cashier')
@@ -1227,78 +1197,26 @@ def receipt_html_public(sale_id):
     
     currency_symbol_value = currency_symbol.setting_value if currency_symbol else 'Rs. '
     
-    # Logo path resolution
-    import os
-    import base64
-    logo_data_uri = ''
-    
+    # Resolve the uploaded business logo, including legacy unscoped settings.
     logo_setting = Setting.query.filter_by(
-        setting_category='general',
-        setting_key='logo_path',
-        company_id=company_id
+        setting_category='general', setting_key='logo_path', company_id=company_id
     ).first()
-    
     if not logo_setting:
         logo_setting = Setting.query.filter_by(
-            setting_category='receipt',
-            setting_key='receipt_logo',
-            company_id=company_id
+            setting_category='receipt', setting_key='receipt_logo', company_id=company_id
         ).first()
-    
-    if logo_setting and logo_setting.setting_value:
-        logo_path_raw = logo_setting.setting_value.strip()
-        if logo_path_raw.startswith('/static/uploads/'):
-            logo_path_raw = logo_path_raw[16:]
-        elif logo_path_raw.startswith('/'):
-            logo_path_raw = logo_path_raw[1:]
-        elif logo_path_raw.startswith('static/uploads/'):
-            logo_path_raw = logo_path_raw[15:]
-        elif logo_path_raw.startswith('uploads/'):
-            logo_path_raw = logo_path_raw[8:]
-        
-        logo_abs_path = os.path.abspath(os.path.join(
-            os.path.dirname(__file__), '..', 'static', 'uploads', os.path.basename(logo_path_raw)
-        ))
-        
-        if os.path.isfile(logo_abs_path):
-            try:
-                try:
-                    from PIL import Image
-                    from io import BytesIO
-                    img = Image.open(logo_abs_path)
-                    if img.mode == 'RGBA':
-                        background = Image.new('RGB', img.size, (255, 255, 255))
-                        background.paste(img, mask=img.split()[3] if len(img.split()) == 4 else None)
-                        img = background
-                    elif img.mode != 'RGB':
-                        img = img.convert('RGB')
-                    
-                    img_bytes = BytesIO()
-                    ext = os.path.splitext(logo_abs_path)[1].lower()
-                    if ext in ['.jpg', '.jpeg']:
-                        img.save(img_bytes, format='JPEG', quality=95, optimize=False)
-                        mime_type = 'image/jpeg'
-                    else:
-                        img.save(img_bytes, format='PNG', optimize=True)
-                        mime_type = 'image/png'
-                    
-                    logo_bytes = img_bytes.getvalue()
-                    logo_b64 = base64.b64encode(logo_bytes).decode('utf-8')
-                    logo_data_uri = f'data:{mime_type};base64,{logo_b64}'
-                except ImportError:
-                    with open(logo_abs_path, 'rb') as f:
-                        logo_bytes = f.read()
-                        logo_b64 = base64.b64encode(logo_bytes).decode('utf-8')
-                        ext = os.path.splitext(logo_abs_path)[1].lower()
-                        mime_types = {'.jpg': 'image/jpeg', '.jpeg': 'image/jpeg', '.png': 'image/png', '.gif': 'image/gif'}
-                        mime_type = mime_types.get(ext, 'image/jpeg')
-                        logo_data_uri = f'data:{mime_type};base64,{logo_b64}'
-            except Exception as e:
-                current_app.logger.warning(f"Failed to encode logo: {str(e)}")
-                logo_data_uri = ''
-    
-    logo_url = logo_data_uri
-    
+    if not logo_setting:
+        logo_setting = Setting.query.filter(
+            Setting.setting_category == 'general', Setting.setting_key == 'logo_path',
+            Setting.company_id.is_(None)
+        ).order_by(Setting.id.desc()).first()
+    if not logo_setting:
+        logo_setting = Setting.query.filter(
+            Setting.setting_category == 'receipt', Setting.setting_key == 'receipt_logo',
+            Setting.company_id.is_(None)
+        ).order_by(Setting.id.desc()).first()
+    logo_url = _receipt_logo_data_uri(logo_setting)
+
     # Cashier name
     cashier_name = getattr(getattr(sale, 'user', None), 'username', 'Cashier')
     
