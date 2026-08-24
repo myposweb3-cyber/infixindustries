@@ -1,6 +1,6 @@
 from flask import Blueprint, render_template, request, jsonify, flash, current_app
 from flask_login import login_required, current_user
-from app.models import db, Customer, Sale, SaleItem, Product, Setting, Return, CustomerPayment, Cheque
+from app.models import db, Customer, Sale, SaleItem, Product, Setting, Return, ReturnItem, CustomerPayment, CustomerFeedback, Cheque, Exchange, ExchangeItem, SaleRequest
 from app.utils.permissions import require_permission
 from app.utils.security import get_company_id, require_company_context
 from app.utils.audit import log_create, log_update, log_delete, log_audit
@@ -518,24 +518,29 @@ def delete_order(order_id):
         return jsonify({'error': 'Order not found'}), 404
 
     try:
-        # Returned orders are part of the audit trail. Their return_items rows
-        # reference both the sale and its sale_items, so deleting the sale would
-        # break return history and violate the foreign-key constraints.
-        linked_returns = Return.query.filter(Return.original_sale_id == sale.id).count()
-        if linked_returns:
-            return jsonify({
-                'success': False,
-                'code': 'ORDER_HAS_RETURN_HISTORY',
-                'error': f'Order #{sale.id} cannot be deleted because it has {linked_returns} linked return record(s). Preserve it for audit and return reporting.'
-            }), 409
-
-        # Delete associated sale items only after confirming no return history exists.
-        SaleItem.query.filter(SaleItem.sale_id == order_id).delete()
+        # Delete dependent records first. In this POS, Delete means cancel/remove
+        # the order, so return and exchange records are removed with it rather than
+        # leaving foreign-key references to the sale or its sale items.
+        sale_item_ids = [item.id for item in SaleItem.query.filter(SaleItem.sale_id == sale.id).all()]
+        return_ids = [record.id for record in Return.query.filter(Return.original_sale_id == sale.id).all()]
+        if return_ids:
+            ReturnItem.query.filter(ReturnItem.return_id.in_(return_ids)).delete(synchronize_session=False)
+            Return.query.filter(Return.id.in_(return_ids)).delete(synchronize_session=False)
+        if sale_item_ids:
+            ReturnItem.query.filter(ReturnItem.original_sale_item_id.in_(sale_item_ids)).delete(synchronize_session=False)
+        exchange_ids = [record.id for record in Exchange.query.filter(
+            (Exchange.original_sale_id == sale.id) | (Exchange.new_sale_id == sale.id)
+        ).all()]
+        if exchange_ids:
+            ExchangeItem.query.filter(ExchangeItem.exchange_id.in_(exchange_ids)).delete(synchronize_session=False)
+            Exchange.query.filter(Exchange.id.in_(exchange_ids)).delete(synchronize_session=False)
+        CustomerFeedback.query.filter(CustomerFeedback.sale_id == sale.id).delete(synchronize_session=False)
+        CustomerPayment.query.filter(CustomerPayment.sale_id == sale.id).delete(synchronize_session=False)
+        SaleRequest.query.filter(SaleRequest.sale_id == sale.id).delete(synchronize_session=False)
+        Cheque.query.filter(Cheque.sale_id == sale.id).delete(synchronize_session=False)
+        SaleItem.query.filter(SaleItem.sale_id == sale.id).delete(synchronize_session=False)
         
-        # Delete associated cheques if any
-        Cheque.query.filter(Cheque.sale_id == order_id).delete()
-        
-        # Log the deletion
+        # Log the cancellation/removal after dependent records are cleared.
         try:
             log_delete('Sale', sale.id, {'customer': sale.customer, 'total': sale.total}, 
                       description=f"Order {sale.id} deleted")
