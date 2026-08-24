@@ -1,0 +1,96 @@
+{% extends 'base.html' %}
+{% block title %}Cashier Shift | {{ app_name }}{% endblock %}
+{% block content %}
+<div class="container-fluid py-2 shift-page">
+    <div class="d-flex flex-wrap align-items-center justify-content-between gap-2 mb-3">
+        <div>
+            <h1 class="h4 mb-1"><i class="fas fa-cash-register me-2 text-primary"></i>Cashier Shift</h1>
+            <p class="text-muted mb-0">Open and reconcile the till for your current working session.</p>
+        </div>
+        <a class="btn btn-outline-primary" href="{{ url_for('sales.sales') }}"><i class="fas fa-arrow-left me-1"></i>Back to Sales</a>
+    </div>
+
+    <div id="shiftAlert" class="alert d-none" role="alert"></div>
+
+    <div class="row g-3">
+        <div class="col-12 col-lg-8">
+            <div class="card shadow-sm border-0 h-100">
+                <div class="card-header bg-white d-flex justify-content-between align-items-center">
+                    <strong id="shiftTitle">No open shift</strong>
+                    <span id="shiftBadge" class="badge text-bg-secondary">Closed</span>
+                </div>
+                <div class="card-body">
+                    <form id="openShiftForm" class="row g-3">
+                        <div class="col-12 col-md-6">
+                            <label class="form-label" for="openingCash">Opening cash</label>
+                            <div class="input-group"><span class="input-group-text">₨</span><input id="openingCash" class="form-control" type="number" min="0" step="0.01" value="0" required></div>
+                        </div>
+                        <div class="col-12 col-md-6 d-flex align-items-end"><button class="btn btn-primary w-100" type="submit"><i class="fas fa-play me-1"></i>Open Shift</button></div>
+                    </form>
+
+                    <div id="shiftSummary" class="d-none">
+                        <div class="row g-2 mb-3">
+                            <div class="col-6 col-md-3"><div class="summary-box"><small>Cash sales</small><strong id="cashSales">₨ 0.00</strong></div></div>
+                            <div class="col-6 col-md-3"><div class="summary-box"><small>Cash refunds</small><strong id="cashReturns">₨ 0.00</strong></div></div>
+                            <div class="col-6 col-md-3"><div class="summary-box"><small>Customer payments</small><strong id="customerPayments">₨ 0.00</strong></div></div>
+                            <div class="col-6 col-md-3"><div class="summary-box highlight"><small>Expected cash</small><strong id="expectedCash">₨ 0.00</strong></div></div>
+                        </div>
+                        <div class="border-top pt-3">
+                            <form id="closeShiftForm" class="row g-3">
+                                <div class="col-12 col-md-6"><label class="form-label" for="actualCash">Actual cash counted</label><div class="input-group"><span class="input-group-text">₨</span><input id="actualCash" class="form-control" type="number" min="0" step="0.01" required></div></div>
+                                <div class="col-12 col-md-6"><label class="form-label" for="shiftNotes">Notes</label><input id="shiftNotes" class="form-control" maxlength="500" placeholder="Optional variance explanation"></div>
+                                <div class="col-12"><button class="btn btn-danger" type="submit"><i class="fas fa-lock me-1"></i>Close and Reconcile Shift</button></div>
+                            </form>
+                        </div>
+                    </div>
+                    <div id="shiftEmpty" class="text-center text-muted py-4"><i class="fas fa-clock fa-2x mb-2"></i><p class="mb-0">Open a shift before processing cashier sales.</p></div>
+                </div>
+            </div>
+        </div>
+        <div class="col-12 col-lg-4">
+            <div class="card shadow-sm border-0 h-100">
+                <div class="card-body">
+                    <h2 class="h6">Shift controls</h2>
+                    <p class="small text-muted">Expected cash equals opening float plus cash sales and customer cash payments, less completed cash refunds.</p>
+                    <div id="variancePanel" class="d-none rounded p-3 bg-light"><small>Last variance</small><div id="varianceValue" class="fs-4 fw-bold">₨ 0.00</div><small id="varianceHint"></small></div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}
+{% block scripts %}
+<script>
+const shiftCurrency = '₨';
+const money = value => `${shiftCurrency} ${Number(value || 0).toFixed(2)}`;
+function shiftMessage(text, type = 'success') { const el = document.getElementById('shiftAlert'); el.className = `alert alert-${type}`; el.textContent = text; }
+function renderShift(shift) {
+    const open = Boolean(shift && shift.status === 'open');
+    document.getElementById('shiftTitle').textContent = open ? `Shift #${shift.id}` : 'No open shift';
+    document.getElementById('shiftBadge').className = `badge text-bg-${open ? 'success' : 'secondary'}`;
+    document.getElementById('shiftBadge').textContent = open ? 'Open' : 'Closed';
+    document.getElementById('openShiftForm').classList.toggle('d-none', open);
+    document.getElementById('shiftSummary').classList.toggle('d-none', !open);
+    document.getElementById('shiftEmpty').classList.toggle('d-none', open);
+    if (!open) return;
+    document.getElementById('cashSales').textContent = money(shift.cash_sales);
+    document.getElementById('cashReturns').textContent = money(shift.cash_returns);
+    document.getElementById('customerPayments').textContent = money(shift.customer_payments);
+    document.getElementById('expectedCash').textContent = money(shift.expected_cash);
+}
+async function loadShift() { const response = await fetch('/api/shifts/current'); const data = await response.json(); renderShift(data.shift); }
+async function submitShift(url, payload) { const response = await fetch(url, { method: 'POST', headers: {'Content-Type': 'application/json', 'X-CSRFToken': document.querySelector('meta[name="csrf-token"]')?.content || ''}, body: JSON.stringify(payload) }); const data = await response.json(); if (!response.ok) throw new Error(data.error || 'Shift operation failed'); return data; }
+document.addEventListener('DOMContentLoaded', () => {
+    loadShift().catch(error => shiftMessage(error.message, 'danger'));
+    document.getElementById('openShiftForm').addEventListener('submit', async event => { event.preventDefault(); try { const data = await submitShift('/api/shifts/open', {opening_cash: document.getElementById('openingCash').value}); renderShift(data.shift); shiftMessage('Shift opened successfully.'); } catch (error) { shiftMessage(error.message, 'danger'); } });
+    document.getElementById('closeShiftForm').addEventListener('submit', async event => { event.preventDefault(); try { const data = await submitShift('/api/shifts/close', {actual_cash: document.getElementById('actualCash').value, notes: document.getElementById('shiftNotes').value}); renderShift(null); const variance = Number(data.shift.variance || 0); document.getElementById('variancePanel').classList.remove('d-none'); document.getElementById('varianceValue').textContent = money(variance); document.getElementById('varianceHint').textContent = variance === 0 ? 'Till reconciled exactly.' : (variance > 0 ? 'Overage recorded.' : 'Shortage recorded.'); shiftMessage('Shift closed and reconciled.'); } catch (error) { shiftMessage(error.message, 'danger'); } });
+});
+</script>
+<style>
+.shift-page .summary-box { padding: 12px; border-radius: 10px; background: #f8fafc; display:flex; flex-direction:column; gap:4px; min-height:72px; }
+.shift-page .summary-box small { color:#64748b; }
+.shift-page .summary-box strong { font-size: 1.05rem; }
+.shift-page .summary-box.highlight { background:#eff6ff; color:#1d4ed8; }
+@media (max-width:575.98px) { .shift-page .btn { min-height:44px; } .shift-page .card-body { padding:14px; } }
+</style>
+{% endblock %}

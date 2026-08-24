@@ -70,6 +70,15 @@
                 </li>
                 {% endif %}
 
+                {% if current_user.can_access_sales %}
+                <li class="nav-item">
+                    <a href="{{ url_for('shifts.shifts_page') }}" class="nav-link {% if request.endpoint == 'shifts.shifts_page' %}active{% endif %}">
+                        <i class="nav-icon fas fa-cash-register"></i>
+                        <span class="nav-text">Cashier Shift</span>
+                    </a>
+                </li>
+                {% endif %}
+
                 {% if current_user.can_view_sales_history %}
                 <li class="nav-item">
                     <a href="{{ url_for('sales.sales_history') }}" class="nav-link {% if request.endpoint == 'sales.sales_history' %}active{% endif %}">

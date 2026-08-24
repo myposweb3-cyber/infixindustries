@@ -241,6 +241,27 @@ class SaleRequest(db.Model):
     created_at = db.Column(db.DateTime, default=datetime.utcnow, nullable=False)
     sale = db.relationship('Sale', backref=db.backref('request_record', uselist=False))
 
+class CashierShift(db.Model):
+    """Cashier till session used for opening and closing reconciliation."""
+    __tablename__ = 'cashier_shifts'
+
+    id = db.Column(db.Integer, primary_key=True)
+    user_id = db.Column(db.Integer, db.ForeignKey('users.id'), nullable=False)
+    company_id = db.Column(db.Integer, db.ForeignKey('companies.id'), nullable=True, index=True)
+    opened_at = db.Column(db.DateTime, default=datetime.utcnow, nullable=False)
+    closed_at = db.Column(db.DateTime, nullable=True)
+    opening_cash = db.Column(db.Float, default=0.0, nullable=False)
+    expected_cash = db.Column(db.Float, nullable=True)
+    actual_cash = db.Column(db.Float, nullable=True)
+    variance = db.Column(db.Float, nullable=True)
+    status = db.Column(db.String(20), default='open', nullable=False)
+    notes = db.Column(db.Text)
+    closed_by_id = db.Column(db.Integer, db.ForeignKey('users.id'), nullable=True)
+
+    user = db.relationship('User', foreign_keys=[user_id], backref='cashier_shifts')
+    closed_by = db.relationship('User', foreign_keys=[closed_by_id])
+    company = db.relationship('Company', backref='cashier_shifts', foreign_keys=[company_id])
+
 class SaleItem(db.Model):
     """Sale item model for individual sale items."""
     __tablename__ = 'sale_items'
