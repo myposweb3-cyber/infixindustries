@@ -486,13 +486,13 @@ def update_order(order_id):
                 )
                 db.session.add(new_item)
                 recomputed_total += quantity * price
-            if items:
-                sale.total = recomputed_total
-                if data.get('balance') is not None:
-                    try:
-                        sale.balance = float(data.get('balance'))
-                    except Exception:
-                        pass
+            # Always recompute the total when items are supplied, including an empty list.
+            sale.total = recomputed_total
+            if data.get('balance') is not None:
+                try:
+                    sale.balance = float(data.get('balance'))
+                except Exception:
+                    pass
 
         db.session.commit()
 

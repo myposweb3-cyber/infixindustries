@@ -734,6 +734,34 @@
     </div>
 </div>
 
+<!-- View Order Products Modal -->
+<div class="modal fade" id="viewOrderModal" tabindex="-1" aria-labelledby="viewOrderModalLabel" aria-hidden="true">
+    <div class="modal-dialog modal-lg">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title" id="viewOrderModalLabel"><i class="fas fa-receipt me-2"></i>Order Products</h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+            </div>
+            <div class="modal-body">
+                <div class="row g-3 mb-3">
+                    <div class="col-md-4"><small class="text-muted d-block">Order ID</small><strong id="viewOrderNumber">—</strong></div>
+                    <div class="col-md-4"><small class="text-muted d-block">Customer</small><strong id="viewOrderCustomer">—</strong></div>
+                    <div class="col-md-4"><small class="text-muted d-block">Date</small><strong id="viewOrderDate">—</strong></div>
+                </div>
+                <div class="table-responsive">
+                    <table class="table table-sm table-striped align-middle mb-0">
+                        <thead><tr><th>Product</th><th class="text-end">Qty</th><th class="text-end">Price</th><th class="text-end">Line Total</th></tr></thead>
+                        <tbody id="viewOrderItemsBody"><tr><td colspan="4" class="text-center text-muted">Loading…</td></tr></tbody>
+                        <tfoot><tr><th colspan="3" class="text-end">Order Total</th><th class="text-end" id="viewOrderTotal">₨ 0.00</th></tr></tfoot>
+                    </table>
+                </div>
+                <div class="mt-3 text-muted small">Payment: <strong id="viewOrderPayment">—</strong> · Balance: <strong id="viewOrderBalance">₨ 0.00</strong></div>
+            </div>
+            <div class="modal-footer"><button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Close</button></div>
+        </div>
+    </div>
+</div>
+
 <!-- Payment Recording Modal -->
 <div class="modal fade" id="paymentModal" tabindex="-1" aria-labelledby="paymentModalLabel">
     <div class="modal-dialog">
@@ -968,213 +996,6 @@
         </div>
     </div>
 </div>
-            <!-- Edit Order Modal -->
-            <div class="modal fade" id="editOrderModal" tabindex="-1">
-                <div class="modal-dialog modal-lg">
-                    <div class="modal-content">
-                        <div class="modal-header">
-                            <h5 class="modal-title">Edit Order</h5>
-                            <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
-                        </div>
-                        <div class="modal-body">
-                            <form id="editOrderForm">
-                                <input type="hidden" id="editOrderId">
-                                <div class="mb-3">
-                                    <label class="form-label">Payment Method</label>
-                                    <input class="form-control" id="editOrderPayment">
-                                </div>
-                                <div class="mb-3">
-                                    <label class="form-label">Total</label>
-                                    <input type="number" step="0.01" class="form-control" id="editOrderTotal">
-                                </div>
-                                <div class="mb-3">
-                                    <label class="form-label">Balance</label>
-                                    <input type="number" step="0.01" class="form-control" id="editOrderBalance">
-                                </div>
-
-                                <div class="border rounded p-3 mb-3">
-                                    <div class="d-flex justify-content-between align-items-center mb-2">
-                                        <h6 class="mb-0">Order Items</h6>
-                                    </div>
-                                    <div class="input-group mb-2">
-                                        <input type="text" id="editOrderProductSearch" class="form-control" placeholder="Search product to add...">
-                                        <button type="button" class="btn btn-outline-primary" id="editOrderSearchBtn">Search</button>
-                                    </div>
-                                    <div id="editOrderProductResults" class="mb-2" style="max-height: 180px; overflow-y: auto;"></div>
-                                    <div class="table-responsive">
-                                        <table class="table table-sm">
-                                            <thead>
-                                                <tr>
-                                                    <th>Product</th>
-                                                    <th>Qty</th>
-                                                    <th>Price</th>
-                                                    <th>Total</th>
-                                                    <th>Remove</th>
-                                                </tr>
-                                            </thead>
-                                            <tbody id="editOrderItemsBody">
-                                                <tr><td colspan="5" class="text-center">No items in this order.</td></tr>
-                                            </tbody>
-                                        </table>
-                                    </div>
-                                </div>
-                            </form>
-                        </div>
-                        <div class="modal-footer">
-                            <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancel</button>
-                            <button type="button" class="btn btn-primary" id="saveOrderBtn">Save</button>
-                        </div>
-                    </div>
-                </div>
-            </div>
-
-            <!-- Payment Recording Modal -->
-<div class="modal fade" id="paymentModal" tabindex="-1" aria-labelledby="paymentModalLabel">
-    <div class="modal-dialog">
-        <div class="modal-content">
-            <div class="modal-header">
-                <h5 class="modal-title" id="paymentModalLabel">Record Payment</h5>
-                <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
-            </div>
-            <div class="modal-body">
-                <form id="paymentForm">
-                    <input type="hidden" id="paymentCustomerId">
-                    <div class="mb-3">
-                        <label class="form-label">Customer Name</label>
-                        <input type="text" class="form-control" id="paymentCustomerName" readonly>
-                    </div>
-                    <div class="mb-3">
-                        <label class="form-label">Outstanding Balance</label>
-                        <input type="text" class="form-control" id="paymentOutstandingBalance" readonly>
-                    </div>
-                    <div class="mb-3">
-                        <label class="form-label">Payment Amount *</label>
-                        <input type="number" class="form-control" id="paymentAmount" step="0.01" min="0.01" required>
-                    </div>
-                    <div class="mb-3">
-                        <label class="form-label">Payment Method</label>
-                        <select class="form-select" id="paymentMethod">
-                            <option value="Cash">Cash</option>
-                            <option value="Card">Card</option>
-                            <option value="Bank Transfer">Bank Transfer</option>
-                            <option value="Cheque">Cheque</option>
-                            <option value="Other">Other</option>
-                        </select>
-                    </div>
-                    <div class="mb-3">
-                        <label class="form-label">Reference Number</label>
-                        <input type="text" class="form-control" id="paymentReference" placeholder="Cheque number, transaction ID, etc.">
-                    </div>
-                    <div id="paymentChequeDetails" class="d-none">
-                        <div class="mb-3">
-                            <label class="form-label">Cheque Number</label>
-                            <input type="text" class="form-control" id="chequeNumber" placeholder="Enter cheque number">
-                        </div>
-                        <div class="mb-3">
-                            <label class="form-label">Bank Name</label>
-                            <input type="text" class="form-control" id="bankName" placeholder="Bank name">
-                        </div>
-                        <div class="mb-3">
-                            <label class="form-label">Cheque Date</label>
-                            <input type="date" class="form-control" id="chequeDate">
-                        </div>
-                    </div>
-                    <div class="mb-3">
-                        <label class="form-label">Notes</label>
-                        <textarea class="form-control" id="paymentNotes" rows="2" placeholder="Optional notes"></textarea>
-                    </div>
-                </form>
-            </div>
-            <div class="modal-footer">
-                <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancel</button>
-                <button type="button" class="btn btn-primary" id="savePaymentBtn">Record Payment</button>
-            </div>
-        </div>
-    </div>
-</div>
-
-<!-- Customer Picker Modal -->
-<div class="modal fade" id="customerPickerModal" tabindex="-1" aria-labelledby="customerPickerModalLabel">
-    <div class="modal-dialog modal-lg">
-        <div class="modal-content">
-            <div class="modal-header">
-                <h5 class="modal-title" id="customerPickerModalLabel">Select Customer</h5>
-                <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
-            </div>
-            <div class="modal-body">
-                <div class="input-group mb-3">
-                    <input type="text" id="customerPickerSearch" class="form-control" placeholder="Search customers by name, phone, or email...">
-                    <button class="btn btn-primary" type="button" id="customerPickerSearchBtn">Search</button>
-                </div>
-                <div id="customerPickerResults" style="max-height: 320px; overflow-y: auto;"></div>
-            </div>
-            <div class="modal-footer">
-                <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Close</button>
-                <button type="button" class="btn btn-success" id="customerPickerAddBtn">Add New Customer</button>
-            </div>
-        </div>
-    </div>
-</div>
-            <!-- Edit Order Modal -->
-            <div class="modal fade" id="editOrderModal" tabindex="-1">
-                <div class="modal-dialog modal-lg">
-                    <div class="modal-content">
-                        <div class="modal-header">
-                            <h5 class="modal-title">Edit Order</h5>
-                            <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
-                        </div>
-                        <div class="modal-body">
-                            <form id="editOrderForm">
-                                <input type="hidden" id="editOrderId">
-                                <div class="mb-3">
-                                    <label class="form-label">Payment Method</label>
-                                    <input class="form-control" id="editOrderPayment">
-                                </div>
-                                <div class="mb-3">
-                                    <label class="form-label">Total</label>
-                                    <input type="number" step="0.01" class="form-control" id="editOrderTotal">
-                                </div>
-                                <div class="mb-3">
-                                    <label class="form-label">Balance</label>
-                                    <input type="number" step="0.01" class="form-control" id="editOrderBalance">
-                                </div>
-
-                                <div class="border rounded p-3 mb-3">
-                                    <div class="d-flex justify-content-between align-items-center mb-2">
-                                        <h6 class="mb-0">Order Items</h6>
-                                    </div>
-                                    <div class="input-group mb-2">
-                                        <input type="text" id="editOrderProductSearch" class="form-control" placeholder="Search product to add...">
-                                        <button type="button" class="btn btn-outline-primary" id="editOrderSearchBtn">Search</button>
-                                    </div>
-                                    <div id="editOrderProductResults" class="mb-2" style="max-height: 180px; overflow-y: auto;"></div>
-                                    <div class="table-responsive">
-                                        <table class="table table-sm">
-                                            <thead>
-                                                <tr>
-                                                    <th>Product</th>
-                                                    <th>Qty</th>
-                                                    <th>Price</th>
-                                                    <th>Total</th>
-                                                    <th>Remove</th>
-                                                </tr>
-                                            </thead>
-                                            <tbody id="editOrderItemsBody">
-                                                <tr><td colspan="5" class="text-center">No items in this order.</td></tr>
-                                            </tbody>
-                                        </table>
-                                    </div>
-                                </div>
-                            </form>
-                        </div>
-                        <div class="modal-footer">
-                            <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancel</button>
-                            <button type="button" class="btn btn-primary" id="saveOrderBtn">Save</button>
-                        </div>
-                    </div>
-                </div>
-            </div>
-
             <!-- Payment Recording Modal -->
 <div class="modal fade" id="paymentModal" tabindex="-1" aria-labelledby="paymentModalLabel">
     <div class="modal-dialog">
@@ -2461,8 +2282,9 @@ function renderOrders(orders) {
                     <td>₨ ${parseFloat(o.balance || 0).toFixed(2)}</td>
                     <td>
                         <div class="btn-group">
-                            <button class="btn btn-sm btn-outline-info" onclick="openEditOrderModal(${o.id})">Edit</button>
-                            <button class="btn btn-sm btn-outline-danger" onclick="deleteOrder(${o.id})">Delete</button>
+                            <button class="btn btn-sm btn-outline-primary" onclick="openViewOrderModal(${o.id})" title="View order products"><i class="fas fa-eye me-1"></i>View</button>
+                            <button class="btn btn-sm btn-outline-info" onclick="openEditOrderModal(${o.id})" title="Edit order"><i class="fas fa-edit me-1"></i>Edit</button>
+                            <button class="btn btn-sm btn-outline-danger" onclick="deleteOrder(${o.id})" title="Delete order"><i class="fas fa-trash me-1"></i>Delete</button>
                         </div>
                     </td>
                 </tr>
@@ -2474,6 +2296,40 @@ function renderOrders(orders) {
     });
     
     console.log('Finished rendering', orders.length, 'orders');
+}
+
+function openViewOrderModal(orderId) {
+    const body = document.getElementById('viewOrderItemsBody');
+    if (body) body.innerHTML = '<tr><td colspan="4" class="text-center text-muted">Loading…</td></tr>';
+    $('#viewOrderModal').modal('show');
+
+    fetch('/customers/api/orders/' + orderId)
+        .then(res => {
+            if (!res.ok) throw new Error('Unable to load order');
+            return res.json();
+        })
+        .then(order => {
+            $('#viewOrderNumber').text('#' + order.id);
+            $('#viewOrderCustomer').text(order.customer || 'Walk-in Customer');
+            $('#viewOrderDate').text(order.date || '—');
+            $('#viewOrderPayment').text(order.payment || '—');
+            $('#viewOrderBalance').text('₨ ' + Number(order.balance || 0).toFixed(2));
+            $('#viewOrderTotal').text('₨ ' + Number(order.total || 0).toFixed(2));
+            const items = order.items || [];
+            if (!items.length) {
+                body.innerHTML = '<tr><td colspan="4" class="text-center text-muted">No products recorded for this order.</td></tr>';
+                return;
+            }
+            body.innerHTML = items.map(item => {
+                const qty = Number(item.quantity || 0);
+                const price = Number(item.price || 0);
+                return `<tr><td>${item.product_name || 'Unknown product'}</td><td class="text-end">${qty}</td><td class="text-end">₨ ${price.toFixed(2)}</td><td class="text-end">₨ ${(qty * price).toFixed(2)}</td></tr>`;
+            }).join('');
+        })
+        .catch(error => {
+            console.error('Error viewing order', error);
+            if (body) body.innerHTML = '<tr><td colspan="4" class="text-center text-danger">Unable to load order products.</td></tr>';
+        });
 }
 
 function openEditOrderModal(orderId) {
