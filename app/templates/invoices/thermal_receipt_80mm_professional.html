@@ -27,7 +27,7 @@
 
         .receipt-container {
             width: 80mm;
-            padding: 2mm;
+            padding: 3mm;
             text-align: center;
         }
 
@@ -69,7 +69,15 @@
         .info-row {
             display: flex;
             justify-content: space-between;
+            align-items: flex-start;
+            gap: 2mm;
             margin-bottom: 0.5mm;
+        }
+
+        .info-row > span:last-child {
+            max-width: 62%;
+            text-align: right;
+            overflow-wrap: anywhere;
         }
 
         .info-label {
@@ -97,13 +105,19 @@
         /* ITEMS TABLE */
         .items-section {
             margin-bottom: 3mm;
-            font-size: 8pt;
+            font-size: 7.5pt;
             text-align: left;
         }
 
+        .items-header,
+        .item-row {
+            display: grid;
+            grid-template-columns: minmax(0, 1fr) 9mm 18mm 20mm;
+            column-gap: 1mm;
+            align-items: start;
+        }
+
         .items-header {
-            display: flex;
-            justify-content: space-between;
             font-weight: bold;
             margin-bottom: 1mm;
             padding-bottom: 1mm;
@@ -111,24 +125,28 @@
             font-size: 7pt;
         }
 
+        .items-header > span:nth-child(n+2),
+        .item-row > span:nth-child(n+2) {
+            text-align: right;
+            white-space: nowrap;
+        }
+
+        .items-header > span:nth-child(2),
+        .item-row > span:nth-child(2) {
+            text-align: center;
+        }
+
         .item-row {
-            margin-bottom: 2mm;
+            margin-bottom: 1.5mm;
+            page-break-inside: avoid;
         }
 
         .item-name {
             font-weight: bold;
-            margin-bottom: 0.5mm;
+            overflow-wrap: anywhere;
         }
 
-        .item-details {
-            display: flex;
-            justify-content: space-between;
-            font-size: 7pt;
-        }
-
-        .qty-price {
-            display: flex;
-            justify-content: space-between;
+        .item-row > span {
             font-size: 7pt;
         }
 
@@ -200,22 +218,15 @@
             margin-bottom: 1mm;
         }
 
+        /* Optional QR content is rendered only when a real QR image URL is supplied. */
         .qr-code {
             text-align: center;
             margin: 2mm 0;
-            padding: 2mm;
         }
 
-        .qr-placeholder {
-            width: 40mm;
-            height: 40mm;
-            border: 0.5pt solid #000000;
-            display: inline-block;
-            display: flex;
-            align-items: center;
-            justify-content: center;
-            font-size: 7pt;
-            text-align: center;
+        .qr-code img {
+            width: 25mm;
+            height: 25mm;
         }
 
         .receipt-footer {
@@ -256,7 +267,7 @@
 
             @page {
                 size: 80mm auto;
-                margin: 2mm;
+                margin: 0;
             }
 
             .receipt-container {
@@ -337,11 +348,10 @@
 
             {% for item in items %}
             <div class="item-row">
-                <div class="item-name">{{ item.name }}</div>
-                <div class="qty-price">
-                    <span>{{ item.quantity }} x {{ currency_symbol }}{{ "%.2f"|format(item.unit_price) }}</span>
-                    <span style="margin-left: 10mm;">{{ currency_symbol }}{{ "%.2f"|format(item.total) }}</span>
-                </div>
+                <span class="item-name">{{ item.name }}</span>
+                <span>{{ item.quantity }}</span>
+                <span>{{ currency_symbol }}{{ "%.2f"|format(item.unit_price) }}</span>
+                <span>{{ currency_symbol }}{{ "%.2f"|format(item.total) }}</span>
             </div>
             {% endfor %}
         </div>
@@ -390,19 +400,10 @@
             {% endif %}
         </div>
 
-        <!-- BARCODE (Optional) -->
-        <div class="barcode-section">
-            <div class="barcode">{{ invoice_number }}</div>
-            <div style="font-size: 6pt;">Receipt #</div>
-        </div>
-
-        <!-- QR CODE (Optional) -->
-        {% if show_qr_code %}
+        <!-- QR CODE (Optional; only display a real generated image.) -->
+        {% if qr_code_url %}
         <div class="qr-code">
-            <div class="qr-placeholder">
-                [QR CODE]<br>
-                Scan for details
-            </div>
+            <img src="{{ qr_code_url }}" alt="Scan for receipt details">
         </div>
         {% endif %}
 
