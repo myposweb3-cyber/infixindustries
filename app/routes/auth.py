@@ -138,6 +138,28 @@ def logout():
     return redirect(url_for('auth.login'))
 
 
+@auth_bp.route('/verify-manager-approval', methods=['POST'])
+@login_required
+def verify_manager_approval():
+    """Verify a manager/admin for one sensitive POS action."""
+    from app.utils.security import get_company_id
+    data = request.get_json(silent=True) or {}
+    username = (data.get('username') or '').strip()
+    password = data.get('password') or ''
+    if not username or not password:
+        return jsonify({'success': False, 'error': 'Manager username and password are required'}), 400
+    manager = User.query.filter_by(username=username).first()
+    role = (getattr(manager, 'role', '') or '').lower() if manager else ''
+    if not manager or role not in ('manager', 'admin', 'super admin') or not manager.check_password(password):
+        current_app.logger.warning('Failed manager approval attempt by user %s', current_user.username)
+        return jsonify({'success': False, 'error': 'Invalid manager credentials'}), 401
+    company_id = get_company_id()
+    if company_id and role != 'super admin' and not any(company.id == company_id for company in manager.companies):
+        return jsonify({'success': False, 'error': 'Manager is not assigned to this company'}), 403
+    session['manager_approval'] = {'user_id': manager.id, 'approved_at': datetime.utcnow().timestamp()}
+    return jsonify({'success': True, 'message': 'Manager approval granted for the next sensitive action'})
+
+
 @auth_bp.route('/verify-admin-password', methods=['POST'])
 @login_required
 def verify_admin_password():

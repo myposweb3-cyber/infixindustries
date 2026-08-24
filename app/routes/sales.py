@@ -1,4 +1,4 @@
-from flask import Blueprint, render_template, request, jsonify, flash, redirect, url_for, send_file, current_app
+from flask import Blueprint, render_template, request, jsonify, flash, redirect, url_for, send_file, current_app, session
 from flask_login import login_required, current_user
 from app.models import db, Product, Sale, SaleRequest, SaleItem, Customer, Setting, HeldBill, Return, ReturnItem, InventoryTransaction
 from app.models import Exchange, ExchangeItem, Cheque
@@ -417,12 +417,17 @@ def create_sale():
         role_name = (getattr(current_user, 'role', '') or '').lower()
         is_manager = role_name in ('manager', 'admin', 'super admin')
         discount_percent = (requested_discount / subtotal_for_approval * 100) if subtotal_for_approval > 0 else 0
-        if discount_percent > 10 and not is_manager:
+        approval = session.get('manager_approval') or {}
+        approval_age = datetime.utcnow().timestamp() - float(approval.get('approved_at', 0) or 0)
+        has_one_time_approval = bool(approval.get('user_id')) and 0 <= approval_age <= 120
+        if discount_percent > 10 and not is_manager and not has_one_time_approval:
             return jsonify({
                 'error': 'Manager approval required for discounts above 10%',
                 'approval_required': True,
                 'discount_percent': round(discount_percent, 2)
             }), 403
+        if discount_percent > 10 and has_one_time_approval:
+            session.pop('manager_approval', None)
 
         # Fetch all products in one query
         product_ids = [item['product_id'] for item in data['items']]

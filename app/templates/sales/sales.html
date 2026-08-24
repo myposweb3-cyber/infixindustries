@@ -1979,6 +1979,43 @@ function loadCustomerCreditInfo(customerId) {
         });
 }
 
+async function requestManagerApprovalAndRetry(saleData, checkoutBtn, originalText, loadingOverlay) {
+    const username = window.prompt('Manager username required for this discount:');
+    if (!username) {
+        if (loadingOverlay) loadingOverlay.style.display = 'none';
+        checkoutBtn.disabled = false;
+        checkoutBtn.innerHTML = originalText;
+        return;
+    }
+    const password = window.prompt('Manager password:');
+    if (!password) {
+        if (loadingOverlay) loadingOverlay.style.display = 'none';
+        checkoutBtn.disabled = false;
+        checkoutBtn.innerHTML = originalText;
+        return;
+    }
+    try {
+        const csrf = document.querySelector('meta[name="csrf-token"]')?.getAttribute('content') || '';
+        const approvalResponse = await fetch('/auth/verify-manager-approval', {
+            method: 'POST',
+            headers: {'Content-Type': 'application/json', 'X-CSRFToken': csrf},
+            body: JSON.stringify({username, password})
+        });
+        const approval = await approvalResponse.json();
+        if (!approvalResponse.ok || !approval.success) throw new Error(approval.error || 'Manager approval failed');
+        if (loadingOverlay) loadingOverlay.style.display = 'none';
+        checkoutBtn.disabled = false;
+        checkoutBtn.innerHTML = originalText;
+        showNotification('Manager approval granted. Retrying the sale securely.', 'success');
+        checkoutBtn.click();
+    } catch (error) {
+        if (loadingOverlay) loadingOverlay.style.display = 'none';
+        checkoutBtn.disabled = false;
+        checkoutBtn.innerHTML = originalText;
+        showNotification(error.message, 'danger');
+    }
+}
+
 function checkout() {
     if (cart.length === 0) {
         showNotification('No items in cart', 'warning');
@@ -2151,19 +2188,11 @@ function checkout() {
             console.log('Checkout Response Status:', response.status);
             
             if (!response.ok) {
-                // For error responses, try to extract error message from JSON body
-                return response.text().then(text => {
-                    console.log('Response body text:', text);
-                    try {
-                        const data = JSON.parse(text);
-                        const errorMsg = data.error || data.message || `HTTP error! Status ${response.status}`;
-                        console.log('Extracted error message:', errorMsg);
-                        throw new Error(errorMsg);
-                    } catch (parseErr) {
-                        // If JSON parsing fails, use the raw text or status code
-                        console.log('JSON parse failed, using text:', text);
-                        throw new Error(text || `HTTP error! Status ${response.status}`);
-                    }
+                return response.json().catch(() => ({})).then(data => {
+                    const error = new Error(data.error || data.message || `HTTP error! Status ${response.status}`);
+                    error.status = response.status;
+                    error.approval_required = Boolean(data.approval_required);
+                    throw error;
                 });
             }
             return response.json();
@@ -2197,6 +2226,10 @@ function checkout() {
             }
         })
         .catch(error => {
+            if (error.approval_required) {
+                requestManagerApprovalAndRetry(saleData, checkoutBtn, originalText, loadingOverlay);
+                return;
+            }
             if (!navigator.onLine || error instanceof TypeError) {
                 queueOfflineSale(saleData, checkoutBtn, originalText, loadingOverlay);
                 activeCheckoutRequestId = null;
