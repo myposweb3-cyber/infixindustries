@@ -2382,38 +2382,59 @@ function deleteOrder(orderId) {
     });
 }
 
-$('#saveOrderBtn').on('click', function() {
+$('#saveOrderBtn').on('click', async function() {
     const orderId = $('#editOrderId').val();
-    if (!orderId) return;
-
+    const saveButton = this;
+    if (!orderId) {
+        showAlert('Order ID is missing. Please close and reopen the order.', 'danger');
+        return;
+    }
+    const items = currentEditOrderItems.filter(item => Number(item.quantity) > 0).map(item => ({
+        product_id: Number(item.product_id),
+        product_name: item.product_name,
+        quantity: Number(item.quantity),
+        price: Number(item.price)
+    }));
+    if (items.some(item => !item.product_id || item.quantity <= 0 || item.price < 0)) {
+        showAlert('Please check every product quantity and price before saving.', 'warning');
+        return;
+    }
     const payload = {
-        payment: $('#editOrderPayment').val(),
-        total: parseFloat($('#editOrderTotal').val()) || 0,
-        balance: parseFloat($('#editOrderBalance').val()) || 0,
-        items: currentEditOrderItems.filter(item => Number(item.quantity) > 0).map(item => ({
-            product_id: Number(item.product_id),
-            product_name: item.product_name,
-            quantity: Number(item.quantity),
-            price: Number(item.price)
-        }))
+        payment: String($('#editOrderPayment').val() || 'Cash').trim(),
+        total: Number.parseFloat($('#editOrderTotal').val()),
+        balance: Number.parseFloat($('#editOrderBalance').val()),
+        items
     };
-
-    fetch('/customers/api/orders/' + orderId, {
-        method: 'PUT',
-        headers: { 'Content-Type': 'application/json', 'X-CSRFToken': csrfToken },
-        body: JSON.stringify(payload)
-    })
-    .then(res => res.json())
-    .then(data => {
-        if (data.success) {
-            $('#editOrderModal').modal('hide');
-            showAlert(data.message || 'Order updated', 'success');
-            loadOrders();
-        } else {
-            showAlert(data.error || 'Error updating order', 'danger');
+    if (!Number.isFinite(payload.total) || payload.total < 0 || !Number.isFinite(payload.balance) || payload.balance < 0) {
+        showAlert('Please enter valid non-negative total and balance amounts.', 'warning');
+        return;
+    }
+    const originalText = saveButton.innerHTML;
+    saveButton.disabled = true;
+    saveButton.innerHTML = '<span class="spinner-border spinner-border-sm me-1" role="status" aria-hidden="true"></span>Saving…';
+    try {
+        const response = await fetch('/customers/api/orders/' + encodeURIComponent(orderId), {
+            method: 'PUT',
+            credentials: 'same-origin',
+            headers: { 'Content-Type': 'application/json', 'X-CSRFToken': csrfToken || '' },
+            body: JSON.stringify(payload)
+        });
+        const raw = await response.text();
+        let data;
+        try { data = raw ? JSON.parse(raw) : {}; } catch (_) { data = {}; }
+        if (!response.ok || !data.success) {
+            throw new Error(data.error || data.message || `Unable to save order (HTTP ${response.status})`);
         }
-    })
-    .catch(() => showAlert('Error updating order', 'danger'));
+        $('#editOrderModal').modal('hide');
+        showAlert(data.message || 'Order updated successfully', 'success');
+        await loadOrders();
+    } catch (error) {
+        console.error('Error updating order', error);
+        showAlert(error.message || 'Unable to save order. Please try again.', 'danger');
+    } finally {
+        saveButton.disabled = false;
+        saveButton.innerHTML = originalText;
+    }
 });
 
 $('#editOrderSearchBtn').on('click', function() {
