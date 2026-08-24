@@ -2425,7 +2425,7 @@ async function openOrderPaymentModal(orderId) {
     }
 }
 
-$('#saveOrderPaymentBtn').on('click', async function() {
+async function submitOrderPayment() {
     const orderId = $('#orderPaymentOrderId').val();
     const amount = Number.parseFloat($('#orderPaymentAmount').val());
     const paymentMethod = $('#orderPaymentMethod').val();
@@ -2474,10 +2474,16 @@ $('#saveOrderPaymentBtn').on('click', async function() {
         button.disabled = false;
         button.innerHTML = original;
     }
+}
+
+$(document).off('click.orderPayment', '#saveOrderPaymentBtn').on('click.orderPayment', '#saveOrderPaymentBtn', function(event) {
+    event.preventDefault();
+    if (this.dataset.submitting === 'true') return;
+    this.dataset.submitting = 'true';
+    submitOrderPayment().finally(() => { this.dataset.submitting = 'false'; });
 });
 
 window.openOrderPaymentModal = openOrderPaymentModal;
-
 function deleteOrder(orderId) {
     if (!confirm('Are you sure you want to delete this order? This cannot be undone.')) {
         return;
