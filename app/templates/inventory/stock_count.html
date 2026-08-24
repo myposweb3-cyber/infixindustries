@@ -94,9 +94,14 @@ async function refresh() {
       <td>${new Date(x.created_at).toLocaleString()}</td>
       <td>${statusMarkup(x.status)}</td>
       <td>${x.items?.length || 0}</td>
-      <td class="text-nowrap">${String(x.status).toLowerCase() === 'open'
-        ? `<button class="btn btn-sm btn-outline-primary" onclick="openCount(${x.id})"><i class="fas fa-folder-open me-1"></i>Open</button>`
-        : `<button class="btn btn-sm btn-outline-secondary" onclick="viewCount(${x.id})" data-bs-toggle="modal" data-bs-target="#viewCountModal"><i class="fas fa-eye me-1"></i>View</button>`}</td>
+      <td class="text-nowrap">
+        <div class="d-inline-flex gap-1">
+          ${String(x.status).toLowerCase() === 'open'
+            ? `<button type="button" class="btn btn-sm btn-outline-primary" onclick="openCount(${x.id})"><i class="fas fa-folder-open me-1"></i>Open</button>`
+            : `<button type="button" class="btn btn-sm btn-outline-secondary" onclick="viewCount(${x.id})" data-bs-toggle="modal" data-bs-target="#viewCountModal"><i class="fas fa-eye me-1"></i>View</button>`}
+          <button type="button" class="btn btn-sm btn-outline-danger" onclick="deleteCount(${x.id})" title="Delete stock count"><i class="fas fa-trash me-1"></i>Delete</button>
+        </div>
+      </td>
     </tr>`).join('') : '<tr><td colspan="5" class="text-center text-muted py-4">No stock counts yet.</td></tr>';
 }
 async function viewCount(id) {
@@ -120,6 +125,20 @@ async function viewCount(id) {
     const body = document.getElementById('viewCountItemsBody');
     if (body) body.innerHTML = '<tr><td colspan="5" class="text-center text-danger">Unable to load stock-count details.</td></tr>';
     alertMsg(error.message || 'Unable to view stock count', 'danger');
+  }
+}
+async function deleteCount(id) {
+  if (!window.confirm(`Delete stock count #${id}? This will remove the count and its recorded lines.`)) return;
+  try {
+    const response = await fetch(`/api/inventory/stock-counts/${id}`, {
+      method: 'DELETE', headers: { 'Content-Type': 'application/json', 'X-CSRFToken': csrf }
+    });
+    const result = await response.json();
+    if (!response.ok) throw new Error(result.error || 'Unable to delete stock count');
+    alertMsg(result.message || 'Stock count deleted successfully', 'success');
+    await refresh();
+  } catch (error) {
+    alertMsg(error.message || 'Unable to delete stock count', 'danger');
   }
 }
 async function openCount(id) {

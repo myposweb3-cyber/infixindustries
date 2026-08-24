@@ -91,6 +91,22 @@ def complete_count(count_id):
     db.session.commit()
     return jsonify({'success': True, 'count': serialize_count(count)})
 
+@stock_counts_bp.route('/api/inventory/stock-counts/<int:count_id>', methods=['DELETE'])
+@login_required
+@require_permission('can_edit_inventory')
+def delete_count(count_id):
+    """Delete a stock-count session and its item lines."""
+    count = company_query(StockCount.query, StockCount).filter_by(id=count_id).first()
+    if not count:
+        return jsonify({'error': 'Stock count not found'}), 404
+    try:
+        db.session.delete(count)
+        db.session.commit()
+        return jsonify({'success': True, 'message': f'Stock count #{count_id} deleted successfully'})
+    except Exception as exc:
+        db.session.rollback()
+        return jsonify({'error': f'Unable to delete stock count: {exc}'}), 500
+
 @stock_counts_bp.route('/api/inventory/valuation')
 @login_required
 @require_permission('can_view_inventory')
