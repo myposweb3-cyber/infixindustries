@@ -2307,7 +2307,9 @@ function renderOrders(orders) {
                     <td>
                         <div class="btn-group">
                             <button class="btn btn-sm btn-outline-primary" onclick="openViewOrderModal(${o.id})" title="View order products"><i class="fas fa-eye me-1"></i>View</button>
-                            ${Number(o.balance || 0) > 0 ? `<button class="btn btn-sm btn-outline-success" onclick="openOrderPaymentModal(${o.id})" title="Receive payment against this order"><i class="fas fa-hand-holding-usd me-1"></i>Receive</button>` : ''}
+                            ${Number(o.balance || 0) > 0
+                                ? `<button class="btn btn-sm btn-outline-success" onclick="openOrderPaymentModal(${o.id})" title="Receive payment against this order"><i class="fas fa-hand-holding-usd me-1"></i>Receive</button>`
+                                : `<button class="btn btn-sm btn-outline-secondary" disabled title="This order is fully paid"><i class="fas fa-check me-1"></i>Paid</button>`}
                             <button class="btn btn-sm btn-outline-info" onclick="openEditOrderModal(${o.id})" title="Edit order"><i class="fas fa-edit me-1"></i>Edit</button>
                             <button class="btn btn-sm btn-outline-danger" onclick="deleteOrder(${o.id})" title="Delete order"><i class="fas fa-trash me-1"></i>Delete</button>
                         </div>
