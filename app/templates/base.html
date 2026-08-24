@@ -273,16 +273,28 @@
 
                     <!-- Quick Nav Buttons -->
                     <div class="d-none d-lg-flex align-items-center gap-2 quick-nav-buttons">
-                        <a href="{{ url_for('customers.customers') }}" class="btn btn-link text-secondary text-decoration-none quick-nav-btn" data-bs-toggle="tooltip" title="Customers">
+                        <a href="{{ url_for('customers.customers') }}" class="btn btn-link text-secondary text-decoration-none quick-nav-btn quick-nav-button" data-url="{{ url_for('customers.customers') }}" data-shortcut="C" data-bs-toggle="tooltip" title="Customers (C)" aria-label="Customers">
                             <i class="fas fa-users"></i>
                         </a>
-                        <a href="{{ url_for('inventory.inventory') }}" class="btn btn-link text-secondary text-decoration-none quick-nav-btn" data-bs-toggle="tooltip" title="Inventory">
+                        <a href="{{ url_for('inventory.inventory') }}" class="btn btn-link text-secondary text-decoration-none quick-nav-btn quick-nav-button" data-url="{{ url_for('inventory.inventory') }}" data-shortcut="P" data-bs-toggle="tooltip" title="Products / Inventory (P)" aria-label="Products and Inventory">
                             <i class="fas fa-box"></i>
                         </a>
-                        <a href="{{ url_for('reports.reports') }}" class="btn btn-link text-secondary text-decoration-none quick-nav-btn" data-bs-toggle="tooltip" title="Reports">
+                        <a href="{{ url_for('sales.sales_history') }}" class="btn btn-link text-secondary text-decoration-none quick-nav-btn quick-nav-button" data-url="{{ url_for('sales.sales_history') }}" data-shortcut="H" data-bs-toggle="tooltip" title="Sales History (H)" aria-label="Sales History">
+                            <i class="fas fa-receipt"></i>
+                        </a>
+                        <a href="{{ url_for('sales.returns') }}" class="btn btn-link text-secondary text-decoration-none quick-nav-btn quick-nav-button" data-url="{{ url_for('sales.returns') }}" data-shortcut="R" data-bs-toggle="tooltip" title="Returns (R)" aria-label="Returns">
+                            <i class="fas fa-rotate-left"></i>
+                        </a>
+                        <a href="{{ url_for('expenses.expenses') }}" class="btn btn-link text-secondary text-decoration-none quick-nav-btn quick-nav-button" data-url="{{ url_for('expenses.expenses') }}" data-shortcut="E" data-bs-toggle="tooltip" title="Expenses (E)" aria-label="Expenses">
+                            <i class="fas fa-money-bill-transfer"></i>
+                        </a>
+                        <a href="{{ url_for('shifts.shifts_page') }}" class="btn btn-link text-secondary text-decoration-none quick-nav-btn quick-nav-button" data-url="{{ url_for('shifts.shifts_page') }}" data-shortcut="S" data-bs-toggle="tooltip" title="Cashier Shifts (S)" aria-label="Cashier Shifts">
+                            <i class="fas fa-user-clock"></i>
+                        </a>
+                        <a href="{{ url_for('reports.reports') }}" class="btn btn-link text-secondary text-decoration-none quick-nav-btn quick-nav-button" data-url="{{ url_for('reports.reports') }}" data-shortcut="T" data-bs-toggle="tooltip" title="Reports (T)" aria-label="Reports">
                             <i class="fas fa-chart-bar"></i>
                         </a>
-                        <button class="btn btn-link text-secondary text-decoration-none quick-nav-btn" id="calculatorBtn" data-bs-toggle="tooltip" title="Calculator">
+                        <button type="button" class="btn btn-link text-secondary text-decoration-none quick-nav-btn" id="calculatorBtn" data-bs-toggle="tooltip" title="Calculator" aria-label="Calculator">
                             <i class="fas fa-calculator"></i>
                         </button>
                     </div>
@@ -326,7 +338,7 @@
                                     </li>
                                 </div>
                                 <li><hr class="dropdown-divider my-0"></li>
-                                <li><a class="dropdown-item text-center small text-muted py-2" href="#">View all notifications</a></li>
+                                <li><a class="dropdown-item text-center small text-muted py-2" href="{{ url_for('reports.reports') }}">View notification-related reports</a></li>
                             </ul>
                         </div>
                     </div>
@@ -476,6 +488,7 @@
                         <li><strong>R</strong> — Returns</li>
                         <li><strong>B</strong> — Hold Bills</li>
                         <li><strong>E</strong> — Expenses</li>
+                        <li><strong>S</strong> — Cashier Shifts</li>
                         <li><strong>T</strong> — Reports</li>
                         <li><strong>?</strong> — Open this help</li>
                     </ul>

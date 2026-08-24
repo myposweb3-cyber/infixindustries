@@ -305,7 +305,10 @@ document.addEventListener('DOMContentLoaded', function() {
         btn.addEventListener('click', function(e) {
             const url = this.dataset.url;
             if (url) {
-                window.location.href = url;
+                // The explicit destination keeps keyboard/touch activation consistent
+                // with the visual quick-action button and avoids duplicate navigation.
+                e.preventDefault();
+                window.location.assign(url);
             }
         });
 
@@ -354,6 +357,7 @@ document.addEventListener('DOMContentLoaded', function() {
             'R': '/sales/returns',              // Returns
             'B': '/sales/sales?held=true',      // Hold Bills
             'E': '/expenses/expenses',          // Expenses
+            'S': '/shifts/shifts',               // Cashier Shifts
             'T': '/reports/reports'             // Reports
         };
         
