@@ -79,6 +79,15 @@ def current_shift():
     return jsonify({'shift': _serialize_shift(shift) if shift else None})
 
 
+@shifts_bp.route('/api/shifts/history')
+@login_required
+@require_permission('can_access_sales')
+def shift_history():
+    query = _company_filter(CashierShift.query, CashierShift)
+    shifts = query.order_by(CashierShift.opened_at.desc()).limit(50).all()
+    return jsonify({'shifts': [_serialize_shift(shift) for shift in shifts]})
+
+
 @shifts_bp.route('/api/shifts/open', methods=['POST'])
 @login_required
 @require_permission('can_access_sales')

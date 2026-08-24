@@ -57,6 +57,10 @@
             </div>
         </div>
     </div>
+    <div class="card shadow-sm border-0 mt-3">
+        <div class="card-header bg-white"><strong>Recent Shift History</strong></div>
+        <div class="table-responsive"><table class="table align-middle mb-0"><thead><tr><th>Shift</th><th>Opened</th><th>Closed</th><th>Opening</th><th>Expected</th><th>Actual</th><th>Variance</th><th>Status</th></tr></thead><tbody id="shiftHistoryBody"><tr><td colspan="8" class="text-center text-muted py-3">Loading shift history...</td></tr></tbody></table></div>
+    </div>
 </div>
 {% endblock %}
 {% block scripts %}
@@ -79,9 +83,11 @@ function renderShift(shift) {
     document.getElementById('expectedCash').textContent = money(shift.expected_cash);
 }
 async function loadShift() { const response = await fetch('/api/shifts/current'); const data = await response.json(); renderShift(data.shift); }
+async function loadHistory() { const response = await fetch('/api/shifts/history'); const data = await response.json(); const body = document.getElementById('shiftHistoryBody'); body.innerHTML = data.shifts.length ? data.shifts.map(x => `<tr><td>#${x.id}</td><td>${new Date(x.opened_at).toLocaleString()}</td><td>${x.closed_at ? new Date(x.closed_at).toLocaleString() : '—'}</td><td>${money(x.opening_cash)}</td><td>${money(x.expected_cash)}</td><td>${x.actual_cash === null ? '—' : money(x.actual_cash)}</td><td class="${Number(x.variance || 0) < 0 ? 'text-danger' : Number(x.variance || 0) > 0 ? 'text-success' : ''}">${x.variance === null ? '—' : money(x.variance)}</td><td><span class="badge text-bg-${x.status === 'open' ? 'success' : 'secondary'}">${x.status}</span></td></tr>`).join('') : '<tr><td colspan="8" class="text-center text-muted py-3">No shifts recorded yet.</td></tr>'; }
 async function submitShift(url, payload) { const response = await fetch(url, { method: 'POST', headers: {'Content-Type': 'application/json', 'X-CSRFToken': document.querySelector('meta[name="csrf-token"]')?.content || ''}, body: JSON.stringify(payload) }); const data = await response.json(); if (!response.ok) throw new Error(data.error || 'Shift operation failed'); return data; }
 document.addEventListener('DOMContentLoaded', () => {
     loadShift().catch(error => shiftMessage(error.message, 'danger'));
+    loadHistory().catch(error => shiftMessage(error.message, 'danger'));
     document.getElementById('openShiftForm').addEventListener('submit', async event => { event.preventDefault(); try { const data = await submitShift('/api/shifts/open', {opening_cash: document.getElementById('openingCash').value}); renderShift(data.shift); shiftMessage('Shift opened successfully.'); } catch (error) { shiftMessage(error.message, 'danger'); } });
     document.getElementById('closeShiftForm').addEventListener('submit', async event => { event.preventDefault(); try { const data = await submitShift('/api/shifts/close', {actual_cash: document.getElementById('actualCash').value, notes: document.getElementById('shiftNotes').value}); renderShift(null); const variance = Number(data.shift.variance || 0); document.getElementById('variancePanel').classList.remove('d-none'); document.getElementById('varianceValue').textContent = money(variance); document.getElementById('varianceHint').textContent = variance === 0 ? 'Till reconciled exactly.' : (variance > 0 ? 'Overage recorded.' : 'Shortage recorded.'); shiftMessage('Shift closed and reconciled.'); } catch (error) { shiftMessage(error.message, 'danger'); } });
 });
