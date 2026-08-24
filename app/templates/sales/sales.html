@@ -545,6 +545,16 @@ function updateOfflineStatus() {
 }
 
 function queueOfflineSale(saleData, checkoutBtn, originalText, loadingOverlay) {
+    // Only cash can be safely collected while the POS is offline. Card, QR,
+    // cheque, and credit payments require online/payment-terminal confirmation.
+    if (saleData.payment_method !== 'Cash') {
+        if (loadingOverlay) loadingOverlay.style.display = 'none';
+        checkoutBtn.disabled = false;
+        checkoutBtn.innerHTML = originalText;
+        updateOfflineStatus();
+        showNotification('Offline checkout supports cash sales only. Reconnect before using card, QR, cheque, or credit.', 'warning');
+        return;
+    }
     if (!saleData.client_request_id) saleData.client_request_id = createCheckoutRequestId();
     if (!offlineQueue.some(entry => entry.client_request_id === saleData.client_request_id)) {
         offlineQueue.push({ client_request_id: saleData.client_request_id, saleData, queuedAt: new Date().toISOString() });
