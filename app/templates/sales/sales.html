@@ -1699,8 +1699,10 @@ function showPaymentSection() {
     const paymentSection = document.getElementById('paymentSection');
     if (cart.length > 0) {
         paymentSection.style.display = 'block';
+        document.body.classList.add('payment-bar-open');
     } else {
         paymentSection.style.display = 'none';
+        document.body.classList.remove('payment-bar-open');
     }
 }
 
@@ -4196,20 +4198,25 @@ function resetSale() {
     .payment-sticky-row .sticky-payment-actions { grid-column: 1 / -1; }
 }
 
-/* Final viewport-width correction: never constrain or clip the checkout bar. */
+/* Final full-screen correction: fixed bottom bar with no parent-column overflow. */
+body.payment-bar-open { padding-bottom: 118px; }
 .payment-section {
-    width: 100vw;
-    max-width: 100vw;
+    position: fixed;
+    left: 0;
+    right: 0;
+    bottom: 0;
+    width: auto;
+    max-width: none;
     box-sizing: border-box;
-    margin-left: calc(50% - 50vw);
-    margin-right: calc(50% - 50vw);
+    margin: 0;
 }
 .payment-sticky-row { width: 100%; min-width: 0; }
 .payment-sticky-row > * { min-width: 0; }
 .payment-sticky-row .primary-actions { width: 100%; min-width: 0; }
 .payment-sticky-row .primary-actions > .btn { min-width: 0; overflow: hidden; text-overflow: ellipsis; }
 @media (max-width: 900px) {
-    .payment-section { margin-left: calc(50% - 50vw); margin-right: calc(50% - 50vw); }
+    body.payment-bar-open { padding-bottom: 170px; }
+    .payment-section { left: 0; right: 0; margin: 0; }
     .payment-sticky-row .primary-actions { grid-template-columns: minmax(0, 1.35fr) minmax(0, 1fr) minmax(0, 1fr); }
     .payment-sticky-row .primary-actions > .btn { font-size: clamp(11px, 2.6vw, 14px); padding-left: 4px; padding-right: 4px; }
 }
