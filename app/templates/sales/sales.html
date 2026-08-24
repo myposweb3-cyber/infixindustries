@@ -45,6 +45,9 @@
                             <span><kbd>F9</kbd> Hold</span>
                             <span><kbd>Esc</kbd> Cancel</span>
                         </div>
+                        <div id="offlineStatus" class="offline-status online" role="status" aria-live="polite">
+                            <i class="fas fa-cloud me-1"></i><span>Online</span>
+                        </div>
                     </div>
 
                     <!-- Product Grid -->
@@ -486,6 +489,112 @@ let activeProductIndex = -1;
 let selectedCartIndex = -1;
 let customerResults = [];
 let selectedCustomerIndex = -1;
+let offlineQueue = [];
+let activeCheckoutRequestId = null;
+let offlineSyncInProgress = false;
+const OFFLINE_QUEUE_KEY = 'infix_pos_offline_checkout_queue_v1';
+const CART_STATE_KEY = 'infix_pos_active_cart_v1';
+
+function createCheckoutRequestId() {
+    if (window.crypto && typeof window.crypto.randomUUID === 'function') {
+        return window.crypto.randomUUID();
+    }
+    return `sale-${Date.now()}-${Math.random().toString(16).slice(2)}`;
+}
+
+function loadOfflineState() {
+    try {
+        offlineQueue = JSON.parse(localStorage.getItem(OFFLINE_QUEUE_KEY) || '[]');
+        const savedCart = JSON.parse(localStorage.getItem(CART_STATE_KEY) || 'null');
+        if (Array.isArray(savedCart)) cart = savedCart;
+    } catch (error) {
+        console.warn('Unable to restore offline POS state:', error);
+        offlineQueue = [];
+    }
+    updateOfflineStatus();
+}
+
+function persistCartState() {
+    try {
+        localStorage.setItem(CART_STATE_KEY, JSON.stringify(cart));
+    } catch (error) {
+        console.warn('Unable to persist POS cart:', error);
+    }
+}
+
+function persistOfflineQueue() {
+    try {
+        localStorage.setItem(OFFLINE_QUEUE_KEY, JSON.stringify(offlineQueue));
+    } catch (error) {
+        console.error('Unable to persist offline checkout queue:', error);
+        showNotification('Storage is full; do not close this page until pending sales sync.', 'danger');
+    }
+    updateOfflineStatus();
+}
+
+function updateOfflineStatus() {
+    const status = document.getElementById('offlineStatus');
+    if (!status) return;
+    const queued = offlineQueue.length;
+    status.className = `offline-status ${navigator.onLine ? (queued ? 'pending' : 'online') : 'offline'}`;
+    const icon = navigator.onLine ? (queued ? 'fa-sync-alt' : 'fa-cloud') : 'fa-wifi';
+    const text = navigator.onLine
+        ? (queued ? `${queued} sale${queued === 1 ? '' : 's'} waiting to sync` : 'Online')
+        : (queued ? `${queued} sale${queued === 1 ? '' : 's'} saved offline` : 'Offline — cart is saved');
+    status.innerHTML = `<i class="fas ${icon} me-1"></i><span>${text}</span>`;
+}
+
+function queueOfflineSale(saleData, checkoutBtn, originalText, loadingOverlay) {
+    if (!saleData.client_request_id) saleData.client_request_id = createCheckoutRequestId();
+    if (!offlineQueue.some(entry => entry.client_request_id === saleData.client_request_id)) {
+        offlineQueue.push({ client_request_id: saleData.client_request_id, saleData, queuedAt: new Date().toISOString() });
+        persistOfflineQueue();
+    }
+    if (loadingOverlay) loadingOverlay.style.display = 'none';
+    checkoutBtn.disabled = false;
+    checkoutBtn.innerHTML = originalText;
+    cart = [];
+    currentCustomer = null;
+    persistCartState();
+    updateCartDisplay();
+    focusProductSearch();
+    showNotification('Network unavailable. Sale saved safely and will sync automatically when online.', 'warning');
+}
+
+async function flushOfflineQueue() {
+    if (!navigator.onLine || offlineSyncInProgress || !offlineQueue.length) {
+        updateOfflineStatus();
+        return;
+    }
+    offlineSyncInProgress = true;
+    try {
+        for (let index = 0; index < offlineQueue.length;) {
+            const entry = offlineQueue[index];
+            const csrfToken = document.querySelector('meta[name="csrf-token"]')?.getAttribute('content') || '';
+            const response = await fetch('/sales/api/sales/create', {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                    'X-CSRFToken': csrfToken,
+                    'Idempotency-Key': entry.client_request_id
+                },
+                body: JSON.stringify(entry.saleData)
+            });
+            if (!response.ok) throw new Error(`Sync failed with status ${response.status}`);
+            const data = await response.json();
+            if (!data.success) throw new Error(data.error || 'Sale synchronization failed');
+            offlineQueue.splice(index, 1);
+            persistOfflineQueue();
+            showNotification(`Queued sale synced successfully as Sale #${data.sale_id}`, 'success');
+        }
+    } catch (error) {
+        console.warn('Offline sale sync paused:', error);
+        updateOfflineStatus();
+    } finally {
+        offlineSyncInProgress = false;
+        updateOfflineStatus();
+    }
+}
 
 // Notification helper (if not already defined in app.js)
 if (typeof showNotification === 'undefined') {
@@ -516,6 +625,11 @@ document.addEventListener('DOMContentLoaded', function() {
     loadCategories();
     setupEventListeners();
     setupKeyboardShortcuts();
+    loadOfflineState();
+    window.addEventListener('online', flushOfflineQueue);
+    window.addEventListener('offline', updateOfflineStatus);
+    flushOfflineQueue();
+    if (cart.length) updateCartDisplay();
     
     // Check for search query in URL and apply
     const urlParams = new URLSearchParams(window.location.search);
@@ -1396,6 +1510,7 @@ function addToCart(productId, name, price, unitType, quantity = 1, useCustomerPr
 }
 
 function updateCartDisplay() {
+    persistCartState();
     const cartItems = document.getElementById('cartItems');
     
     if (cart.length === 0) {
@@ -1863,6 +1978,7 @@ function checkout() {
     // Disable button to prevent duplicate submissions
     const checkoutBtn = document.getElementById('checkoutBtn');
     checkoutBtn.disabled = true;
+    activeCheckoutRequestId = createCheckoutRequestId();
     const originalText = checkoutBtn.innerHTML;
     const heldBillIdToDelete = currentHeldBillId;  // Store the held bill ID before checkout
 
@@ -1920,6 +2036,7 @@ function checkout() {
         const tax = parseFloat(document.getElementById('tax').textContent.replace(currencySymbol, ''));
 
         const saleData = {
+            client_request_id: activeCheckoutRequestId,
             customer: currentCustomer ? currentCustomer.name : 'Walk-in Customer',
             payment_method: paymentMethod,
             total: total,
@@ -2015,7 +2132,8 @@ function checkout() {
             method: 'POST',
             headers: {
                 'Content-Type': 'application/json',
-                'X-CSRFToken': csrfToken
+                'X-CSRFToken': csrfToken,
+                'Idempotency-Key': saleData.client_request_id
             },
             body: JSON.stringify(saleData)
         })
@@ -2042,6 +2160,7 @@ function checkout() {
         })
         .then(data => {
                 if (data.success) {
+                activeCheckoutRequestId = null;
                 lastSaleId = data.sale_id;
                 pendingSaleId = data.sale_id;  // Store for receipt actions
                 showNotification(`âœ“ Sale completed successfully! Sale #${data.sale_id}`, 'success');
@@ -2068,6 +2187,11 @@ function checkout() {
             }
         })
         .catch(error => {
+            if (!navigator.onLine || error instanceof TypeError) {
+                queueOfflineSale(saleData, checkoutBtn, originalText, loadingOverlay);
+                activeCheckoutRequestId = null;
+                return;
+            }
             console.error('Checkout Error:', error);
             console.error('Error message:', error.message);
             console.error('Full error details:', error);
@@ -2344,6 +2468,7 @@ function processCreditCheckout(customerId, total, heldBillIdToDelete, checkoutBt
     const tax = parseFloat(document.getElementById('tax').textContent.replace(currencySymbol, ''));
 
     const saleData = {
+        client_request_id: activeCheckoutRequestId || createCheckoutRequestId(),
         customer: currentCustomer ? currentCustomer.name : 'Walk-in Customer',
         customer_id: customerId,
         payment_method: 'Credit',
@@ -2379,7 +2504,8 @@ function processCreditCheckout(customerId, total, heldBillIdToDelete, checkoutBt
         method: 'POST',
         headers: {
             'Content-Type': 'application/json',
-            'X-CSRFToken': csrfToken
+            'X-CSRFToken': csrfToken,
+            'Idempotency-Key': saleData.client_request_id
         },
         body: JSON.stringify(saleData)
     })
@@ -2391,6 +2517,7 @@ function processCreditCheckout(customerId, total, heldBillIdToDelete, checkoutBt
     })
     .then(data => {
         if (data.success) {
+            activeCheckoutRequestId = null;
             lastSaleId = data.sale_id;
             const msg = adminOverride 
                 ? `âœ“ Credit sale completed with override! Sale #${data.sale_id}`
@@ -2418,6 +2545,11 @@ function processCreditCheckout(customerId, total, heldBillIdToDelete, checkoutBt
         }
     })
     .catch(error => {
+        if (!navigator.onLine || error instanceof TypeError) {
+            queueOfflineSale(saleData, checkoutBtn, originalText, loadingOverlay);
+            activeCheckoutRequestId = null;
+            return;
+        }
         console.error('Error:', error);
         showNotification(`Network error: ${error.message}`, 'danger');
         if (loadingOverlay) {
@@ -2979,6 +3111,31 @@ function resetSale() {
 .sales-card .card-body, .billing-card .card-body {
     overflow-y: auto;
     height: calc(100% - 60px);
+}
+
+/* Connectivity and offline queue status */
+.offline-status {
+    display: inline-flex;
+    align-items: center;
+    width: fit-content;
+    margin-top: 7px;
+    padding: 4px 8px;
+    border-radius: 999px;
+    font-size: 10px;
+    font-weight: 600;
+    background: #ecfdf5;
+    color: #047857;
+}
+
+.offline-status.offline,
+.offline-status.pending {
+    background: #fff7ed;
+    color: #c2410c;
+}
+
+.offline-status.error {
+    background: #fef2f2;
+    color: #b91c1c;
 }
 
 /* Keyboard shortcut guide */

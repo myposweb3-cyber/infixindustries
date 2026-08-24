@@ -230,8 +230,19 @@ class Sale(db.Model):
     user = db.relationship('User', backref='sales')
     items = db.relationship('SaleItem', backref='sale', lazy=True, cascade='all, delete-orphan')
 
+class SaleRequest(db.Model):
+    """Idempotency record for online/offline checkout retries."""
+    __tablename__ = 'sale_requests'
+
+    id = db.Column(db.Integer, primary_key=True)
+    request_id = db.Column(db.String(128), nullable=False, unique=True, index=True)
+    sale_id = db.Column(db.Integer, db.ForeignKey('sales.id'), nullable=False, unique=True)
+    company_id = db.Column(db.Integer, db.ForeignKey('companies.id'), nullable=True, index=True)
+    created_at = db.Column(db.DateTime, default=datetime.utcnow, nullable=False)
+    sale = db.relationship('Sale', backref=db.backref('request_record', uselist=False))
+
 class SaleItem(db.Model):
-    """Sale item model for individual products in a sale."""
+    """Sale item model for individual sale items."""
     __tablename__ = 'sale_items'
 
     id = db.Column(db.Integer, primary_key=True)

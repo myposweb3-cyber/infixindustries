@@ -1,6 +1,6 @@
 from flask import Blueprint, render_template, request, jsonify, flash, redirect, url_for, send_file, current_app
 from flask_login import login_required, current_user
-from app.models import db, Product, Sale, SaleItem, Customer, Setting, HeldBill, Return, ReturnItem, InventoryTransaction
+from app.models import db, Product, Sale, SaleRequest, SaleItem, Customer, Setting, HeldBill, Return, ReturnItem, InventoryTransaction
 from app.models import Exchange, ExchangeItem, Cheque
 from app.utils.permissions import require_permission
 from app.utils.security import get_company_id, require_company_context
@@ -364,10 +364,33 @@ def create_sale():
     
     # Log incoming data for debugging
     current_app.logger.info(f"SALES CREATE - Received data: {data}")
+
     if not data:
         current_app.logger.error("SALES CREATE ERROR: No JSON data received")
         return jsonify({'error': 'Invalid sale data - no data'}), 400
-    
+
+    # Idempotency key prevents a network retry from creating a duplicate sale.
+    client_request_id = str(
+        data.get('client_request_id') or request.headers.get('Idempotency-Key') or ''
+    ).strip()
+    if len(client_request_id) > 128:
+        return jsonify({'error': 'Invalid checkout request ID'}), 400
+    request_company_id = get_company_id()
+    if client_request_id:
+        request_query = SaleRequest.query.filter_by(request_id=client_request_id)
+        if request_company_id:
+            request_query = request_query.filter(SaleRequest.company_id == request_company_id)
+        previous_request = request_query.first()
+        if previous_request:
+            return jsonify({
+                'success': True,
+                'sale_id': previous_request.sale_id,
+                'already_processed': True,
+                'message': f'Sale already completed successfully! Sale #{previous_request.sale_id}',
+                'receipt_html_url': f'/sales/{previous_request.sale_id}/receipt/html?format=a4',
+                'receipt_pdf_url': f'/api/sales/{previous_request.sale_id}/receipt/pdf?format=a4',
+                'receipt_print_url': f'/api/sales/{previous_request.sale_id}/print-receipt'
+            })
     if 'items' not in data:
         current_app.logger.error(f"SALES CREATE ERROR: Missing 'items' key. Keys present: {list(data.keys())}")
         return jsonify({'error': 'Invalid sale data - missing items'}), 400
@@ -425,6 +448,16 @@ def create_sale():
 
         db.session.add(sale)
         db.session.flush()  # Get sale ID
+
+        # The unique request_id is committed in the same transaction as the sale.
+        # If a retry uses the same key, the lookup above returns this sale.
+        if client_request_id:
+            db.session.add(SaleRequest(
+                request_id=client_request_id,
+                sale_id=sale.id,
+                company_id=company_id
+            ))
+            db.session.flush()
 
         # Create cheque record if payment method is cheque
         if payment_method == 'Cheque':
@@ -589,7 +622,8 @@ def create_sale():
             'message': f'Sale completed successfully! Sale #{sale.id}',
             'receipt_html_url': f'/sales/{sale.id}/receipt/html?format=a4',
             'receipt_pdf_url': f'/api/sales/{sale.id}/receipt/pdf?format=a4',
-            'receipt_print_url': f'/api/sales/{sale.id}/print-receipt'
+            'receipt_print_url': f'/api/sales/{sale.id}/print-receipt',
+            'client_request_id': client_request_id or None
         })
 
     except Exception as e:
