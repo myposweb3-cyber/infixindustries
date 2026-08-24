@@ -1934,14 +1934,25 @@ function loadCustomerCreditInfo(customerId) {
 }
 
 async function requestManagerApprovalAndRetry(saleData, checkoutBtn, originalText, loadingOverlay) {
-    const username = window.prompt('Manager username required for this discount:');
+    const username = await window.showAppPrompt({
+        title: 'Manager Approval Required',
+        message: 'This discount is above the cashier limit. Enter an authorized manager username to continue.',
+        label: 'Manager username',
+        autocomplete: 'username'
+    });
     if (!username) {
         if (loadingOverlay) loadingOverlay.style.display = 'none';
         checkoutBtn.disabled = false;
         checkoutBtn.innerHTML = originalText;
         return;
     }
-    const password = window.prompt('Manager password:');
+    const password = await window.showAppPrompt({
+        title: 'Manager Password',
+        message: 'Enter the manager password to approve this discount.',
+        label: 'Manager password',
+        inputType: 'password',
+        autocomplete: 'current-password'
+    });
     if (!password) {
         if (loadingOverlay) loadingOverlay.style.display = 'none';
         checkoutBtn.disabled = false;

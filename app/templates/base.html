@@ -627,6 +627,52 @@
         };
     </script>
     
+    <script>
+        // Shared replacement for native browser prompt() dialogs.
+        window.showAppPrompt = function(options = {}) {
+            return new Promise(resolve => {
+                const wrapper = document.createElement('div');
+                wrapper.innerHTML = `<div class="modal fade" tabindex="-1" role="dialog" aria-modal="true"><div class="modal-dialog modal-dialog-centered"><div class="modal-content shadow-lg"><div class="modal-header"><h5 class="modal-title"></h5><button type="button" class="btn-close" aria-label="Close"></button></div><div class="modal-body"><p class="app-prompt-message mb-3"></p><label class="form-label app-prompt-label"></label><input class="form-control app-prompt-input" autocomplete="off"><div class="invalid-feedback">This field is required.</div></div><div class="modal-footer"><button type="button" class="btn btn-outline-secondary app-prompt-cancel">Cancel</button><button type="button" class="btn btn-primary app-prompt-submit">Continue</button></div></div></div></div>`;
+                const modalElement = wrapper.firstElementChild;
+                const title = modalElement.querySelector('.modal-title');
+                const message = modalElement.querySelector('.app-prompt-message');
+                const label = modalElement.querySelector('.app-prompt-label');
+                const input = modalElement.querySelector('.app-prompt-input');
+                title.textContent = options.title || 'Input required';
+                message.textContent = options.message || '';
+                message.classList.toggle('d-none', !options.message);
+                label.textContent = options.label || 'Value';
+                input.type = options.inputType || 'text';
+                input.placeholder = options.placeholder || '';
+                input.value = options.value || '';
+                input.autocomplete = options.autocomplete || (input.type === 'password' ? 'current-password' : 'off');
+                document.body.appendChild(wrapper);
+                let completed = false;
+                const modal = window.bootstrap?.Modal ? bootstrap.Modal.getOrCreateInstance(modalElement) : null;
+                const finish = value => {
+                    if (completed) return;
+                    completed = true;
+                    if (modal) modal.hide();
+                    else modalElement.remove();
+                    resolve(value);
+                };
+                const submit = () => {
+                    const value = input.value.trim();
+                    if (options.required !== false && !value) { input.classList.add('is-invalid'); input.focus(); return; }
+                    finish(value);
+                };
+                modalElement.querySelector('.app-prompt-submit').addEventListener('click', submit);
+                modalElement.querySelector('.app-prompt-cancel').addEventListener('click', () => finish(null));
+                modalElement.querySelector('.btn-close').addEventListener('click', () => finish(null));
+                input.addEventListener('input', () => input.classList.remove('is-invalid'));
+                input.addEventListener('keydown', event => { if (event.key === 'Enter') { event.preventDefault(); submit(); } });
+                modalElement.addEventListener('hidden.bs.modal', () => { if (!completed) { completed = true; resolve(null); } wrapper.remove(); }, { once: true });
+                if (modal) { modalElement.addEventListener('shown.bs.modal', () => input.focus(), { once: true }); modal.show(); }
+                else { modalElement.classList.add('show'); modalElement.style.display = 'block'; input.focus(); }
+            });
+        };
+    </script>
+
     {% block scripts %}{% endblock %}
 
     <script>

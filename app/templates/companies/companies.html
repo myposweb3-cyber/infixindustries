@@ -265,7 +265,7 @@ function updateCompany() {
     });
 }
 
-function deleteCompany() {
+async function deleteCompany() {
     var id = document.getElementById('editCompanyId').value;
     var name = document.getElementById('editCompanyName').value;
     
@@ -277,8 +277,14 @@ function deleteCompany() {
     const hardDelete = confirm('Do you want to PERMANENTLY DELETE this company and all its data?\n\nClick OK for permanent deletion, Cancel for deactivation only.');
     
     if (hardDelete) {
-        // Prompt for admin password for hard delete
-        const password = prompt('Enter your admin password to confirm permanent deletion:');
+        // Request the admin password through the professional in-page dialog.
+        const password = await window.showAppPrompt({
+            title: 'Confirm Permanent Deletion',
+            message: 'Enter your admin password to permanently delete this company and all related data.',
+            label: 'Admin password',
+            inputType: 'password',
+            autocomplete: 'current-password'
+        });
         if (!password) {
             alert('Deletion cancelled - no password provided');
             return;
