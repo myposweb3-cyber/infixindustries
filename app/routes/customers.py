@@ -508,6 +508,68 @@ def update_order(order_id):
         return jsonify({'error': str(e)}), 500
 
 
+@customers_bp.route('/api/orders/<int:order_id>/record-payment', methods=['POST'])
+@login_required
+@require_permission('can_manage_customer_payments')
+def record_order_payment(order_id):
+    """Record a payment against one order and reduce its outstanding balance."""
+    sale = get_sale_secure(order_id)
+    if not sale:
+        return jsonify({'error': 'Order not found'}), 404
+    data = request.get_json(silent=True) or {}
+    try:
+        amount = float(data.get('amount', 0))
+    except (TypeError, ValueError):
+        return jsonify({'error': 'Enter a valid payment amount'}), 400
+    outstanding = max(0.0, float(sale.balance or 0))
+    if amount <= 0:
+        return jsonify({'error': 'Payment amount must be greater than zero'}), 400
+    if outstanding <= 0:
+        return jsonify({'error': 'This order has no outstanding balance'}), 400
+    if amount > outstanding + 0.005:
+        return jsonify({'error': f'Payment cannot exceed the outstanding balance of {outstanding:.2f}'}), 400
+
+    payment_method = str(data.get('payment_method') or 'Cash').strip()[:20]
+    reference_number = str(data.get('reference_number') or '').strip()[:50]
+    notes = str(data.get('notes') or '').strip()
+    company_id = get_company_id()
+    try:
+        # Keep the sale balance authoritative even for walk-in customers.
+        sale.balance = round(max(0.0, outstanding - amount), 2)
+        sale.payment = payment_method or sale.payment
+
+        # Link the collection to a customer ledger when the order customer can be matched.
+        customer = None
+        if sale.customer and sale.customer.strip().lower() != 'walk-in customer':
+            customer_query = Customer.query.filter(func.lower(func.trim(Customer.name)) == sale.customer.strip().lower())
+            if company_id:
+                customer_query = customer_query.filter(Customer.company_id == company_id)
+            customer = customer_query.first()
+        if customer:
+            db.session.add(CustomerPayment(
+                customer_id=customer.id,
+                sale_id=sale.id,
+                amount=amount,
+                payment_method=payment_method or 'Cash',
+                reference_number=reference_number,
+                notes=notes,
+                user_id=current_user.id if hasattr(current_user, 'id') else None,
+                company_id=customer.company_id if hasattr(customer, 'company_id') else company_id
+            ))
+        db.session.commit()
+        return jsonify({
+            'success': True,
+            'message': 'Payment recorded against the order successfully',
+            'sale_id': sale.id,
+            'new_balance': float(sale.balance),
+            'linked_customer_payment': bool(customer)
+        })
+    except Exception as exc:
+        db.session.rollback()
+        current_app.logger.exception('Error recording order payment')
+        return jsonify({'error': 'Unable to record order payment: ' + str(exc)}), 500
+
+
 @customers_bp.route('/api/orders/<int:order_id>', methods=['DELETE'])
 @login_required
 @require_permission('can_access_sales')
