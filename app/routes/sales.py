@@ -2180,7 +2180,7 @@ def get_all_sales():
             # Show sales that either match the current company OR have NULL company_id (legacy sales)
             from sqlalchemy import or_
             query = query.filter(
-                Sale.company_id == company_id
+                or_(Sale.company_id == company_id, Sale.company_id.is_(None))
             )
 
         if search:
@@ -2220,6 +2220,8 @@ def get_all_sales():
                 'customer': sale.customer,
                 'total': sale.total,
                 'payment': sale.payment,
+                'paid_amount': max(0.0, float(sale.total or 0) - float(sale.balance or 0)),
+                'balance': float(sale.balance or 0),
                 'items_count': len(sale.items),
                 'user': sale.user.username if sale.user else 'Unknown'
             })

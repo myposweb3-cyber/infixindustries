@@ -67,6 +67,8 @@
                                     <th>Customer</th>
                                     <th>Items</th>
                                     <th>Total</th>
+                                    <th>Paid</th>
+                                    <th>Balance</th>
                                     <th>Payment</th>
                                     <th>User</th>
                                     <th>Actions</th>
@@ -106,6 +108,8 @@
                     </div>
                     <div class="col-md-6">
                         <p><strong>Payment Method:</strong> <span id="salePayment"></span></p>
+                        <p><strong>Paid:</strong> <span id="salePaid"></span></p>
+                        <p><strong>Balance:</strong> <span id="saleBalance"></span></p>
                         <p><strong>Cashier:</strong> <span id="saleUser"></span></p>
                     </div>
                 </div>
@@ -231,7 +235,7 @@ function renderSales(sales) {
     tbody.innerHTML = '';
 
     if (sales.length === 0) {
-        tbody.innerHTML = '<tr><td colspan="8" class="text-center">No sales found</td></tr>';
+        tbody.innerHTML = '<tr>                            <td colspan="10" class="text-center">No sales found</td></tr>';
         return;
     }
 
@@ -242,7 +246,9 @@ function renderSales(sales) {
             <td>${window.formatTimestamp(sale.date, true)}</td>
             <td>${sale.customer}</td>
             <td>${sale.items_count}</td>
-            <td><strong>${currencySymbol} ${sale.total.toFixed(2)}</strong></td>
+            <td><strong>${currencySymbol} ${Number(sale.total || 0).toFixed(2)}</strong></td>
+            <td class="text-success">${currencySymbol} ${Number(sale.paid_amount || 0).toFixed(2)}</td>
+            <td class="${Number(sale.balance || 0) > 0 ? 'text-danger fw-semibold' : 'text-success'}">${currencySymbol} ${Number(sale.balance || 0).toFixed(2)}</td>
             <td>${sale.payment}</td>
             <td>${sale.user}</td>
             <td>
@@ -305,6 +311,8 @@ function viewSaleDetails(saleId) {
             document.getElementById('saleDate').textContent = window.formatTimestamp(data.date, true);
             document.getElementById('saleCustomer').textContent = data.customer;
             document.getElementById('salePayment').textContent = data.payment;
+            document.getElementById('salePaid').textContent = currencySymbol + ' ' + Number((data.total || 0) - (data.balance || 0)).toFixed(2);
+            document.getElementById('saleBalance').textContent = currencySymbol + ' ' + Number(data.balance || 0).toFixed(2);
             document.getElementById('saleUser').textContent = data.user;
             document.getElementById('saleTotal').textContent = data.total.toFixed(2);
 
