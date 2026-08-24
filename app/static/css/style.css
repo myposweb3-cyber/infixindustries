@@ -1480,21 +1480,48 @@ body {
         height: auto;
         min-height: 44px;
     }
-    
-    .header-actions {\n        gap: 1px !important;
+
+    .header-actions {
+        gap: 1px !important;
     }
-    
-    .header-actions .btn-link {\n        width: 34px !important;\n        height: 34px !important;\n        font-size: 12px !important;\n        padding: 0 !important;\n    }\n    \n    .top-header .btn-primary {\n        padding: 0 6px !important;\n        height: 34px !important;\n        font-size: 10px !important;\n        gap: 3px !important;\n    }\n    \n    .top-header .btn-primary i {\n        font-size: 11px !important;\n    }\n    \n    .top-header .btn-primary span {\n        display: none;\n    }\n    \n    .quick-nav-btn {\n        width: 32px !important;\n        height: 32px !important;\n    }\n    \n    .quick-nav-btn i {\n        font-size: 12px !important;\n    }\n    \n    .sidebar-toggle {\n        width: 36px !important;\n        height: 36px !important;\n    }\n}\n
+
+    .header-actions .btn-link {
+        width: 34px !important;
+        height: 34px !important;
+        font-size: 12px !important;
+        padding: 0 !important;
     }
-    
+
+    .top-header .btn-primary {
+        padding: 0 6px !important;
+        height: 34px !important;
+        font-size: 10px !important;
+        gap: 3px !important;
+    }
+
+    .top-header .btn-primary i {
+        font-size: 11px !important;
+    }
+
+    .top-header .btn-primary span {
+        display: none;
+    }
+
+    .quick-nav-btn {
+        width: 32px !important;
+        height: 32px !important;
+    }
+
     .quick-nav-btn i {
-        font-size: 14px !important;
+        font-size: 12px !important;
     }
-    
-    .vr {
-        display: none !important;
+
+    .sidebar-toggle {
+        width: 36px !important;
+        height: 36px !important;
     }
 }
+
 
 /* ============================================
    Utility Classes
@@ -2210,4 +2237,98 @@ html {
     .quick-nav-buttons { 
         display: none !important; 
     } 
+}
+
+
+/* Premium mobile usability overrides */
+@media (max-width: 991.98px) {
+    html, body {
+        overflow-x: hidden;
+    }
+
+    .main-content {
+        min-width: 0;
+    }
+
+    .sidebar {
+        z-index: 1050;
+        box-shadow: 12px 0 30px rgba(15, 23, 42, 0.16);
+    }
+
+    .sidebar-overlay.active {
+        z-index: 1040;
+    }
+
+    .top-header {
+        position: sticky;
+        top: 0;
+        z-index: 1030;
+        box-shadow: 0 1px 8px rgba(15, 23, 42, 0.08);
+    }
+
+    .top-header > div {
+        width: 100%;
+        min-width: 0;
+    }
+
+    .sidebar-toggle,
+    .header-user,
+    .header-actions .btn-link,
+    .top-header button {
+        min-width: 40px;
+        min-height: 40px;
+    }
+}
+
+@media (max-width: 575.98px) {
+    .main-content {
+        padding: 8px !important;
+    }
+
+    .top-header {
+        padding: 4px 8px !important;
+    }
+
+    .top-header .d-flex.align-items-center.justify-content-between {
+        gap: 6px;
+    }
+
+    .sidebar-toggle {
+        margin-left: -4px !important;
+        margin-right: 0 !important;
+    }
+
+    .header-user {
+        display: inline-flex !important;
+        align-items: center;
+        justify-content: center;
+        width: 40px;
+        height: 40px;
+    }
+
+    .modal-dialog {
+        margin: 8px;
+    }
+
+    .modal-content {
+        border-radius: 14px;
+    }
+
+    .table-responsive {
+        -webkit-overflow-scrolling: touch;
+    }
+
+    .btn,
+    .form-control,
+    .form-select {
+        min-height: 42px;
+    }
+}
+
+@media (prefers-reduced-motion: reduce) {
+    *, *::before, *::after {
+        scroll-behavior: auto !important;
+        transition-duration: 0.01ms !important;
+        animation-duration: 0.01ms !important;
+    }
 }
