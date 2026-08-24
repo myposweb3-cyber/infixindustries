@@ -4195,6 +4195,24 @@ function resetSale() {
     .payment-sticky-row .change-amount { grid-column: 1 / -1; }
     .payment-sticky-row .sticky-payment-actions { grid-column: 1 / -1; }
 }
+
+/* Final viewport-width correction: never constrain or clip the checkout bar. */
+.payment-section {
+    width: 100vw;
+    max-width: 100vw;
+    box-sizing: border-box;
+    margin-left: calc(50% - 50vw);
+    margin-right: calc(50% - 50vw);
+}
+.payment-sticky-row { width: 100%; min-width: 0; }
+.payment-sticky-row > * { min-width: 0; }
+.payment-sticky-row .primary-actions { width: 100%; min-width: 0; }
+.payment-sticky-row .primary-actions > .btn { min-width: 0; overflow: hidden; text-overflow: ellipsis; }
+@media (max-width: 900px) {
+    .payment-section { margin-left: calc(50% - 50vw); margin-right: calc(50% - 50vw); }
+    .payment-sticky-row .primary-actions { grid-template-columns: minmax(0, 1.35fr) minmax(0, 1fr) minmax(0, 1fr); }
+    .payment-sticky-row .primary-actions > .btn { font-size: clamp(11px, 2.6vw, 14px); padding-left: 4px; padding-right: 4px; }
+}
 </style>
 {% endblock %}
 
