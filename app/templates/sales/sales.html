@@ -130,6 +130,11 @@
                             </div>
                         </div>
                         <div class="payment-sticky-row">
+                            <div class="sticky-total-summary" aria-label="Sale totals">
+                                <div><span>Subtotal</span><strong id="stickySubtotal">Rs. 0.00</strong></div>
+                                <div><span>Discount</span><strong id="stickyDiscount">Rs. 0.00</strong></div>
+                                <div class="sticky-grand-total"><span>Total</span><strong id="stickyTotal">Rs. 0.00</strong></div>
+                            </div>
                             <div class="payment-method"><label>Payment Method</label><select class="form-select" id="paymentMethod"><option value="Cash">Cash</option><option value="Card">Card</option><option value="Cheque">Cheque</option><option value="UPI">UPI</option><option value="Bank Transfer">Bank Transfer</option><option value="Credit">Credit (Credit Sale)</option></select></div>
                             <div class="cash-given" id="cashGivenGroup"><label for="cashGiven">Cash Given <kbd>F10</kbd></label><input type="number" class="form-control" id="cashGiven" step="0.01" placeholder="0.00" aria-keyshortcuts="F10"></div>
                             <div class="change-amount" id="changeGroup" style="display: none;"><label>Change</label><div class="change-value"><span id="changeCurrency">Rs. </span><span id="changeAmount">0.00</span></div></div>
@@ -1585,8 +1590,11 @@ function updateTotals(subtotal, discount, tax, total = 0) {
     const subtotalText = currencySymbol + ' ' + subtotal.toFixed(2);
     const taxText = currencySymbol + ' ' + tax.toFixed(2);
     const totalText = currencySymbol + ' ' + (total || 0).toFixed(2);
+    const stickySubtotalEl = document.getElementById('stickySubtotal');
+    const stickyDiscountEl = document.getElementById('stickyDiscount');
+    const stickyTotalEl = document.getElementById('stickyTotal');
     
-    console.log('Setting values:', {subtotalText, taxText, totalText});
+    console.log('Setting values:', {subtotalText, discount, taxText, totalText});
     
     if (subtotalEl) {
         subtotalEl.textContent = subtotalText;
@@ -1600,6 +1608,9 @@ function updateTotals(subtotal, discount, tax, total = 0) {
         totalEl.textContent = totalText;
         console.log('total element updated');
     }
+    if (stickySubtotalEl) stickySubtotalEl.textContent = subtotalText;
+    if (stickyDiscountEl) stickyDiscountEl.textContent = currencySymbol + ' ' + Number(discount || 0).toFixed(2);
+    if (stickyTotalEl) stickyTotalEl.textContent = totalText;
 }
 
 function changeQuantity(index, delta) {
@@ -4219,6 +4230,26 @@ body.payment-bar-open { padding-bottom: 118px; }
     .payment-section { left: 0; right: 0; margin: 0; }
     .payment-sticky-row .primary-actions { grid-template-columns: minmax(0, 1.35fr) minmax(0, 1fr) minmax(0, 1fr); }
     .payment-sticky-row .primary-actions > .btn { font-size: clamp(11px, 2.6vw, 14px); padding-left: 4px; padding-right: 4px; }
+}
+
+.sticky-total-summary {
+    min-width: 0;
+    display: flex;
+    flex-direction: column;
+    gap: 3px;
+    padding: 4px 12px;
+    border-right: 1px solid #e2e8f0;
+    color: #64748b;
+    font-size: 12px;
+}
+.sticky-total-summary > div { display: flex; justify-content: space-between; align-items: center; gap: 10px; white-space: nowrap; }
+.sticky-total-summary strong { color: #475569; font-size: 13px; }
+.sticky-total-summary .sticky-grand-total { margin-top: 2px; padding-top: 4px; border-top: 1px solid #e2e8f0; color: #172554; font-size: 14px; font-weight: 700; }
+.sticky-total-summary .sticky-grand-total strong { color: #4f46e5; font-size: 18px; }
+@media (max-width: 900px) {
+    .sticky-total-summary { padding: 2px 8px; font-size: 11px; }
+    .sticky-total-summary strong { font-size: 12px; }
+    .sticky-total-summary .sticky-grand-total strong { font-size: 15px; }
 }
 </style>
 {% endblock %}
