@@ -344,8 +344,8 @@
                     </div>
 
                     <!-- User Profile Dropdown -->
-                    <div class="dropdown d-none d-md-block ms-3">
-                        <a href="#" class="d-flex align-items-center text-decoration-none user-profile-trigger" id="userDropdown" data-bs-toggle="dropdown" aria-expanded="false">
+                    <div class="dropdown header-user ms-2">
+                        <a href="#" class="d-flex align-items-center text-decoration-none user-profile-trigger" id="userDropdown" data-bs-toggle="dropdown" aria-expanded="false" aria-label="Open user profile menu" title="Profile and account settings">
                             {% if current_user.profile_picture %}
                                 <img src="{{ '/' + current_user.profile_picture }}" alt="{{ current_user.username }}" class="rounded-circle" style="width: 40px; height: 40px; object-fit: cover; border: 2px solid #e2e8f0;">
                             {% else %}
