@@ -169,22 +169,18 @@
                         </div>
                     </div>
 
-                    <!-- Action Buttons -->
-                    <div class="action-buttons mt-3">
-                        <button class="btn btn-success btn-pay" id="checkoutBtn" disabled title="Complete sale (F8 or Ctrl+Enter)">
-                            <i class="fas fa-credit-card me-2"></i>Pay Now
-                        </button>
-                        <div class="row g-2 mt-2">
-                            <div class="col-6">
-                                <button class="btn btn-warning w-100" id="holdBtn" title="Hold bill (F9)">
-                                    <i class="fas fa-clock me-1"></i>Hold Bill
-                                </button>
-                            </div>
-                            <div class="col-6">
-                                <button class="btn btn-danger w-100" id="cancelBtn" title="Cancel sale (Esc)">
-                                    <i class="fas fa-times me-1"></i>Cancel
-                                </button>
-                            </div>
+                    <!-- Sticky Action Buttons -->
+                    <div class="action-buttons sticky-payment-actions mt-3">
+                        <div class="primary-actions">
+                            <button class="btn btn-success btn-pay" id="checkoutBtn" disabled title="Complete sale (F8 or Ctrl+Enter)">
+                                <i class="fas fa-credit-card me-2"></i>Pay Now
+                            </button>
+                            <button class="btn btn-warning" id="holdBtn" title="Hold bill (F9)">
+                                <i class="fas fa-clock me-1"></i>Hold Bill
+                            </button>
+                            <button class="btn btn-danger" id="cancelBtn" title="Cancel sale (Esc)">
+                                <i class="fas fa-times me-1"></i>Cancel
+                            </button>
                         </div>
                         <div class="receipt-actions mt-2 d-none" id="receiptActions">
                             <button class="btn btn-outline-primary btn-sm" id="downloadReceiptBtn">
@@ -3705,12 +3701,33 @@ function resetSale() {
     font-weight: 700;
 }
 
-.action-buttons .btn-pay {
-    width: 100%;
-    padding: 14px;
-    font-size: 16px;
+.sticky-payment-actions {
+    position: sticky;
+    bottom: 0;
+    z-index: 30;
+    margin-left: -12px;
+    margin-right: -12px;
+    padding: 12px;
+    background: rgba(255, 255, 255, 0.96);
+    border-top: 1px solid #e5e7eb;
+    box-shadow: 0 -8px 22px rgba(15, 23, 42, 0.10);
+    backdrop-filter: blur(10px);
+}
+.primary-actions {
+    display: grid;
+    grid-template-columns: minmax(0, 2fr) minmax(0, 1fr) minmax(0, 1fr);
+    gap: 8px;
+}
+.action-buttons .primary-actions > .btn {
+    min-height: 48px;
+    padding: 12px 10px;
+    font-size: 15px;
     font-weight: 600;
     border-radius: 10px;
+    white-space: nowrap;
+}
+.action-buttons .btn-pay {
+    width: 100%;
 }
 
 .action-buttons .btn-warning {
@@ -4013,13 +4030,25 @@ function resetSale() {
         font-size: 16px;
     }
 
-    .action-buttons .btn-pay {
-        min-height: 48px;
-        padding: 12px;
+    .sticky-payment-actions {
+        margin-left: -14px;
+        margin-right: -14px;
+        padding: 10px 12px calc(10px + env(safe-area-inset-bottom));
     }
 
-    .action-buttons .row {
-        --bs-gutter-x: 8px;
+    .action-buttons .primary-actions {
+        grid-template-columns: minmax(0, 1.45fr) minmax(0, 1fr) minmax(0, 1fr);
+        gap: 6px;
+    }
+
+    .action-buttons .primary-actions > .btn {
+        min-height: 46px;
+        padding: 10px 5px;
+        font-size: 12px;
+    }
+
+    .action-buttons .primary-actions > .btn i {
+        margin-right: 2px !important;
     }
 
     .action-buttons .row .btn {
