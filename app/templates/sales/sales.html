@@ -112,83 +112,28 @@
 
                     <!-- Payment Section -->
                     <div class="payment-section mt-3" id="paymentSection" style="display: none;">
-                        <div class="payment-method">
-                            <label>Payment Method</label>
-                            <select class="form-select" id="paymentMethod">
-                                <option value="Cash">Cash</option>
-                                <option value="Card">Card</option>
-                                <option value="Cheque">Cheque</option>
-                                <option value="UPI">UPI</option>
-                                <option value="Bank Transfer">Bank Transfer</option>
-                                <option value="Credit">Credit (Credit Sale)</option>
-                            </select>
-                        </div>
-                        <!-- Cheque Details Section -->
-                        <div class="cheque-details" id="chequeDetails" style="display: none;">
-                            <div class="form-group">
-                                <label>Cheque Number</label>
-                                <input type="text" class="form-control" id="chequeNumber" placeholder="Cheque number">
+                        <div class="payment-support-details">
+                            <!-- Cheque Details Section -->
+                            <div class="cheque-details" id="chequeDetails" style="display: none;">
+                                <div class="form-group"><label>Cheque Number</label><input type="text" class="form-control" id="chequeNumber" placeholder="Cheque number"></div>
+                                <div class="form-group"><label>Bank Name</label><input type="text" class="form-control" id="bankName" placeholder="Bank name"></div>
+                                <div class="form-group"><label>Cheque Date</label><input type="date" class="form-control" id="chequeDate"></div>
                             </div>
-                            <div class="form-group">
-                                <label>Bank Name</label>
-                                <input type="text" class="form-control" id="bankName" placeholder="Bank name">
-                            </div>
-                            <div class="form-group">
-                                <label>Cheque Date</label>
-                                <input type="date" class="form-control" id="chequeDate">
-                            </div>
-                        </div>
-                        <!-- Customer Credit Info -->
-                        <div class="customer-credit-info" id="customerCreditInfo" style="display: none;">
-                            <div class="credit-details">
-                                <div class="credit-balance">
-                                    <span class="label">Current Balance:</span>
-                                    <span class="value" id="customerCurrentBalance">Rs.  0.00</span>
+                            <!-- Customer Credit Info -->
+                            <div class="customer-credit-info" id="customerCreditInfo" style="display: none;">
+                                <div class="credit-details">
+                                    <div class="credit-balance"><span class="label">Current Balance:</span><span class="value" id="customerCurrentBalance">Rs.  0.00</span></div>
+                                    <div class="credit-limit"><span class="label">Credit Limit:</span><span class="value" id="customerCreditLimit">Rs.  0.00</span></div>
+                                    <div class="credit-available"><span class="label">Available Credit:</span><span class="value" id="customerAvailableCredit">Rs.  0.00</span></div>
                                 </div>
-                                <div class="credit-limit">
-                                    <span class="label">Credit Limit:</span>
-                                    <span class="value" id="customerCreditLimit">Rs.  0.00</span>
-                                </div>
-                                <div class="credit-available">
-                                    <span class="label">Available Credit:</span>
-                                    <span class="value" id="customerAvailableCredit">Rs.  0.00</span>
-                                </div>
-                            </div>
-                            <div class="credit-warning" id="creditWarning" style="display: none;">
-                                <i class="fas fa-exclamation-triangle"></i>
-                                <span id="creditWarningText"></span>
+                                <div class="credit-warning" id="creditWarning" style="display: none;"><i class="fas fa-exclamation-triangle"></i><span id="creditWarningText"></span></div>
                             </div>
                         </div>
-                        <div class="cash-given" id="cashGivenGroup">
-                            <label for="cashGiven">Cash Given <kbd>F10</kbd></label>
-                            <input type="number" class="form-control" id="cashGiven" step="0.01" placeholder="0.00" aria-keyshortcuts="F10">
-                        </div>
-                        <div class="change-amount" id="changeGroup" style="display: none;">
-                            <label>Change</label>
-                            <div class="change-value"><span id="changeCurrency">Rs. </span><span id="changeAmount">0.00</span></div>
-                        </div>
-                    </div>
-
-                    <!-- Sticky Action Buttons -->
-                    <div class="action-buttons sticky-payment-actions mt-3">
-                        <div class="primary-actions">
-                            <button class="btn btn-success btn-pay" id="checkoutBtn" disabled title="Complete sale (F8 or Ctrl+Enter)">
-                                <i class="fas fa-credit-card me-2"></i>Pay Now
-                            </button>
-                            <button class="btn btn-warning" id="holdBtn" title="Hold bill (F9)">
-                                <i class="fas fa-clock me-1"></i>Hold Bill
-                            </button>
-                            <button class="btn btn-danger" id="cancelBtn" title="Cancel sale (Esc)">
-                                <i class="fas fa-times me-1"></i>Cancel
-                            </button>
-                        </div>
-                        <div class="receipt-actions mt-2 d-none" id="receiptActions">
-                            <button class="btn btn-outline-primary btn-sm" id="downloadReceiptBtn">
-                                <i class="fas fa-download me-1"></i>Download
-                            </button>
-                            <button class="btn btn-outline-secondary btn-sm" id="printReceiptBtn">
-                                <i class="fas fa-print me-1"></i>Print
-                            </button>
+                        <div class="payment-sticky-row">
+                            <div class="payment-method"><label>Payment Method</label><select class="form-select" id="paymentMethod"><option value="Cash">Cash</option><option value="Card">Card</option><option value="Cheque">Cheque</option><option value="UPI">UPI</option><option value="Bank Transfer">Bank Transfer</option><option value="Credit">Credit (Credit Sale)</option></select></div>
+                            <div class="cash-given" id="cashGivenGroup"><label for="cashGiven">Cash Given <kbd>F10</kbd></label><input type="number" class="form-control" id="cashGiven" step="0.01" placeholder="0.00" aria-keyshortcuts="F10"></div>
+                            <div class="change-amount" id="changeGroup" style="display: none;"><label>Change</label><div class="change-value"><span id="changeCurrency">Rs. </span><span id="changeAmount">0.00</span></div></div>
+                            <div class="action-buttons sticky-payment-actions"><div class="primary-actions"><button class="btn btn-success btn-pay" id="checkoutBtn" disabled title="Complete sale (F8 or Ctrl+Enter)"><i class="fas fa-credit-card me-2"></i>Pay Now</button><button class="btn btn-warning" id="holdBtn" title="Hold bill (F9)"><i class="fas fa-clock me-1"></i>Hold Bill</button><button class="btn btn-danger" id="cancelBtn" title="Cancel sale (Esc)"><i class="fas fa-times me-1"></i>Cancel</button></div><div class="receipt-actions mt-2 d-none" id="receiptActions"><button class="btn btn-outline-primary btn-sm" id="downloadReceiptBtn"><i class="fas fa-download me-1"></i>Download</button><button class="btn btn-outline-secondary btn-sm" id="printReceiptBtn"><i class="fas fa-print me-1"></i>Print</button></div></div>
                         </div>
                     </div>
                 </div>
@@ -4208,6 +4153,47 @@ function resetSale() {
 .customer-credit-info .credit-warning.danger {
     background: #f8d7da;
     border-color: #f5c6cb;
+}
+
+/* Unified sticky payment bar: fields and actions share one horizontal row. */
+.payment-section {
+    display: block;
+    position: sticky;
+    bottom: 0;
+    z-index: 40;
+    padding: 12px;
+    margin-left: -12px;
+    margin-right: -12px;
+    background: rgba(255, 255, 255, 0.98);
+    border-top: 1px solid #dbe3ee;
+    box-shadow: 0 -8px 24px rgba(15, 23, 42, 0.12);
+    backdrop-filter: blur(12px);
+}
+.payment-support-details { width: 100%; }
+.payment-sticky-row {
+    display: grid;
+    grid-template-columns: minmax(180px, 1fr) minmax(160px, 1fr) minmax(90px, auto) minmax(390px, 2.2fr);
+    align-items: end;
+    gap: 10px;
+}
+.payment-sticky-row .payment-method,
+.payment-sticky-row .cash-given,
+.payment-sticky-row .change-amount { min-width: 0; }
+.payment-sticky-row .change-amount { white-space: nowrap; }
+.payment-sticky-row .sticky-payment-actions {
+    position: static;
+    min-width: 0;
+    margin: 0;
+    padding: 0;
+    border: 0;
+    box-shadow: none;
+    background: transparent;
+    backdrop-filter: none;
+}
+@media (max-width: 900px) {
+    .payment-sticky-row { grid-template-columns: minmax(0, 1fr) minmax(0, 1fr); }
+    .payment-sticky-row .change-amount { grid-column: 1 / -1; }
+    .payment-sticky-row .sticky-payment-actions { grid-column: 1 / -1; }
 }
 </style>
 {% endblock %}
