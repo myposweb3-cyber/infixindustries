@@ -2,16 +2,157 @@
 {% block title %}Stock Count | {{ app_name }}{% endblock %}
 {% block content %}
 <div class="container-fluid py-3 stock-count-page">
-  <div class="d-flex flex-wrap justify-content-between align-items-center gap-2 mb-3"><div><h1 class="h4 mb-1">Stock Count & Valuation</h1><p class="text-muted mb-0">Count physical stock, record variances, and review inventory value.</p></div><button class="btn btn-primary" id="newCountBtn">Start New Count</button></div>
-  <div id="alert" class="alert d-none"></div>
-  <div class="row g-3 mb-3"><div class="col-6 col-lg-3"><div class="card metric-card"><small>Products</small><strong id="productCount">0</strong></div></div><div class="col-6 col-lg-3"><div class="card metric-card"><small>Total units</small><strong id="totalUnits">0</strong></div></div><div class="col-6 col-lg-3"><div class="card metric-card"><small>Cost value</small><strong id="costValue">₨ 0.00</strong></div></div><div class="col-6 col-lg-3"><div class="card metric-card highlight"><small>Potential margin</small><strong id="marginValue">₨ 0.00</strong></div></div></div>
-  <div class="card border-0 shadow-sm"><div class="card-header bg-white d-flex justify-content-between"><strong>Recent counts</strong><button class="btn btn-sm btn-outline-secondary" id="refreshBtn">Refresh</button></div><div class="table-responsive"><table class="table align-middle mb-0"><thead><tr><th>ID</th><th>Created</th><th>Status</th><th>Items</th><th>Action</th></tr></thead><tbody id="countsBody"><tr><td colspan="5" class="text-center text-muted py-4">Loading...</td></tr></tbody></table></div></div>
+  <div class="d-flex flex-wrap justify-content-between align-items-center gap-2 mb-3">
+    <div>
+      <h1 class="h4 mb-1">Stock Count &amp; Valuation</h1>
+      <p class="text-muted mb-0">Count physical stock, record variances, and review inventory value.</p>
+    </div>
+    <button class="btn btn-primary" id="newCountBtn">Start New Count</button>
+  </div>
+  <div id="alert" class="alert d-none" role="alert"></div>
+  <div class="row g-3 mb-3">
+    <div class="col-6 col-lg-3"><div class="card metric-card"><small>Products</small><strong id="productCount">0</strong></div></div>
+    <div class="col-6 col-lg-3"><div class="card metric-card"><small>Total units</small><strong id="totalUnits">0</strong></div></div>
+    <div class="col-6 col-lg-3"><div class="card metric-card"><small>Cost value</small><strong id="costValue">₨ 0.00</strong></div></div>
+    <div class="col-6 col-lg-3"><div class="card metric-card highlight"><small>Potential margin</small><strong id="marginValue">₨ 0.00</strong></div></div>
+  </div>
+  <div class="card border-0 shadow-sm">
+    <div class="card-header bg-white d-flex justify-content-between align-items-center">
+      <strong>Recent counts</strong><button class="btn btn-sm btn-outline-secondary" id="refreshBtn">Refresh</button>
+    </div>
+    <div class="table-responsive">
+      <table class="table align-middle mb-0">
+        <thead><tr><th>ID</th><th>Created</th><th>Status</th><th>Items</th><th>Action</th></tr></thead>
+        <tbody id="countsBody"><tr><td colspan="5" class="text-center text-muted py-4">Loading...</td></tr></tbody>
+      </table>
+    </div>
+  </div>
+</div>
+
+<div class="modal fade" id="viewCountModal" tabindex="-1" aria-labelledby="viewCountModalLabel" aria-hidden="true">
+  <div class="modal-dialog modal-lg modal-dialog-scrollable">
+    <div class="modal-content">
+      <div class="modal-header">
+        <h5 class="modal-title" id="viewCountModalLabel"><i class="fas fa-clipboard-list me-2"></i>Stock Count Details</h5>
+        <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+      </div>
+      <div class="modal-body">
+        <div class="row g-3 mb-3">
+          <div class="col-sm-4"><small class="text-muted d-block">Count</small><strong id="viewCountNumber">—</strong></div>
+          <div class="col-sm-4"><small class="text-muted d-block">Created</small><strong id="viewCountCreated">—</strong></div>
+          <div class="col-sm-4"><small class="text-muted d-block">Status</small><span id="viewCountStatus" class="badge status-badge">—</span></div>
+        </div>
+        <div class="table-responsive">
+          <table class="table table-sm table-striped align-middle">
+            <thead><tr><th>Product</th><th class="text-end">System</th><th class="text-end">Counted</th><th class="text-end">Variance</th><th>Reason</th></tr></thead>
+            <tbody id="viewCountItemsBody"><tr><td colspan="5" class="text-center text-muted">Loading...</td></tr></tbody>
+          </table>
+        </div>
+      </div>
+      <div class="modal-footer"><button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Close</button></div>
+    </div>
+  </div>
 </div>
 {% endblock %}
-{% block scripts %}<script>
-const money=v=>`₨ ${Number(v||0).toFixed(2)}`; const csrf=document.querySelector('meta[name="csrf-token"]')?.content||'';
-function alertMsg(text,type='success'){const e=document.getElementById('alert');e.className=`alert alert-${type}`;e.textContent=text;}
-async function refresh(){const [v,c]=await Promise.all([fetch('/api/inventory/valuation'),fetch('/api/inventory/stock-counts')]);const valuation=await v.json(), counts=await c.json();document.getElementById('productCount').textContent=valuation.product_count;document.getElementById('totalUnits').textContent=valuation.total_units;document.getElementById('costValue').textContent=money(valuation.cost_value);document.getElementById('marginValue').textContent=money(valuation.potential_margin);document.getElementById('countsBody').innerHTML=counts.counts.length?counts.counts.map(x=>`<tr><td>#${x.id}</td><td>${new Date(x.created_at).toLocaleString()}</td><td><span class="badge text-bg-${x.status==='completed'?'success':'warning'}">${x.status}</span></td><td>${x.items.length}</td><td>${x.status==='open'?`<button class="btn btn-sm btn-outline-primary" onclick="openCount(${x.id})">Open</button>`:'—'}</td></tr>`).join(''):'<tr><td colspan="5" class="text-center text-muted py-4">No stock counts yet.</td></tr>';}
-async function openCount(id){const response=await fetch('/api/inventory/stock-counts');const data=await response.json();const count=data.counts.find(x=>x.id===id);if(!count)return;const rows=count.items.filter(x=>x.variance!==0||x.system_quantity!==0).map(x=>{const value=window.prompt(`${x.product_name} — system ${x.system_quantity}\nEnter counted quantity:`,x.counted_quantity);if(value===null)return null;const reason=x.reason||window.prompt('Reason for variance (required if changed):','Physical stock count');return {id:x.id,counted_quantity:value,reason:reason||''};}).filter(Boolean);if(!rows.length)return;const save=await fetch(`/api/inventory/stock-counts/${id}`,{method:'PUT',headers:{'Content-Type':'application/json','X-CSRFToken':csrf},body:JSON.stringify({items:rows})});if(!save.ok){const e=await save.json();alertMsg(e.error||'Unable to save count','danger');return;}if(confirm('Complete this count and apply all variances?')){const done=await fetch(`/api/inventory/stock-counts/${id}/complete`,{method:'POST',headers:{'Content-Type':'application/json','X-CSRFToken':csrf}});const result=await done.json();alertMsg(result.error||'Stock count completed',done.ok?'success':'danger');refresh();}else alertMsg('Count saved. Complete it later.');}
-document.getElementById('newCountBtn').onclick=async()=>{const r=await fetch('/api/inventory/stock-counts',{method:'POST',headers:{'Content-Type':'application/json','X-CSRFToken':csrf},body:JSON.stringify({})});const d=await r.json();alertMsg(d.error||`Stock count #${d.count?.id} started`,r.ok?'success':'danger');refresh();};document.getElementById('refreshBtn').onclick=refresh;refresh().catch(e=>alertMsg(e.message,'danger'));
-</script><style>.metric-card{padding:14px;border:0;min-height:82px}.metric-card small{color:#64748b}.metric-card strong{font-size:1.15rem}.metric-card.highlight{background:#eff6ff;color:#1d4ed8}.stock-count-page .table{min-width:620px}@media(max-width:575px){.stock-count-page .btn{min-height:42px}}</style>{% endblock %}
+{% block scripts %}
+<script>
+const money = v => `₨ ${Number(v || 0).toFixed(2)}`;
+const csrf = document.querySelector('meta[name="csrf-token"]')?.content || '';
+const countModal = document.getElementById('viewCountModal') ? new bootstrap.Modal(document.getElementById('viewCountModal')) : null;
+function alertMsg(text, type = 'success') {
+  const e = document.getElementById('alert');
+  e.className = `alert alert-${type}`;
+  e.textContent = text;
+  e.classList.remove('d-none');
+}
+function statusMarkup(status) {
+  const normalized = String(status || 'open').toLowerCase();
+  const label = normalized === 'completed' ? 'Completed' : 'Open';
+  return `<span class="badge status-badge status-${normalized}">${label}</span>`;
+}
+async function getCount(id) {
+  const response = await fetch('/api/inventory/stock-counts');
+  if (!response.ok) throw new Error('Unable to load stock counts');
+  const data = await response.json();
+  return (data.counts || []).find(x => Number(x.id) === Number(id));
+}
+async function refresh() {
+  const [valuationResponse, countsResponse] = await Promise.all([
+    fetch('/api/inventory/valuation'), fetch('/api/inventory/stock-counts')
+  ]);
+  if (!valuationResponse.ok || !countsResponse.ok) throw new Error('Unable to load stock-count data');
+  const valuation = await valuationResponse.json();
+  const counts = await countsResponse.json();
+  document.getElementById('productCount').textContent = valuation.product_count || 0;
+  document.getElementById('totalUnits').textContent = valuation.total_units || 0;
+  document.getElementById('costValue').textContent = money(valuation.cost_value);
+  document.getElementById('marginValue').textContent = money(valuation.potential_margin);
+  const list = counts.counts || [];
+  document.getElementById('countsBody').innerHTML = list.length ? list.map(x => `
+    <tr>
+      <td class="fw-semibold">#${x.id}</td>
+      <td>${new Date(x.created_at).toLocaleString()}</td>
+      <td>${statusMarkup(x.status)}</td>
+      <td>${x.items?.length || 0}</td>
+      <td class="text-nowrap">${String(x.status).toLowerCase() === 'open'
+        ? `<button class="btn btn-sm btn-outline-primary" onclick="openCount(${x.id})"><i class="fas fa-folder-open me-1"></i>Open</button>`
+        : `<button class="btn btn-sm btn-outline-secondary" onclick="viewCount(${x.id})"><i class="fas fa-eye me-1"></i>View</button>`}</td>
+    </tr>`).join('') : '<tr><td colspan="5" class="text-center text-muted py-4">No stock counts yet.</td></tr>';
+}
+async function viewCount(id) {
+  try {
+    const count = await getCount(id);
+    if (!count) throw new Error('Stock count not found');
+    document.getElementById('viewCountNumber').textContent = `#${count.id}`;
+    document.getElementById('viewCountCreated').textContent = new Date(count.created_at).toLocaleString();
+    const status = document.getElementById('viewCountStatus');
+    status.className = `badge status-badge status-${String(count.status).toLowerCase()}`;
+    status.textContent = String(count.status).toLowerCase() === 'completed' ? 'Completed' : 'Open';
+    const body = document.getElementById('viewCountItemsBody');
+    body.innerHTML = (count.items || []).length ? count.items.map(item => `
+      <tr><td>${item.product_name || 'Unknown product'}</td><td class="text-end">${Number(item.system_quantity || 0)}</td><td class="text-end">${Number(item.counted_quantity || 0)}</td><td class="text-end ${Number(item.variance || 0) < 0 ? 'text-danger' : Number(item.variance || 0) > 0 ? 'text-success' : ''}">${Number(item.variance || 0)}</td><td>${item.reason || '—'}</td></tr>`).join('') : '<tr><td colspan="5" class="text-center text-muted">No items recorded.</td></tr>';
+    countModal?.show();
+  } catch (error) { alertMsg(error.message, 'danger'); }
+}
+async function openCount(id) {
+  try {
+    const count = await getCount(id);
+    if (!count) return;
+    const rows = (count.items || []).filter(x => x.variance !== 0 || x.system_quantity !== 0).map(x => {
+      const value = window.prompt(`${x.product_name} — system ${x.system_quantity}\nEnter counted quantity:`, x.counted_quantity);
+      if (value === null) return null;
+      const reason = x.reason || window.prompt('Reason for variance (required if changed):', 'Physical stock count');
+      return { id: x.id, counted_quantity: value, reason: reason || '' };
+    }).filter(Boolean);
+    if (!rows.length) return;
+    const save = await fetch(`/api/inventory/stock-counts/${id}`, { method: 'PUT', headers: { 'Content-Type': 'application/json', 'X-CSRFToken': csrf }, body: JSON.stringify({ items: rows }) });
+    if (!save.ok) { const e = await save.json(); alertMsg(e.error || 'Unable to save count', 'danger'); return; }
+    if (confirm('Complete this count and apply all variances?')) {
+      const done = await fetch(`/api/inventory/stock-counts/${id}/complete`, { method: 'POST', headers: { 'Content-Type': 'application/json', 'X-CSRFToken': csrf } });
+      const result = await done.json();
+      alertMsg(result.error || 'Stock count completed', done.ok ? 'success' : 'danger');
+      refresh();
+    } else alertMsg('Count saved. Complete it later.');
+  } catch (error) { alertMsg(error.message, 'danger'); }
+}
+document.getElementById('newCountBtn').onclick = async () => {
+  const r = await fetch('/api/inventory/stock-counts', { method: 'POST', headers: { 'Content-Type': 'application/json', 'X-CSRFToken': csrf }, body: JSON.stringify({}) });
+  const d = await r.json();
+  alertMsg(d.error || `Stock count #${d.count?.id} started`, r.ok ? 'success' : 'danger');
+  refresh();
+};
+document.getElementById('refreshBtn').onclick = refresh;
+refresh().catch(e => alertMsg(e.message, 'danger'));
+</script>
+<style>
+.metric-card { padding: 14px; border: 0; min-height: 82px; }
+.metric-card small { color: #64748b; }
+.metric-card strong { font-size: 1.15rem; }
+.metric-card.highlight { background: #eff6ff; color: #1d4ed8; }
+.stock-count-page .table { min-width: 620px; }
+.status-badge { display: inline-flex; align-items: center; justify-content: center; min-width: 82px; padding: .42rem .65rem; border-radius: 999px; font-size: .78rem; font-weight: 700; line-height: 1; }
+.status-open { background: #fef3c7 !important; color: #92400e !important; border: 1px solid #f59e0b; }
+.status-completed { background: #dcfce7 !important; color: #166534 !important; border: 1px solid #22c55e; }
+@media (max-width: 575px) { .stock-count-page .btn { min-height: 42px; } }
+</style>
+{% endblock %}
