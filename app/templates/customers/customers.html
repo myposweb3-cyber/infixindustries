@@ -654,7 +654,6 @@
                     <div class="col-md-4 d-flex align-items-end">
                             <div class="d-flex w-100">
                                 <button class="btn btn-primary w-100 me-2" type="button" id="loadTakeOrderProductsBtn">Search Products</button>
-                                <button class="btn btn-secondary" type="button" id="debugAddTestProductBtn">Debug Add Test Product</button>
                             </div>
                     </div>
                 </div>
@@ -1144,7 +1143,6 @@ function showModalAlert(message, level='danger') {
 
 
 $(document).ready(function() {
-    console.log('customers.html debug loaded v2');
     
     loadCustomerAnalytics();
     loadCustomers();
@@ -2604,11 +2602,13 @@ function loadTakeOrderProducts() {
                 return;
             }
             products.slice(0, 20).forEach(product => {
+                const isTestProduct = Boolean(product.is_test || product.is_test_product || (Array.isArray(product.tags) && product.tags.some(tag => String(tag).toLowerCase() === 'test')) || /\btest\b/i.test(product.name || ''));
+                const testBadge = isTestProduct ? '<span class="badge bg-warning text-dark ms-2" title="Test product">TEST</span>' : '';
                 const item = document.createElement('div');
                 item.className = 'd-flex justify-content-between align-items-center border rounded p-2 mb-2 bg-white';
                 item.innerHTML = `
                     <div>
-                        <strong>${product.name}</strong><br>
+                        <strong>${product.name}${testBadge}</strong><br>
                         <small class="text-muted">Stock: ${product.stock} | Price: ₨ ${parseFloat(product.price || 0).toFixed(2)}</small>
                     </div>
                     <button class="btn btn-sm btn-success" type="button" data-role="add-product" data-product-id="${product.id}" data-product-name="${(product.name || '').replace(/'/g, "\\'")}" data-product-price="${Number(product.price || 0)}">Add</button>
