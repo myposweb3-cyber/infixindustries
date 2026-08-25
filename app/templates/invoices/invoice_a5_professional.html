@@ -347,6 +347,12 @@
                         <td class="label-col">Subtotal:</td>
                         <td class="value-col">{{ currency_symbol }}{{ subtotal|format_number }}</td>
                     </tr>
+                    {% if discount_total > 0 %}
+                    <tr>
+                        <td class="label-col">Discount ({{ discount_percentage|default(0) }}%):</td>
+                        <td class="value-col">-{{ currency_symbol }}{{ discount_total|format_number }}</td>
+                    </tr>
+                    {% endif %}
                     {% if tax_total > 0 %}
                     <tr>
                         <td class="label-col">Tax ({{ tax_rate }}%):</td>
@@ -356,6 +362,10 @@
                     <tr class="total-row">
                         <td class="label-col">TOTAL:</td>
                         <td class="value-col">{{ currency_symbol }}{{ total|format_number }}</td>
+                    </tr>
+                    <tr>
+                        <td class="label-col">Payment Status:</td>
+                        <td class="value-col">{{ payment_status }}</td>
                     </tr>
                     <tr>
                         <td class="label-col">Paid Amount:</td>
@@ -371,12 +381,10 @@
                         <td class="value-col">{{ currency_symbol }}{{ change|format_number }}</td>
                     </tr>
                     {% endif %}
-                    {% if balance_due > 0 %}
                     <tr class="balance-row">
                         <td class="label-col">BALANCE:</td>
                         <td class="value-col">{{ currency_symbol }}{{ balance_due|format_number }}</td>
                     </tr>
-                    {% endif %}
                 </table>
             </div>
 
