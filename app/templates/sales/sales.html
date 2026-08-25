@@ -831,12 +831,12 @@ function setActiveProduct(index, shouldFocus = false) {
     });
 }
 
-function addProductToCart(product, quantity = 1, unitPrice = null, useCustomerPrice = true) {
+function addProductToCart(product, quantity = 1, unitPrice = null, useCustomerPrice = false) {
     if (!product || !product.id) return;
     const price = unitPrice === null || unitPrice === undefined
         ? Number(product.price) || 0
         : Number(unitPrice) || 0;
-    addToCart(product.id, product.name, price, product.unit_type || 'unit', quantity, useCustomerPrice);
+    addToCart(product.id, product.name, price, product.unit_type || 'unit', quantity, useCustomerPrice, Number(product.price) || 0);
 }
 
 function addWeightedBarcodeProduct(barcode) {
@@ -1375,12 +1375,12 @@ function displayProducts(products) {
         item.setAttribute('aria-label', `${product.name}, ${currencySymbol} ${formatMoney(currentPrice)}, stock ${product.stock}`);
         item.dataset.productIndex = productIndex;
         item.onclick = function() {
-            addProductToCart(product, 1, currentPrice, 'current');
+            addProductToCart(product, 1, currentPrice, false);
         };
         item.onkeydown = function(e) {
             if (e.key === 'Enter' || e.key === ' ') {
                 e.preventDefault();
-                addProductToCart(product, 1, currentPrice, 'current');
+                addProductToCart(product, 1, currentPrice, false);
             }
         };
         item.innerHTML = `
@@ -1397,7 +1397,7 @@ function displayProducts(products) {
     });
 }
 
-function addToCart(productId, name, price, unitType, quantity = 1, useCustomerPrice = true) {
+function addToCart(productId, name, price, unitType, quantity = 1, useCustomerPrice = false, currentCatalogPrice = null) {
     const requestedQuantity = Number(quantity);
     if (!Number.isFinite(requestedQuantity) || requestedQuantity <= 0) {
         showNotification('Invalid product quantity', 'warning');
@@ -1423,6 +1423,9 @@ function addToCart(productId, name, price, unitType, quantity = 1, useCustomerPr
             existingItem.quantity = currentQuantity + requestedQuantity;
             // If the cashier explicitly chose a price, apply it to the existing line too.
             existingItem.price = Number(price) || 0;
+            if (currentCatalogPrice !== null && currentCatalogPrice !== undefined) {
+                existingItem.current_price = Number(currentCatalogPrice) || 0;
+            }
             if (enableTax && showTaxInSales) {
                 existingItem.tax = existingItem.price * (taxRate / 100);
             }
@@ -1435,7 +1438,9 @@ function addToCart(productId, name, price, unitType, quantity = 1, useCustomerPr
                 product_id: productId,
                 name: name,
                 price: Number(price) || 0,
-                current_price: Number(price) || 0,
+                current_price: currentCatalogPrice !== null && currentCatalogPrice !== undefined
+                    ? Number(currentCatalogPrice) || 0
+                    : Number(price) || 0,
                 price_source: 'current',
                 quantity: requestedQuantity,
                 unit_type: unitType,
