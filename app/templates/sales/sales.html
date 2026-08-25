@@ -1726,10 +1726,28 @@ function setCustomerCartPrice(index, source) {
     const previousPrice = window.customerLastPrices && window.customerLastPrices[item.product_id] !== undefined
         ? Number(window.customerLastPrices[item.product_id])
         : null;
-    const selectedPrice = source === 'previous' && previousPrice !== null ? previousPrice : currentPrice;
-    item.price = selectedPrice;
-    item.price_source = source === 'previous' && previousPrice !== null ? 'previous' : 'current';
-    if (enableTax && showTaxInSales) item.tax = selectedPrice * (taxRate / 100);
+
+    if (source === 'previous' && previousPrice !== null && currentPrice > 0) {
+        // Keep the live catalog price as the accounting base and represent the
+        // customer's old price as an automatic percentage discount. This keeps
+        // the displayed discount input useful without discounting the old price twice.
+        const percentage = Math.max(0, Math.min(100, ((currentPrice - previousPrice) / currentPrice) * 100));
+        item.price = currentPrice;
+        item.price_source = 'previous';
+        item.discount_type = 'percent';
+        item.discount_value = Number(percentage.toFixed(2));
+        item.auto_customer_price_discount = true;
+        if (enableTax && showTaxInSales) item.tax = previousPrice * (taxRate / 100);
+    } else {
+        item.price = currentPrice;
+        item.price_source = 'current';
+        if (item.auto_customer_price_discount) {
+            item.discount_type = 'amount';
+            item.discount_value = 0;
+            item.auto_customer_price_discount = false;
+        }
+        if (enableTax && showTaxInSales) item.tax = currentPrice * (taxRate / 100);
+    }
     updateCartDisplay();
 }
 
