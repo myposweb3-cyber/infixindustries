@@ -1534,7 +1534,7 @@ function updateCartDisplay() {
                         <div class="cart-item-price">
                             <label class="small d-block mb-1">Price</label>
                             <div class="d-flex align-items-center gap-2">
-                                <input type="number" class="item-price form-control form-control-sm" value="${formatMoney(item.price)}" onchange="setItemPrice(${index}, this.value)" step="0.01" min="0" style="width: 100px;">
+                                <input type="number" class="item-price form-control form-control-sm" value="${Number(item.price || 0).toFixed(2)}" onchange="setItemPrice(${index}, this.value)" step="0.01" min="0" style="width: 100px;">
                                 ${currentCustomer && window.customerLastPrices && window.customerLastPrices[item.product_id] !== undefined ? `
                                 <div class="checkout-price-choice mt-2" role="group" aria-label="Choose customer price for ${item.name}">
                                     <span class="small text-muted d-block mb-1">Customer price options</span>
@@ -1808,7 +1808,7 @@ function calculateChange() {
 function loadCustomers(search = '') {
     const url = search
         ? `/sales/api/customers/search?search=${encodeURIComponent(search)}`
-        : '/customers/api/customers?per_page=100';
+        : '/sales/api/customers/search?search=';
 
     fetch(url)
         .then(response => {
