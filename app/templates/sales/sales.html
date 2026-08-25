@@ -585,7 +585,12 @@ document.addEventListener('DOMContentLoaded', function() {
     window.addEventListener('online', flushOfflineQueue);
     window.addEventListener('offline', updateOfflineStatus);
     flushOfflineQueue();
-    if (cart.length) updateCartDisplay();
+    if (cart.length) {
+        updateCartDisplay();
+        showPaymentSection();
+    } else {
+        showPaymentSection();
+    }
     
     // Check for search query in URL and apply
     const urlParams = new URLSearchParams(window.location.search);
