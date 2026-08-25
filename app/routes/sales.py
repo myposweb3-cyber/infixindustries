@@ -1,7 +1,7 @@
 from flask import Blueprint, render_template, request, jsonify, flash, redirect, url_for, send_file, current_app, session
 from flask_login import login_required, current_user
 from app.models import db, Product, Sale, SaleRequest, SaleItem, Customer, Setting, HeldBill, Return, ReturnItem, InventoryTransaction
-from app.models import Exchange, ExchangeItem, Cheque
+from app.models import Exchange, ExchangeItem, Cheque, CustomerPayment
 from app.utils.permissions import require_permission
 from app.utils.security import get_company_id, require_company_context
 from app.utils.company import column_exists_in_db
@@ -20,6 +20,40 @@ from app import csrf
 
 sales_bp = Blueprint('sales', __name__, template_folder='../../templates')
 
+
+def _receipt_settlement(sale):
+    """Return paid amount, balance, and change using current linked payments.
+
+    Order payments are recorded in CustomerPayment and may be added after the
+    original sale. The sale balance remains the source of truth, while linked
+    payments provide a safe fallback for older orders whose balance was not
+    updated by the legacy payment flow.
+    """
+    total = max(0.0, float(getattr(sale, 'total', 0) or 0))
+    stored_balance = max(0.0, float(getattr(sale, 'balance', 0) or 0))
+    linked_paid = 0.0
+    try:
+        query = CustomerPayment.query.filter(CustomerPayment.sale_id == sale.id)
+        if getattr(sale, 'company_id', None) is not None:
+            query = query.filter(CustomerPayment.company_id == sale.company_id)
+        linked_paid = sum(float(p.amount or 0) for p in query.all())
+    except Exception:
+        linked_paid = 0.0
+
+    if sale.payment == 'Cash':
+        paid = min(total, max(0.0, float(getattr(sale, 'cash_given', 0) or 0)))
+    elif sale.payment == 'Cheque':
+        paid = total
+    else:
+        # Prefer the latest stored balance, but recover payments linked to the
+        # order when the old workflow left the balance unchanged.
+        paid = min(total, max(total - stored_balance, linked_paid))
+
+    balance = max(0.0, total - paid)
+    cash_given = max(0.0, float(getattr(sale, 'cash_given', 0) or 0))
+    change = max(0.0, cash_given - total) if sale.payment == 'Cash' else 0.0
+    status = 'Paid' if total > 0 and balance <= 0.005 else ('Partial' if paid > 0 else 'Pending')
+    return paid, balance, change, status, linked_paid
 
 def _receipt_customer_details(sale, company_id=None):
     """Resolve durable customer contact details for receipt rendering.
@@ -839,21 +873,12 @@ def receipt_html(sale_id):
     if tax_total > 0 and taxable_base > 0:
         tax_rate = round((tax_total / taxable_base) * 100, 1)
     
-    change = sale.cash_given - sale.total if sale.payment == 'Cash' else 0
+    change = calculated_change
     
     # Calculate paid amount correctly
     # For Cash/Cheque: always fully paid
     # For Credit: paid_amount = total - balance
-    if sale.payment == 'Cash':
-        cash_received = max(0.0, float(sale.cash_given or 0.0))
-        paid_amount = min(float(sale.total or 0.0), cash_received)
-        balance_due = max(0.0, float(sale.total or 0.0) - paid_amount)
-    elif sale.payment == 'Cheque':
-        paid_amount = float(sale.total or 0.0)
-        balance_due = 0.0
-    else:
-        balance_due = max(0.0, float(sale.balance or 0.0))
-        paid_amount = max(0.0, float(sale.total or 0.0) - balance_due)
+    paid_amount, balance_due, calculated_change, calculated_payment_status, linked_payment_total = _receipt_settlement(sale)
     
     # Get receipt settings using the integrated function
     company_id = get_company_id()
@@ -907,12 +932,7 @@ def receipt_html(sale_id):
     cashier_name = getattr(getattr(sale, 'user', None), 'username', 'Cashier')
     
     # Payment status determination
-    if balance_due == 0 and sale.total > 0:
-        payment_status = 'Paid'
-    elif balance_due > 0 and paid_amount > 0:
-        payment_status = 'Partial'
-    else:
-        payment_status = 'Pending'
+    payment_status = calculated_payment_status
     
     # Convert UTC time to local time (add 6 hours for Asia/Kolkata timezone)
     local_sale_date = sale.date + timedelta(hours=6)
@@ -964,9 +984,10 @@ def receipt_html(sale_id):
         'tax_rate': tax_rate,
         'total': sale.total,
         'paid_amount': paid_amount,
+        'linked_payment_total': linked_payment_total,
         'balance_due': balance_due,
         'cash_given': sale.cash_given,
-        'change': max(0, change),
+        'change': calculated_change,
         'balance': getattr(sale, 'balance', 0),
         
         # Business info - Use business_name key which is now available from get_receipt_settings
@@ -1068,16 +1089,7 @@ def download_receipt_pdf(sale_id):
         # Calculate paid amount correctly
         # For Cash/Cheque: always fully paid
         # For Credit: paid_amount = total - balance
-        if sale.payment == 'Cash':
-            cash_received = max(0.0, float(sale.cash_given or 0.0))
-            paid_amount = min(float(sale.total or 0.0), cash_received)
-            balance_due = max(0.0, float(sale.total or 0.0) - paid_amount)
-        elif sale.payment == 'Cheque':
-            paid_amount = float(sale.total or 0.0)
-            balance_due = 0.0
-        else:
-            balance_due = max(0.0, float(sale.balance or 0.0))
-            paid_amount = max(0.0, float(sale.total or 0.0) - balance_due)
+        paid_amount, balance_due, calculated_change, calculated_payment_status, linked_payment_total = _receipt_settlement(sale)
         
         # Build template data
         discount_base = subtotal + discount_total
@@ -1212,18 +1224,9 @@ def receipt_html_public(sale_id):
     if tax_total > 0 and subtotal > 0:
         tax_rate = round((tax_total / subtotal) * 100, 1)
     
-    change = sale.cash_given - sale.total if sale.payment == 'Cash' else 0
+    change = calculated_change
     
-    if sale.payment == 'Cash':
-        cash_received = max(0.0, float(sale.cash_given or 0.0))
-        paid_amount = min(float(sale.total or 0.0), cash_received)
-        balance_due = max(0.0, float(sale.total or 0.0) - paid_amount)
-    elif sale.payment == 'Cheque':
-        paid_amount = float(sale.total or 0.0)
-        balance_due = 0.0
-    else:
-        balance_due = max(0.0, float(sale.balance or 0.0))
-        paid_amount = max(0.0, float(sale.total or 0.0) - balance_due)
+    paid_amount, balance_due, calculated_change, calculated_payment_status, linked_payment_total = _receipt_settlement(sale)
     
     # Get receipt settings using company_id from sale
     company_id = sale.company_id if hasattr(sale, 'company_id') else None
@@ -1270,12 +1273,7 @@ def receipt_html_public(sale_id):
     cashier_name = getattr(getattr(sale, 'user', None), 'username', 'Cashier')
     
     # Payment status
-    if balance_due == 0 and sale.total > 0:
-        payment_status = 'Paid'
-    elif balance_due > 0 and paid_amount > 0:
-        payment_status = 'Partial'
-    else:
-        payment_status = 'Pending'
+    payment_status = calculated_payment_status
     
     # Convert UTC to local time
     local_sale_date = sale.date + timedelta(hours=6)
@@ -1316,9 +1314,10 @@ def receipt_html_public(sale_id):
         'tax_rate': tax_rate,
         'total': sale.total,
         'paid_amount': paid_amount,
+        'linked_payment_total': linked_payment_total,
         'balance_due': balance_due,
         'cash_given': sale.cash_given,
-        'change': max(0, change),
+        'change': calculated_change,
         'balance': getattr(sale, 'balance', 0),
         
         'business_name': receipt_settings.get('business_name', 'POS SYSTEM'),
@@ -1414,16 +1413,7 @@ def download_receipt_pdf_public(sale_id):
         # Calculate paid amount correctly
         # For Cash/Cheque: always fully paid
         # For Credit: paid_amount = total - balance
-        if sale.payment == 'Cash':
-            cash_received = max(0.0, float(sale.cash_given or 0.0))
-            paid_amount = min(float(sale.total or 0.0), cash_received)
-            balance_due = max(0.0, float(sale.total or 0.0) - paid_amount)
-        elif sale.payment == 'Cheque':
-            paid_amount = float(sale.total or 0.0)
-            balance_due = 0.0
-        else:
-            balance_due = max(0.0, float(sale.balance or 0.0))
-            paid_amount = max(0.0, float(sale.total or 0.0) - balance_due)
+        paid_amount, balance_due, calculated_change, calculated_payment_status, linked_payment_total = _receipt_settlement(sale)
         
         # Build template data
         discount_base = subtotal + discount_total
@@ -1586,16 +1576,7 @@ def print_receipt(sale_id):
         # Calculate paid amount correctly
         # For Cash/Cheque: always fully paid
         # For Credit: paid_amount = total - balance
-        if sale.payment == 'Cash':
-            cash_received = max(0.0, float(sale.cash_given or 0.0))
-            paid_amount = min(float(sale.total or 0.0), cash_received)
-            balance_due = max(0.0, float(sale.total or 0.0) - paid_amount)
-        elif sale.payment == 'Cheque':
-            paid_amount = float(sale.total or 0.0)
-            balance_due = 0.0
-        else:
-            balance_due = max(0.0, float(sale.balance or 0.0))
-            paid_amount = max(0.0, float(sale.total or 0.0) - balance_due)
+        paid_amount, balance_due, calculated_change, calculated_payment_status, linked_payment_total = _receipt_settlement(sale)
         
         # Build template data
         receipt_customer = _receipt_customer_details(sale, company_id)
@@ -1658,7 +1639,7 @@ def print_receipt(sale_id):
             'paid_amount': paid_amount,
             'balance_due': balance_due,
             'cash_given': sale.cash_given,
-            'change': max(0, sale.cash_given - total) if sale.payment == 'Cash' else 0,
+            'change': calculated_change,
             'payment_method': sale.payment,
             'currency_symbol': 'Rs. ',
             'thank_you_message': receipt_settings.get('thank_you_message', 'Thank You'),
