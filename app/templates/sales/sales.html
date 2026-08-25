@@ -1379,13 +1379,18 @@ function displayProducts(products) {
         const currentPrice = Number(product.price) || 0;
         item.setAttribute('aria-label', `${product.name}, ${currencySymbol} ${formatMoney(currentPrice)}, stock ${product.stock}`);
         item.dataset.productIndex = productIndex;
+        const hasPreviousCustomerPrice = Boolean(
+            window.customerLastPrices && window.customerLastPrices[product.id] !== undefined
+        );
         item.onclick = function() {
-            addProductToCart(product, 1, currentPrice, false);
+            // Existing customers start at their previous price; the checkout line
+            // still exposes the live Current price as an explicit alternative.
+            addProductToCart(product, 1, currentPrice, hasPreviousCustomerPrice);
         };
         item.onkeydown = function(e) {
             if (e.key === 'Enter' || e.key === ' ') {
                 e.preventDefault();
-                addProductToCart(product, 1, currentPrice, false);
+                addProductToCart(product, 1, currentPrice, hasPreviousCustomerPrice);
             }
         };
         item.innerHTML = `
