@@ -373,7 +373,7 @@
             </div>
             <div class="total-row">
                 <span class="total-label">Subtotal After Discount:</span>
-                <span class="total-value">{{ currency_symbol }}{{ subtotal - discount_total|format_number }}</span>
+                <span class="total-value">{{ currency_symbol }}{{ subtotal_after_discount|default(subtotal)|format_number }}</span>
             </div>
             {% endif %}
             {% if tax_amount and tax_amount > 0 %}

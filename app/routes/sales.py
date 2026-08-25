@@ -1306,6 +1306,7 @@ def receipt_html_public(sale_id):
         'items': items_data,
         
         'subtotal': subtotal,
+        'subtotal_after_discount': max(0.0, subtotal - discount_total),
         'discount': discount_total,
         'discount_total': discount_total,
         'discount_percentage': discount_percentage,
