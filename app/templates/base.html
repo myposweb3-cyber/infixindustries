@@ -31,6 +31,29 @@
             flex: 1;
             overflow-y: auto;
         }
+
+        /* Global connection status badge in the sidebar. */
+        .sidebar-connection-status {
+            margin: 0.75rem 1rem 0.5rem;
+            min-height: 2.25rem;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            gap: 0.35rem;
+            padding: 0.45rem 0.7rem;
+            border: 1px solid rgba(255,255,255,.16);
+            border-radius: 999px;
+            font-size: .78rem;
+            font-weight: 700;
+            line-height: 1.2;
+            transition: background-color .2s ease, color .2s ease, border-color .2s ease;
+        }
+        .sidebar-connection-status.online { color: #b8f7d0; background: rgba(25,135,84,.18); border-color: rgba(25,135,84,.45); }
+        .sidebar-connection-status.pending { color: #ffe69c; background: rgba(255,193,7,.16); border-color: rgba(255,193,7,.45); }
+        .sidebar-connection-status.offline { color: #ffb3b3; background: rgba(220,53,69,.18); border-color: rgba(220,53,69,.45); }
+        .sidebar.collapsed .sidebar-connection-status { margin-left: .65rem; margin-right: .65rem; padding-left: .35rem; padding-right: .35rem; }
+        .sidebar.collapsed .sidebar-connection-status span { display: none; }
+        @media (max-width: 991.98px) { .sidebar-connection-status { margin-top: .5rem; } }
     </style>
 </head>
 <body>
@@ -49,6 +72,9 @@
                     <i class="fas fa-times"></i>
                 </button>
             </div>
+        </div>
+        <div id="offlineStatus" class="sidebar-connection-status online" role="status" aria-live="polite" title="Connection status">
+            <i class="fas fa-cloud" aria-hidden="true"></i><span>Online</span>
         </div>
         
         <nav class="sidebar-nav">
