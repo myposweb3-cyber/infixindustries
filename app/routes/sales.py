@@ -1232,8 +1232,6 @@ def receipt_html_public(sale_id):
     if tax_total > 0 and subtotal > 0:
         tax_rate = round((tax_total / subtotal) * 100, 1)
     
-    change = calculated_change
-    
     paid_amount, balance_due, calculated_change, calculated_payment_status, linked_payment_total, effective_payment_method, display_cash_received = _receipt_settlement(sale)
     
     # Get receipt settings using company_id from sale
@@ -2304,7 +2302,7 @@ def get_sale(sale_id):
         'customer': sale.customer,
         'total': sale.total,
         'payment': sale.payment,
-        'cash_given': display_cash_received,
+        'cash_given': sale.cash_given,
         'balance': sale.balance,
         'user': sale.user.username if sale.user else 'Unknown',
         'items': []
