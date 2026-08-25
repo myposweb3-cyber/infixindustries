@@ -914,8 +914,6 @@ def receipt_html(sale_id):
     
     discount_base = sum(float(item.get('unit_price', 0) or 0) * float(item.get('quantity', 0) or 0) for item in items_data)
     discount_percentage = round((discount_total / discount_base) * 100, 2) if discount_base > 0 else 0.0
-    discount_base = subtotal + discount_total
-    discount_percentage = round((discount_total / discount_base) * 100, 2) if discount_base > 0 else 0.0
     receipt_customer = _receipt_customer_details(sale, company_id)
 
     context = {
@@ -1588,12 +1586,12 @@ def print_receipt(sale_id):
                 'tax_id': receipt_settings.get('business_gst', ''),
             },
             'customer': {
-                'name': sale.customer.name if (hasattr(sale, 'customer') and hasattr(sale.customer, 'name')) else (str(sale.customer) if sale.customer else 'Walk-in Customer'),
-                'company': sale.customer.company_name if sale.customer and hasattr(sale.customer, 'company_name') else '',
-                'address': sale.customer.address if sale.customer and hasattr(sale.customer, 'address') else '',
-                'city': sale.customer.city if sale.customer and hasattr(sale.customer, 'city') else '',
-                'phone': sale.customer.phone if sale.customer and hasattr(sale.customer, 'phone') else '',
-                'email': sale.customer.email if sale.customer and hasattr(sale.customer, 'email') else '',
+                'name': receipt_customer['name'],
+                'company': '',
+                'address': receipt_customer['address'],
+                'city': '',
+                'phone': receipt_customer['phone'],
+                'email': receipt_customer['email'],
             },
             'invoice_number': f"RECEIPT-{sale.id}",
             'invoice_date': sale.date.strftime('%m/%d/%Y') if sale.date else datetime.now().strftime('%m/%d/%Y'),
@@ -1627,6 +1625,8 @@ def print_receipt(sale_id):
             'items': items,
             'subtotal': subtotal,
             'discount_total': discount_total,
+            'discount_percentage': round((discount_total / (subtotal + discount_total)) * 100, 2) if (subtotal + discount_total) > 0 else 0.0,
+            'payment_status': ('Paid' if balance_due == 0 and total > 0 else ('Partial' if balance_due > 0 and paid_amount > 0 else 'Pending')),
             'tax_amount': tax_total,
             'tax_total': tax_total,
             'tax_rate': tax_total / subtotal * 100 if subtotal > 0 else 0,
