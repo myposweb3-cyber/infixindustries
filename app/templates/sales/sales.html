@@ -1525,6 +1525,15 @@ function updateCartDisplay() {
     cart.forEach((item, index) => {
         // Calculate per-item totals (do not include tax here to avoid double-counting)
         const itemPriceTotal = item.price * item.quantity;
+        const previousCustomerPrice = Number(window.customerLastPrices?.[item.product_id]);
+        const liveCurrentPrice = Number(item.current_price ?? item.price) || 0;
+        const hasPreviousCustomerPrice = currentCustomer && Number.isFinite(previousCustomerPrice);
+        const priceDifferencePercentage = hasPreviousCustomerPrice && liveCurrentPrice > 0
+            ? ((liveCurrentPrice - previousCustomerPrice) / liveCurrentPrice) * 100
+            : 0;
+        const priceDifferenceLabel = priceDifferencePercentage > 0.005
+            ? `${Math.abs(priceDifferencePercentage).toFixed(2)}% lower`
+            : (priceDifferencePercentage < -0.005 ? `${Math.abs(priceDifferencePercentage).toFixed(2)}% higher` : 'same price');
         const discountValue = parseFloat(item.discount_value) || 0;
         const discountType = item.discount_type || 'amount';
         // Compute discount amount depending on type
@@ -1556,8 +1565,8 @@ function updateCartDisplay() {
                                 ${currentCustomer && window.customerLastPrices && window.customerLastPrices[item.product_id] !== undefined ? `
                                 <div class="checkout-price-choice mt-2" role="group" aria-label="Choose customer price for ${item.name}">
                                     <span class="small text-muted d-block mb-1">Customer price options</span>
-                                    <button type="button" class="btn btn-outline-primary btn-sm me-1" onclick="setCustomerCartPrice(${index}, 'previous')">Previous ${currencySymbol} ${formatMoney(window.customerLastPrices[item.product_id])}</button>
-                                    <button type="button" class="btn btn-primary btn-sm" onclick="setCustomerCartPrice(${index}, 'current')">Current ${currencySymbol} ${formatMoney(item.current_price ?? item.price)}</button>
+                                    <button type="button" class="btn btn-outline-primary btn-sm me-1" onclick="setCustomerCartPrice(${index}, 'previous')">Previous ${currencySymbol} ${formatMoney(previousCustomerPrice)} <span class="price-difference">(${priceDifferenceLabel})</span></button>
+                                    <button type="button" class="btn btn-primary btn-sm" onclick="setCustomerCartPrice(${index}, 'current')">Current ${currencySymbol} ${formatMoney(liveCurrentPrice)}</button>
                                 </div>` : ''}
                             </div>
                         </div>
@@ -3166,6 +3175,11 @@ function resetSale() {
 .checkout-price-choice .btn {
     white-space: nowrap;
     font-size: 0.72rem;
+}
+.checkout-price-choice .price-difference {
+    font-size: 0.66rem;
+    font-weight: 700;
+    opacity: 0.9;
 }
 @media (max-width: 576px) {
     .checkout-price-choice {
