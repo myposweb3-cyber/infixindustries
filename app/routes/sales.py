@@ -32,11 +32,15 @@ def _receipt_settlement(sale):
     total = max(0.0, float(getattr(sale, 'total', 0) or 0))
     stored_balance = max(0.0, float(getattr(sale, 'balance', 0) or 0))
     linked_paid = 0.0
+    linked_method = None
     try:
         query = CustomerPayment.query.filter(CustomerPayment.sale_id == sale.id)
         if getattr(sale, 'company_id', None) is not None:
             query = query.filter(CustomerPayment.company_id == sale.company_id)
-        linked_paid = sum(float(p.amount or 0) for p in query.all())
+        linked_payments = query.order_by(CustomerPayment.date.desc(), CustomerPayment.id.desc()).all()
+        linked_paid = sum(float(p.amount or 0) for p in linked_payments)
+        if linked_payments:
+            linked_method = linked_payments[0].payment_method or None
     except Exception:
         linked_paid = 0.0
 
@@ -53,10 +57,12 @@ def _receipt_settlement(sale):
         paid = min(total, max(total - stored_balance, linked_paid))
 
     balance = max(0.0, total - paid)
-    cash_given = max(0.0, float(getattr(sale, 'cash_given', 0) or 0))
-    change = max(0.0, cash_given - total) if sale.payment == 'Cash' else 0.0
+    original_cash = max(0.0, float(getattr(sale, 'cash_given', 0) or 0))
+    effective_method = linked_method or sale.payment or 'Cash'
+    display_cash_received = max(original_cash, linked_paid) if effective_method == 'Cash' else original_cash
+    change = max(0.0, display_cash_received - total) if effective_method == 'Cash' else 0.0
     status = 'Paid' if total > 0 and balance <= 0.005 else ('Partial' if paid > 0 else 'Pending')
-    return paid, balance, change, status, linked_paid
+    return paid, balance, change, status, linked_paid, effective_method, display_cash_received
 
 def _receipt_customer_details(sale, company_id=None):
     """Resolve durable customer contact details for receipt rendering.
@@ -779,7 +785,7 @@ def get_receipt(sale_id):
         'subtotal': 0,
         'total': sale.total,
         'payment': sale.payment,
-        'cash_given': sale.cash_given,
+        'cash_given': display_cash_received,
         'balance': sale.balance
     }
 
@@ -880,7 +886,7 @@ def receipt_html(sale_id):
     # any payments linked to this specific order.
     # For Cash/Cheque: always fully paid
     # For Credit: paid_amount = total - balance
-    paid_amount, balance_due, calculated_change, calculated_payment_status, linked_payment_total = _receipt_settlement(sale)
+    paid_amount, balance_due, calculated_change, calculated_payment_status, linked_payment_total, effective_payment_method, display_cash_received = _receipt_settlement(sale)
     
     # Get receipt settings using the integrated function
     company_id = get_company_id()
@@ -969,7 +975,7 @@ def receipt_html(sale_id):
         'shipping_phone': getattr(sale, 'shipping_phone', ''),
         
         # Payment info
-        'payment_method': sale.payment,
+        'payment_method': effective_payment_method,
         'cashier_name': cashier_name,
         
         # Items
@@ -988,7 +994,7 @@ def receipt_html(sale_id):
         'paid_amount': paid_amount,
         'linked_payment_total': linked_payment_total,
         'balance_due': balance_due,
-        'cash_given': sale.cash_given,
+        'cash_given': display_cash_received,
         'change': calculated_change,
         'balance': getattr(sale, 'balance', 0),
         
@@ -1091,7 +1097,7 @@ def download_receipt_pdf(sale_id):
         # Calculate paid amount correctly
         # For Cash/Cheque: always fully paid
         # For Credit: paid_amount = total - balance
-        paid_amount, balance_due, calculated_change, calculated_payment_status, linked_payment_total = _receipt_settlement(sale)
+        paid_amount, balance_due, calculated_change, calculated_payment_status, linked_payment_total, effective_payment_method, display_cash_received = _receipt_settlement(sale)
         
         # Build template data
         discount_base = subtotal + discount_total
@@ -1228,7 +1234,7 @@ def receipt_html_public(sale_id):
     
     change = calculated_change
     
-    paid_amount, balance_due, calculated_change, calculated_payment_status, linked_payment_total = _receipt_settlement(sale)
+    paid_amount, balance_due, calculated_change, calculated_payment_status, linked_payment_total, effective_payment_method, display_cash_received = _receipt_settlement(sale)
     
     # Get receipt settings using company_id from sale
     company_id = sale.company_id if hasattr(sale, 'company_id') else None
@@ -1302,7 +1308,7 @@ def receipt_html_public(sale_id):
         'shipping_address': getattr(sale, 'shipping_address', ''),
         'shipping_phone': getattr(sale, 'shipping_phone', ''),
         
-        'payment_method': sale.payment,
+        'payment_method': effective_payment_method,
         'cashier_name': cashier_name,
         
         'items': items_data,
@@ -1319,7 +1325,7 @@ def receipt_html_public(sale_id):
         'paid_amount': paid_amount,
         'linked_payment_total': linked_payment_total,
         'balance_due': balance_due,
-        'cash_given': sale.cash_given,
+        'cash_given': display_cash_received,
         'change': calculated_change,
         'balance': getattr(sale, 'balance', 0),
         
@@ -1416,7 +1422,7 @@ def download_receipt_pdf_public(sale_id):
         # Calculate paid amount correctly
         # For Cash/Cheque: always fully paid
         # For Credit: paid_amount = total - balance
-        paid_amount, balance_due, calculated_change, calculated_payment_status, linked_payment_total = _receipt_settlement(sale)
+        paid_amount, balance_due, calculated_change, calculated_payment_status, linked_payment_total, effective_payment_method, display_cash_received = _receipt_settlement(sale)
         
         # Build template data
         discount_base = subtotal + discount_total
@@ -1579,7 +1585,7 @@ def print_receipt(sale_id):
         # Calculate paid amount correctly
         # For Cash/Cheque: always fully paid
         # For Credit: paid_amount = total - balance
-        paid_amount, balance_due, calculated_change, calculated_payment_status, linked_payment_total = _receipt_settlement(sale)
+        paid_amount, balance_due, calculated_change, calculated_payment_status, linked_payment_total, effective_payment_method, display_cash_received = _receipt_settlement(sale)
         
         # Build template data
         receipt_customer = _receipt_customer_details(sale, company_id)
@@ -1641,9 +1647,9 @@ def print_receipt(sale_id):
             'total': total,
             'paid_amount': paid_amount,
             'balance_due': balance_due,
-            'cash_given': sale.cash_given,
+            'cash_given': display_cash_received,
             'change': calculated_change,
-            'payment_method': sale.payment,
+            'payment_method': effective_payment_method,
             'currency_symbol': 'Rs. ',
             'thank_you_message': receipt_settings.get('thank_you_message', 'Thank You'),
             'business_name': business_name,
@@ -2298,7 +2304,7 @@ def get_sale(sale_id):
         'customer': sale.customer,
         'total': sale.total,
         'payment': sale.payment,
-        'cash_given': sale.cash_given,
+        'cash_given': display_cash_received,
         'balance': sale.balance,
         'user': sale.user.username if sale.user else 'Unknown',
         'items': []
