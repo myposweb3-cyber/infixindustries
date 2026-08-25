@@ -330,9 +330,11 @@
         <!-- CUSTOMER INFO (OPTIONAL) -->
         <div class="invoice-info" style="margin-bottom: 2mm;">
             <div class="info-row">
-                <span class="info-label">Customer:</span>
+                <span class="info-label">Bill To:</span>
                 <span>{{ customer_name }}</span>
             </div>
+            {% if customer_phone %}<div class="info-row"><span class="info-label">Phone:</span><span>{{ customer_phone }}</span></div>{% endif %}
+            {% if customer_address %}<div class="info-row"><span class="info-label">Address:</span><span>{{ customer_address }}</span></div>{% endif %}
         </div>
 
         <div class="divider">- - - - - - - - - - -</div>

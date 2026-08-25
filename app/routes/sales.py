@@ -21,6 +21,30 @@ from app import csrf
 sales_bp = Blueprint('sales', __name__, template_folder='../../templates')
 
 
+def _receipt_customer_details(sale, company_id=None):
+    """Resolve durable customer contact details for receipt rendering.
+
+    Sales keep the customer name as a snapshot, so receipts safely look up the
+    current customer record by name and company. Walk-in sales intentionally
+    return empty contact fields.
+    """
+    name = (getattr(sale, 'customer', None) or '').strip()
+    details = {'name': name or 'Walk-in Customer', 'phone': '', 'address': '', 'email': ''}
+    if not name or name.lower() in {'walk-in', 'walk-in customer'}:
+        return details
+    query = Customer.query.filter(Customer.name == name)
+    if company_id and hasattr(Customer, 'company_id'):
+        query = query.filter(Customer.company_id == company_id)
+    customer = query.first()
+    if customer:
+        details.update({
+            'name': customer.name or details['name'],
+            'phone': customer.phone or '',
+            'address': customer.address or '',
+            'email': customer.email or '',
+        })
+    return details
+
 def _receipt_logo_data_uri(logo_setting):
     """Resolve an uploaded logo setting into a browser/PDF-safe data URI."""
     if not logo_setting or not getattr(logo_setting, 'setting_value', None):
@@ -888,6 +912,8 @@ def receipt_html(sale_id):
     # Due date calculation (30 days from invoice date)
     due_date = (local_sale_date + timedelta(days=30)).strftime('%Y-%m-%d')
     
+    receipt_customer = _receipt_customer_details(sale, company_id)
+
     context = {
         # Basic sale info
         'sale': sale,
@@ -900,10 +926,10 @@ def receipt_html(sale_id):
         'sale_time': local_sale_date.strftime('%H:%M'),
         
         # Customer info
-        'customer_name': sale.customer or 'Walk-in Customer',
-        'customer_address': getattr(sale, 'customer_address', ''),
-        'customer_phone': getattr(sale, 'customer_phone', ''),
-        'customer_email': getattr(sale, 'customer_email', ''),
+        'customer_name': receipt_customer['name'],
+        'customer_address': receipt_customer['address'],
+        'customer_phone': receipt_customer['phone'],
+        'customer_email': receipt_customer['email'],
         
         # Shipping info (if applicable)
         'shipping_name': getattr(sale, 'shipping_name', ''),
@@ -1039,6 +1065,7 @@ def download_receipt_pdf(sale_id):
             balance_due = max(0, sale.balance)
         
         # Build template data
+        receipt_customer = _receipt_customer_details(sale, company_id)
         template_data = {
             'company': {
                 'name': business_name,
@@ -1050,12 +1077,12 @@ def download_receipt_pdf(sale_id):
                 'tax_id': receipt_settings.get('business_gst', ''),
             },
             'customer': {
-                'name': sale.customer.name if (hasattr(sale, 'customer') and hasattr(sale.customer, 'name')) else (str(sale.customer) if sale.customer else 'Walk-in Customer'),
-                'company': sale.customer.company_name if sale.customer and hasattr(sale.customer, 'company_name') else '',
-                'address': sale.customer.address if sale.customer and hasattr(sale.customer, 'address') else '',
-                'city': sale.customer.city if sale.customer and hasattr(sale.customer, 'city') else '',
-                'phone': sale.customer.phone if sale.customer and hasattr(sale.customer, 'phone') else '',
-                'email': sale.customer.email if sale.customer and hasattr(sale.customer, 'email') else '',
+                'name': receipt_customer['name'],
+                'company': '',
+                'address': receipt_customer['address'],
+                'city': '',
+                'phone': receipt_customer['phone'],
+                'email': receipt_customer['email'],
             },
             'invoice_number': f"RECEIPT-{sale.id}",
             'invoice_date': sale.date.strftime('%m/%d/%Y') if sale.date else datetime.now().strftime('%m/%d/%Y'),
@@ -1232,6 +1259,8 @@ def receipt_html_public(sale_id):
     local_sale_date = sale.date + timedelta(hours=6)
     due_date = (local_sale_date + timedelta(days=30)).strftime('%Y-%m-%d')
     
+    receipt_customer = _receipt_customer_details(sale, company_id)
+
     context = {
         'sale': sale,
         'invoice_number': f"INV-{sale.id}",
@@ -1242,10 +1271,10 @@ def receipt_html_public(sale_id):
         'sale_date': local_sale_date.strftime('%Y-%m-%d'),
         'sale_time': local_sale_date.strftime('%H:%M'),
         
-        'customer_name': sale.customer or 'Walk-in Customer',
-        'customer_address': getattr(sale, 'customer_address', ''),
-        'customer_phone': getattr(sale, 'customer_phone', ''),
-        'customer_email': getattr(sale, 'customer_email', ''),
+        'customer_name': receipt_customer['name'],
+        'customer_address': receipt_customer['address'],
+        'customer_phone': receipt_customer['phone'],
+        'customer_email': receipt_customer['email'],
         
         'shipping_name': getattr(sale, 'shipping_name', ''),
         'shipping_address': getattr(sale, 'shipping_address', ''),
@@ -1370,6 +1399,7 @@ def download_receipt_pdf_public(sale_id):
             balance_due = max(0, sale.balance)
         
         # Build template data
+        receipt_customer = _receipt_customer_details(sale, company_id)
         template_data = {
             'company': {
                 'name': business_name,
@@ -1381,12 +1411,12 @@ def download_receipt_pdf_public(sale_id):
                 'tax_id': receipt_settings.get('business_gst', ''),
             },
             'customer': {
-                'name': sale.customer.name if (hasattr(sale, 'customer') and hasattr(sale.customer, 'name')) else (str(sale.customer) if sale.customer else 'Walk-in'),
-                'company': sale.customer.company_name if sale.customer and hasattr(sale.customer, 'company_name') else '',
-                'address': sale.customer.address if sale.customer and hasattr(sale.customer, 'address') else '',
-                'city': sale.customer.city if sale.customer and hasattr(sale.customer, 'city') else '',
-                'phone': sale.customer.phone if sale.customer and hasattr(sale.customer, 'phone') else '',
-                'email': sale.customer.email if sale.customer and hasattr(sale.customer, 'email') else '',
+                'name': receipt_customer['name'],
+                'company': '',
+                'address': receipt_customer['address'],
+                'city': '',
+                'phone': receipt_customer['phone'],
+                'email': receipt_customer['email'],
             },
             'invoice_number': f"RECEIPT-{sale.id}",
             'invoice_date': sale.date.strftime('%m/%d/%Y') if sale.date else datetime.now().strftime('%m/%d/%Y'),
@@ -1534,6 +1564,7 @@ def print_receipt(sale_id):
             balance_due = max(0, sale.balance)
         
         # Build template data
+        receipt_customer = _receipt_customer_details(sale, company_id)
         template_data = {
             'company': {
                 'name': business_name,

@@ -430,8 +430,8 @@
                     <div class="billing-label">Bill To</div>
                     <div class=\"billing-content\">
                         <p><strong>{{ customer_name }}</strong></p>
+                        {% if customer_phone %}<p>Phone: {{ customer_phone }}</p>{% endif %}
                         {% if customer_address %}<p>{{ customer_address }}</p>{% endif %}
-                        {% if customer_phone %}<p>{{ customer_phone }}</p>{% endif %}
                     </div>
                 </div>
             </div>
