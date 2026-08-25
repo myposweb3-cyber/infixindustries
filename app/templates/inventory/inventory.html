@@ -607,7 +607,7 @@ function loadInventoryAnalytics() {
                     }
                 });
 
-                $('#stockValue').text('₨ ' + totalValue.toFixed(2));
+                $('#stockValue').text('₨ ' + totalValue.toLocaleString('en-US', {minimumFractionDigits: 2, maximumFractionDigits: 2}));
                 $('#lowStockCount').text(lowStock);
                 $('#outOfStockCount').text(outOfStock);
             } catch(e) {
@@ -776,8 +776,8 @@ function renderProducts(products) {
                 <td>${product.id}</td>
                 <td><strong>${product.name}</strong></td>
                 <td>${product.category || '-'}</td>
-                <td>${currencySymbol} ${parseFloat(product.price || 0).toFixed(2)}</td>
-                <td>${currencySymbol} ${parseFloat(product.cost_price || 0).toFixed(2)}</td>
+                <td>${currencySymbol} ${parseFloat(product.price || 0).toLocaleString('en-US', {minimumFractionDigits: 2, maximumFractionDigits: 2})}</td>
+                <td>${currencySymbol} ${parseFloat(product.cost_price || 0).toLocaleString('en-US', {minimumFractionDigits: 2, maximumFractionDigits: 2})}</td>
                 <td>${product.stock} ${stockBadge}</td>
                 <td>${product.low_stock_threshold || 5}</td>
                 <td>${product.unit_type || 'unit'}</td>
@@ -974,8 +974,8 @@ function viewProductDetails(productId) {
             const infoHtml = `
                 <p><strong>Name:</strong> ${product.name}</p>
                 <p><strong>Category:</strong> ${product.category || '-'}</p>
-                <p><strong>Price:</strong> ₨ ${parseFloat(product.price || 0).toFixed(2)}</p>
-                <p><strong>Cost Price:</strong> ₨ ${parseFloat(product.cost_price || 0).toFixed(2)}</p>
+                <p><strong>Price:</strong> ₨ ${parseFloat(product.price || 0).toLocaleString('en-US', {minimumFractionDigits: 2, maximumFractionDigits: 2})}</p>
+                <p><strong>Cost Price:</strong> ₨ ${parseFloat(product.cost_price || 0).toLocaleString('en-US', {minimumFractionDigits: 2, maximumFractionDigits: 2})}</p>
                 <p><strong>Barcode:</strong> ${product.barcode || '-'}</p>
                 <p><strong>Description:</strong> ${product.description || '-'}</p>
             `;

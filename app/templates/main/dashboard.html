@@ -11,7 +11,7 @@
                 <div class="d-flex justify-content-between">
                     <div>
                         <h5 class="card-title">Today's Net Sales</h5>
-                        <h3 class="mb-0">₨ {{ "%.2f"|format(today_net_sales) }}</h3>
+                        <h3 class="mb-0">₨ {{ today_net_sales|format_number }}</h3>
                         <small>{{ today_sales_count }} transactions</small>
                     </div>
                     <div class="align-self-center">
@@ -29,7 +29,7 @@
                 <div class="d-flex justify-content-between">
                     <div>
                         <h5 class="card-title">Today's Returns</h5>
-                        <h3 class="mb-0">₨ {{ "%.2f"|format(today_returns_total) }}</h3>
+                        <h3 class="mb-0">₨ {{ today_returns_total|format_number }}</h3>
                         <small>Refunds given</small>
                     </div>
                     <div class="align-self-center">
@@ -47,7 +47,7 @@
                 <div class="d-flex justify-content-between">
                     <div>
                         <h5 class="card-title">Monthly Net Sales</h5>
-                        <h3 class="mb-0">₨ {{ "%.2f"|format(month_net_sales) }}</h3>
+                        <h3 class="mb-0">₨ {{ month_net_sales|format_number }}</h3>
                         <small>{{ month_orders_count }} orders</small>
                     </div>
                     <div class="align-self-center">
@@ -65,7 +65,7 @@
                 <div class="d-flex justify-content-between">
                     <div>
                         <h5 class="card-title">Monthly Returns</h5>
-                        <h3 class="mb-0">₨ {{ "%.2f"|format(month_returns_total) }}</h3>
+                        <h3 class="mb-0">₨ {{ month_returns_total|format_number }}</h3>
                         <small>Refunds given</small>
                     </div>
                     <div class="align-self-center">
@@ -85,7 +85,7 @@
                 <div class="d-flex justify-content-between">
                     <div>
                         <h5 class="card-title">Today's Gross Sales</h5>
-                        <h3 class="mb-0">₨ {{ "%.2f"|format(today_total) }}</h3>
+                        <h3 class="mb-0">₨ {{ today_total|format_number }}</h3>
                         <small>Before returns</small>
                     </div>
                     <div class="align-self-center">
@@ -103,7 +103,7 @@
                 <div class="d-flex justify-content-between">
                     <div>
                         <h5 class="card-title">Monthly Gross Sales</h5>
-                        <h3 class="mb-0">₨ {{ "%.2f"|format(month_total) }}</h3>
+                        <h3 class="mb-0">₨ {{ month_total|format_number }}</h3>
                         <small>Before returns</small>
                     </div>
                     <div class="align-self-center">
@@ -121,7 +121,7 @@
                 <div class="d-flex justify-content-between">
                     <div>
                         <h5 class="card-title">Monthly Profit</h5>
-                        <h3 class="mb-0">₨ {{ "%.2f"|format(month_profit) }}</h3>
+                        <h3 class="mb-0">₨ {{ month_profit|format_number }}</h3>
                         <small>This month</small>
                     </div>
                     <div class="align-self-center">
@@ -248,7 +248,7 @@
                             <tr>
                                 <td>{{ sale.date | to_local_time }}</td>
                                 <td>{{ sale.customer }}</td>
-                                <td>₨ {{ "%.2f"|format(sale.total) }}</td>
+                                <td>₨ {{ sale.total|format_number }}</td>
                                 <td>
                                     <span class="badge bg-{{ 'success' if sale.payment == 'Cash' else 'primary' }}">
                                         {{ sale.payment }}
@@ -276,7 +276,7 @@
                         <strong>{{ customer[0] }}</strong>
                         <br><small class="text-muted">{{ customer[2] }} orders</small>
                     </div>
-                    <span class="badge bg-success">₨ {{ "%.0f"|format(customer[1]) }}</span>
+                    <span class="badge bg-success">₨ {{ customer[1]|format_number }}</span>
                 </div>
                 {% if not loop.last %}<hr class="my-2">{% endif %}
                 {% endfor %}
@@ -418,11 +418,11 @@ function getChartConfig(data) {
                         if (currentStyle === 'doughnut') {
                             const value = context.parsed;
                             const total = context.dataset.data.reduce((a, b) => a + b, 0);
-                            const percentage = ((value / total) * 100).toFixed(1);
-                            label = `${context.label}: ${currencySymbol} ${value.toFixed(2)} (${percentage}%)`;
+                            const percentage = ((value / total) * 100).toLocaleString('en-US', {minimumFractionDigits: 1, maximumFractionDigits: 1});
+                            label = `${context.label}: ${currencySymbol} ${value.toLocaleString('en-US', {minimumFractionDigits: 2, maximumFractionDigits: 2})} (${percentage}%)`;
                         } else {
                             const value = context.parsed.y;
-                            label = `${context.label}: ${currencySymbol} ${value.toFixed(2)}`;
+                            label = `${context.label}: ${currencySymbol} ${value.toLocaleString('en-US', {minimumFractionDigits: 2, maximumFractionDigits: 2})}`;
                         }
                         return label;
                     }
@@ -463,17 +463,17 @@ function getChartConfig(data) {
 
 function formatNumber(num) {
     if (num >= 1000000) {
-        return (num / 1000000).toFixed(1) + 'M';
+        return (num / 1000000).toLocaleString('en-US', {minimumFractionDigits: 1, maximumFractionDigits: 1}) + 'M';
     } else if (num >= 1000) {
-        return (num / 1000).toFixed(1) + 'K';
+        return (num / 1000).toLocaleString('en-US', {minimumFractionDigits: 1, maximumFractionDigits: 1}) + 'K';
     }
-    return num.toFixed(0);
+    return num.toLocaleString('en-US', {minimumFractionDigits: 0, maximumFractionDigits: 0});
 }
 
 function updateChartSummary(data) {
     const total = data.data.reduce((a, b) => a + b, 0);
-    const avg = (total / data.data.length).toFixed(2);
-    const max = Math.max(...data.data).toFixed(2);
+    const avg = (total / data.data.length).toLocaleString('en-US', {minimumFractionDigits: 2, maximumFractionDigits: 2});
+    const max = Math.max(...data.data).toLocaleString('en-US', {minimumFractionDigits: 2, maximumFractionDigits: 2});
     
     let summaryText = `Total: ${currencySymbol} ${formatNumber(total)} | Average: ${currencySymbol} ${avg} | Peak: ${currencySymbol} ${max}`;
     

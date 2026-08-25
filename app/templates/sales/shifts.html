@@ -66,7 +66,7 @@
 {% block scripts %}
 <script>
 const shiftCurrency = '₨';
-const money = value => `${shiftCurrency} ${Number(value || 0).toFixed(2)}`;
+const money = value => `${shiftCurrency} ${Number(value || 0).toLocaleString('en-US', {minimumFractionDigits: 2, maximumFractionDigits: 2})}`;
 function shiftMessage(text, type = 'success') { const el = document.getElementById('shiftAlert'); el.className = `alert alert-${type}`; el.textContent = text; }
 function renderShift(shift) {
     const open = Boolean(shift && shift.status === 'open');

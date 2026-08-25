@@ -477,7 +477,7 @@ function loadSale() {
             // Show sale info
             document.getElementById('saleInfo').style.display = 'block';
 document.getElementById('saleInfoText').innerHTML = `
-Sale #${data.sale_id} | Date: ${window.formatTimestamp(data.sale_date, true)} | Customer: ${data.customer} | Total: Rs ${data.total.toFixed(2)} | Payment: ${data.payment}
+Sale #${data.sale_id} | Date: ${window.formatTimestamp(data.sale_date, true)} | Customer: ${data.customer} | Total: Rs ${data.total.toLocaleString('en-US', {minimumFractionDigits: 2, maximumFractionDigits: 2})} | Payment: ${data.payment}
             `;
             
             // Show return type section
@@ -527,8 +527,8 @@ function loadSaleItems(items) {
                     data-item-id="${item.id}" data-max-qty="${item.remaining_qty}" 
 value="${item.remaining_qty}" min="0" max="${item.remaining_qty}" disabled>
             </td>
-            <td>Rs ${item.price.toFixed(2)}</td>
-<td class="item-total">Rs ${item.total.toFixed(2)}</td>
+            <td>Rs ${item.price.toLocaleString('en-US', {minimumFractionDigits: 2, maximumFractionDigits: 2})}</td>
+<td class="item-total">Rs ${item.total.toLocaleString('en-US', {minimumFractionDigits: 2, maximumFractionDigits: 2})}</td>
             <td>
                 <select class="form-select form-select-sm item-reason" data-item-id="${item.id}" disabled>
                     <option value="">Select Reason</option>
@@ -598,7 +598,7 @@ value="${item.remaining_qty}" min="0" max="${item.remaining_qty}" disabled>
             // Update row total
             const row = this.closest('tr');
             const price = parseFloat(row.dataset.price);
-row.querySelector('.item-total').textContent = `Rs ${(qty * price).toFixed(2)}`;
+row.querySelector('.item-total').textContent = `Rs ${(qty * price).toLocaleString('en-US', {minimumFractionDigits: 2, maximumFractionDigits: 2})}`;
             
             calculateRefund();
         });
@@ -649,8 +649,8 @@ function calculateRefund() {
         });
     }
     
-    document.getElementById('refundAmount').textContent = refund.toFixed(2);
-    document.getElementById('totalRefundAmount').textContent = refund.toFixed(2);
+    document.getElementById('refundAmount').textContent = refund.toLocaleString('en-US', {minimumFractionDigits: 2, maximumFractionDigits: 2});
+    document.getElementById('totalRefundAmount').textContent = refund.toLocaleString('en-US', {minimumFractionDigits: 2, maximumFractionDigits: 2});
 }
 
 function processReturn() {
@@ -832,7 +832,7 @@ function renderReturns(returns) {
             <td>${return_record.customer}</td>
             <td><a href="#" onclick="viewSaleDetails(${return_record.original_sale_id}); return false;">#${return_record.original_sale_id}</a></td>
             <td>${return_record.items_count}</td>
-<td><strong>${currencySymbol} ${return_record.refund_amount.toFixed(2)}</strong></td>
+<td><strong>${currencySymbol} ${return_record.refund_amount.toLocaleString('en-US', {minimumFractionDigits: 2, maximumFractionDigits: 2})}</strong></td>
             <td>${return_record.refund_method}</td>
             <td>${return_record.return_reason}</td>
             <td>${return_record.user}</td>
@@ -898,7 +898,7 @@ function viewReturnDetails(returnId) {
             document.getElementById('returnRefundMethod').textContent = data.refund_method;
             document.getElementById('returnReasonText').textContent = data.return_reason;
             document.getElementById('returnUser').textContent = data.user;
-            document.getElementById('returnTotal').textContent = data.refund_amount.toFixed(2);
+            document.getElementById('returnTotal').textContent = data.refund_amount.toLocaleString('en-US', {minimumFractionDigits: 2, maximumFractionDigits: 2});
             document.getElementById('returnNotesText').textContent = data.notes || 'N/A';
 
             // Render items
@@ -909,8 +909,8 @@ function viewReturnDetails(returnId) {
                 row.innerHTML = `
                     <td>${item.product_name}</td>
                     <td>${item.quantity}</td>
-                    <td>Rs ${item.price.toFixed(2)}</td>
-                    <td>Rs ${item.total.toFixed(2)}</td>
+                    <td>Rs ${item.price.toLocaleString('en-US', {minimumFractionDigits: 2, maximumFractionDigits: 2})}</td>
+                    <td>Rs ${item.total.toLocaleString('en-US', {minimumFractionDigits: 2, maximumFractionDigits: 2})}</td>
                     <td>${item.reason || 'N/A'}</td>
                 `;
                 tbody.appendChild(row);

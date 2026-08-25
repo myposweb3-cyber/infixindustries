@@ -130,7 +130,7 @@ document.addEventListener('DOMContentLoaded', function() {
                     <td>${item.product_name}</td>
                     <td>${item.quantity_purchased}</td>
                     <td><input type="number" class="form-control return-qty" value="0" min="0" max="${item.quantity_purchased}"></td>
-                    <td class="text-end">${item.cost_price.toFixed(2)}</td>
+                    <td class="text-end">${item.cost_price.toLocaleString('en-US', {minimumFractionDigits: 2, maximumFractionDigits: 2})}</td>
                     <td class="text-end line-total">0.00</td>
                 </tr>
             `;
@@ -156,7 +156,7 @@ document.addEventListener('DOMContentLoaded', function() {
             if (returnQty > 0) {
                 const unitCost = parseFloat(row.dataset.unitCost);
                 const lineTotal = returnQty * unitCost;
-                row.querySelector('.line-total').textContent = lineTotal.toFixed(2);
+                row.querySelector('.line-total').textContent = lineTotal.toLocaleString('en-US', {minimumFractionDigits: 2, maximumFractionDigits: 2});
 
                 returnItems.push({
                     product_id: row.dataset.productId,
@@ -169,8 +169,8 @@ document.addEventListener('DOMContentLoaded', function() {
             }
         });
 
-        totalRefundDisplay.textContent = totalRefund.toFixed(2);
-        totalRefundInput.value = totalRefund.toFixed(2);
+        totalRefundDisplay.textContent = totalRefund.toLocaleString('en-US', {minimumFractionDigits: 2, maximumFractionDigits: 2});
+        totalRefundInput.value = totalRefund.toLocaleString('en-US', {minimumFractionDigits: 2, maximumFractionDigits: 2});
         itemsJsonInput.value = JSON.stringify(returnItems);
     }
 

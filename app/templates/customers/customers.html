@@ -1343,8 +1343,8 @@ function loadCustomerAnalytics() {
         .done(function(data) {
             $('#totalCustomers').text(data.total_customers);
             $('#activeCustomers').text(data.active_customers);
-            $('#avgOrderValue').text('₨ ' + parseFloat(data.average_order_value).toFixed(2));
-            $('#totalRevenue').text('₨ ' + parseFloat(data.total_revenue).toFixed(2));
+            $('#avgOrderValue').text('₨ ' + parseFloat(data.average_order_value).toLocaleString('en-US', {minimumFractionDigits: 2, maximumFractionDigits: 2}));
+            $('#totalRevenue').text('₨ ' + parseFloat(data.total_revenue).toLocaleString('en-US', {minimumFractionDigits: 2, maximumFractionDigits: 2}));
         })
         .fail(function() {
             console.error('Failed to load customer analytics');
@@ -1418,11 +1418,11 @@ function renderCustomers(customers) {
                 <td ${inactiveStyle}>
                     <span class="badge loyalty-badge" style="color: #000 !important;">${customer.loyalty_points || 0}</span>
                 </td>
-                <td ${inactiveStyle}>₨ ${parseFloat(customer.total_purchases || 0).toFixed(2)}</td>
+                <td ${inactiveStyle}>₨ ${parseFloat(customer.total_purchases || 0).toLocaleString('en-US', {minimumFractionDigits: 2, maximumFractionDigits: 2})}</td>
                 <td ${inactiveStyle}>
                     <span class="credit-indicator ${creditStatus.class}"></span>
-                    ₨ ${parseFloat(customer.current_balance || 0).toFixed(2)}
-                    ${customer.credit_limit ? ` / ₨ ${parseFloat(customer.credit_limit).toFixed(2)}` : ''}
+                    ₨ ${parseFloat(customer.current_balance || 0).toLocaleString('en-US', {minimumFractionDigits: 2, maximumFractionDigits: 2})}
+                    ${customer.credit_limit ? ` / ₨ ${parseFloat(customer.credit_limit).toLocaleString('en-US', {minimumFractionDigits: 2, maximumFractionDigits: 2})}` : ''}
                 </td>
                 <td ${inactiveStyle}>${lastPurchase}</td>
                 <td ${inactiveStyle}>
@@ -1701,9 +1701,9 @@ function viewCustomerDetails(customerId) {
                 <p><strong>Phone:</strong> ${customer.phone || '-'}</p>
                 <p><strong>Email:</strong> ${customer.email || '-'}</p>
                 <p><strong>Address:</strong> ${customer.address || '-'}</p>
-                <p><strong>Total Purchases:</strong> ₨ ${parseFloat(customer.total_purchases || 0).toFixed(2)}</p>
-                <p><strong>Credit Limit:</strong> ₨ ${parseFloat(customer.credit_limit || 0).toFixed(2)}</p>
-                <p><strong>Current Balance:</strong> ₨ ${parseFloat(customer.current_balance || 0).toFixed(2)}</p>
+                <p><strong>Total Purchases:</strong> ₨ ${parseFloat(customer.total_purchases || 0).toLocaleString('en-US', {minimumFractionDigits: 2, maximumFractionDigits: 2})}</p>
+                <p><strong>Credit Limit:</strong> ₨ ${parseFloat(customer.credit_limit || 0).toLocaleString('en-US', {minimumFractionDigits: 2, maximumFractionDigits: 2})}</p>
+                <p><strong>Current Balance:</strong> ₨ ${parseFloat(customer.current_balance || 0).toLocaleString('en-US', {minimumFractionDigits: 2, maximumFractionDigits: 2})}</p>
                 <p><strong>Registration Date:</strong> ${customer.registration_date || '-'}</p>
                 <p><strong>Notes:</strong> ${customer.notes || '-'}</p>
             `;
@@ -1726,7 +1726,7 @@ function viewCustomerDetails(customerId) {
                         <tr>
                             <td>${window.formatTimestamp(sale.date, true)}</td>
                             <td><small>${itemsText}</small></td>
-                            <td>₨ ${parseFloat(sale.total).toFixed(2)}</td>
+                            <td>₨ ${parseFloat(sale.total).toLocaleString('en-US', {minimumFractionDigits: 2, maximumFractionDigits: 2})}</td>
                             <td>${sale.payment}</td>
                         </tr>
                     `;
@@ -1810,16 +1810,16 @@ function loadOutstandingAging() {
     $.get('/customers/api/customers/outstanding-aging')
         .done(function(data) {
             // Update summary cards
-            $('#outstanding0_30').text('₨ ' + parseFloat(data.totals['0_30_days'].total).toFixed(2));
+            $('#outstanding0_30').text('₨ ' + parseFloat(data.totals['0_30_days'].total).toLocaleString('en-US', {minimumFractionDigits: 2, maximumFractionDigits: 2}));
             $('#count0_30').text(data.totals['0_30_days'].count + ' customers');
             
-            $('#outstanding30_60').text('₨ ' + parseFloat(data.totals['30_60_days'].total).toFixed(2));
+            $('#outstanding30_60').text('₨ ' + parseFloat(data.totals['30_60_days'].total).toLocaleString('en-US', {minimumFractionDigits: 2, maximumFractionDigits: 2}));
             $('#count30_60').text(data.totals['30_60_days'].count + ' customers');
             
-            $('#outstanding60_90').text('₨ ' + parseFloat(data.totals['60_90_days'].total).toFixed(2));
+            $('#outstanding60_90').text('₨ ' + parseFloat(data.totals['60_90_days'].total).toLocaleString('en-US', {minimumFractionDigits: 2, maximumFractionDigits: 2}));
             $('#count60_90').text(data.totals['60_90_days'].count + ' customers');
             
-            $('#outstanding90_plus').text('₨ ' + parseFloat(data.totals['90_plus_days'].total).toFixed(2));
+            $('#outstanding90_plus').text('₨ ' + parseFloat(data.totals['90_plus_days'].total).toLocaleString('en-US', {minimumFractionDigits: 2, maximumFractionDigits: 2}));
             $('#count90_plus').text(data.totals['90_plus_days'].count + ' customers');
             
             // Render customers table
@@ -1851,11 +1851,11 @@ function renderOutstandingCustomers(customers) {
                     <strong>${customer.name}</strong>
                 </td>
                 <td>${customer.phone || '-'}</td>
-                <td class="text-success">₨ ${parseFloat(customer.outstanding_0_30 || 0).toFixed(2)}</td>
-                <td class="text-info">₨ ${parseFloat(customer.outstanding_30_60 || 0).toFixed(2)}</td>
-                <td class="text-warning">₨ ${parseFloat(customer.outstanding_60_90 || 0).toFixed(2)}</td>
-                <td class="text-danger">₨ ${parseFloat(customer.outstanding_90_plus || 0).toFixed(2)}</td>
-                <td><strong>₨ ${parseFloat(customer.total_outstanding || 0).toFixed(2)}</strong></td>
+                <td class="text-success">₨ ${parseFloat(customer.outstanding_0_30 || 0).toLocaleString('en-US', {minimumFractionDigits: 2, maximumFractionDigits: 2})}</td>
+                <td class="text-info">₨ ${parseFloat(customer.outstanding_30_60 || 0).toLocaleString('en-US', {minimumFractionDigits: 2, maximumFractionDigits: 2})}</td>
+                <td class="text-warning">₨ ${parseFloat(customer.outstanding_60_90 || 0).toLocaleString('en-US', {minimumFractionDigits: 2, maximumFractionDigits: 2})}</td>
+                <td class="text-danger">₨ ${parseFloat(customer.outstanding_90_plus || 0).toLocaleString('en-US', {minimumFractionDigits: 2, maximumFractionDigits: 2})}</td>
+                <td><strong>₨ ${parseFloat(customer.total_outstanding || 0).toLocaleString('en-US', {minimumFractionDigits: 2, maximumFractionDigits: 2})}</strong></td>
                 <td>${statusBadge}</td>
                 <td>
                     <div class="btn-group" role="group">
@@ -2074,7 +2074,7 @@ document.addEventListener('DOMContentLoaded', function() {
                 console.log('Response data:', data);
                 if (data.success) {
                     console.log('SUCCESS! Recording payment completed');
-                    showAlert('Payment recorded successfully! New balance: ₨' + data.new_balance.toFixed(2), 'success');
+                    showAlert('Payment recorded successfully! New balance: ₨' + data.new_balance.toLocaleString('en-US', {minimumFractionDigits: 2, maximumFractionDigits: 2}), 'success');
                     // Properly close Bootstrap modal
                     const modalElement = document.getElementById('paymentModal');
                     if (modalElement) {
@@ -2124,8 +2124,8 @@ document.addEventListener('DOMContentLoaded', function() {
 function openPaymentModal(customerId, customerName, outstandingBalance) {
     $('#paymentCustomerId').val(customerId);
     $('#paymentCustomerName').val(customerName);
-    $('#paymentOutstandingBalance').val('₨ ' + outstandingBalance.toFixed(2));
-    $('#paymentAmount').val(outstandingBalance.toFixed(2));
+    $('#paymentOutstandingBalance').val('₨ ' + outstandingBalance.toLocaleString('en-US', {minimumFractionDigits: 2, maximumFractionDigits: 2}));
+    $('#paymentAmount').val(outstandingBalance.toLocaleString('en-US', {minimumFractionDigits: 2, maximumFractionDigits: 2}));
     $('#paymentReference').val('');
     $('#paymentNotes').val('');
     
@@ -2211,15 +2211,15 @@ function renderEditOrderItems() {
                 <td>
                     <input type="number" min="1" class="form-control form-control-sm" value="${item.quantity}" data-index="${index}" data-role="edit-order-qty">
                 </td>
-                <td>₨ ${Number(item.price || 0).toFixed(2)}</td>
-                <td>₨ ${Number(lineTotal || 0).toFixed(2)}</td>
+                <td>₨ ${Number(item.price || 0).toLocaleString('en-US', {minimumFractionDigits: 2, maximumFractionDigits: 2})}</td>
+                <td>₨ ${Number(lineTotal || 0).toLocaleString('en-US', {minimumFractionDigits: 2, maximumFractionDigits: 2})}</td>
                 <td><button type="button" class="btn btn-sm btn-outline-danger" data-index="${index}" data-role="edit-order-remove">Remove</button></td>
             </tr>
         `;
     }).join('');
 
     const totalField = document.getElementById('editOrderTotal');
-    if (totalField) totalField.value = total.toFixed(2);
+    if (totalField) totalField.value = total.toLocaleString('en-US', {minimumFractionDigits: 2, maximumFractionDigits: 2});
 
     body.querySelectorAll('[data-role="edit-order-qty"]').forEach(el => {
         el.addEventListener('input', function() {
@@ -2258,7 +2258,7 @@ function loadEditOrderProductResults(search = '') {
                 row.innerHTML = `
                     <div>
                         <strong>${product.name}</strong><br>
-                        <small class="text-muted">₨ ${Number(product.price || 0).toFixed(2)}</small>
+                        <small class="text-muted">₨ ${Number(product.price || 0).toLocaleString('en-US', {minimumFractionDigits: 2, maximumFractionDigits: 2})}</small>
                     </div>
                     <button type="button" class="btn btn-sm btn-success" data-product-id="${product.id}" data-product-name="${product.name}" data-product-price="${Number(product.price || 0)}">Add</button>
                 `;
@@ -2306,9 +2306,9 @@ function renderOrders(orders) {
                     <td>${o.date}</td>
                     <td>${o.customer}</td>
                     <td><small>${itemsText || 'No items'}</small></td>
-                    <td>₨ ${parseFloat(o.total || 0).toFixed(2)}</td>
+                    <td>₨ ${parseFloat(o.total || 0).toLocaleString('en-US', {minimumFractionDigits: 2, maximumFractionDigits: 2})}</td>
                     <td>${o.payment}</td>
-                    <td>₨ ${parseFloat(o.balance || 0).toFixed(2)}</td>
+                    <td>₨ ${parseFloat(o.balance || 0).toLocaleString('en-US', {minimumFractionDigits: 2, maximumFractionDigits: 2})}</td>
                     <td>
                         <div class="btn-group">
                             <button class="btn btn-sm btn-outline-primary" onclick="openViewOrderModal(${o.id})" title="View order products"><i class="fas fa-eye me-1"></i>View</button>
@@ -2345,8 +2345,8 @@ function openViewOrderModal(orderId) {
             $('#viewOrderCustomer').text(order.customer || 'Walk-in Customer');
             $('#viewOrderDate').text(order.date || '—');
             $('#viewOrderPayment').text(order.payment || '—');
-            $('#viewOrderBalance').text('₨ ' + Number(order.balance || 0).toFixed(2));
-            $('#viewOrderTotal').text('₨ ' + Number(order.total || 0).toFixed(2));
+            $('#viewOrderBalance').text('₨ ' + Number(order.balance || 0).toLocaleString('en-US', {minimumFractionDigits: 2, maximumFractionDigits: 2}));
+            $('#viewOrderTotal').text('₨ ' + Number(order.total || 0).toLocaleString('en-US', {minimumFractionDigits: 2, maximumFractionDigits: 2}));
             const items = order.items || [];
             if (!items.length) {
                 body.innerHTML = '<tr><td colspan="4" class="text-center text-muted">No products recorded for this order.</td></tr>';
@@ -2355,7 +2355,7 @@ function openViewOrderModal(orderId) {
             body.innerHTML = items.map(item => {
                 const qty = Number(item.quantity || 0);
                 const price = Number(item.price || 0);
-                return `<tr><td>${item.product_name || 'Unknown product'}</td><td class="text-end">${qty}</td><td class="text-end">₨ ${price.toFixed(2)}</td><td class="text-end">₨ ${(qty * price).toFixed(2)}</td></tr>`;
+                return `<tr><td>${item.product_name || 'Unknown product'}</td><td class="text-end">${qty}</td><td class="text-end">₨ ${price.toLocaleString('en-US', {minimumFractionDigits: 2, maximumFractionDigits: 2})}</td><td class="text-end">₨ ${(qty * price).toLocaleString('en-US', {minimumFractionDigits: 2, maximumFractionDigits: 2})}</td></tr>`;
             }).join('');
         })
         .catch(error => {
@@ -2375,8 +2375,8 @@ function openEditOrderModal(orderId) {
             }
             $('#editOrderId').val(order.id);
             $('#editOrderPayment').val(order.payment || 'Cash');
-            $('#editOrderTotal').val(parseFloat(order.total || 0).toFixed(2));
-            $('#editOrderBalance').val(parseFloat(order.balance || 0).toFixed(2));
+            $('#editOrderTotal').val(parseFloat(order.total || 0).toLocaleString('en-US', {minimumFractionDigits: 2, maximumFractionDigits: 2}));
+            $('#editOrderBalance').val(parseFloat(order.balance || 0).toLocaleString('en-US', {minimumFractionDigits: 2, maximumFractionDigits: 2}));
 
             currentEditOrderItems = (order.items || []).map(item => ({
                 product_id: Number(item.product_id),
@@ -2411,8 +2411,8 @@ async function openOrderPaymentModal(orderId) {
         $('#orderPaymentOrderId').val(order.id);
         $('#orderPaymentNumber').text('#' + order.id);
         $('#orderPaymentCustomer').text(order.customer || 'Walk-in Customer');
-        $('#orderPaymentOutstanding').text('₨ ' + balance.toFixed(2));
-        $('#orderPaymentAmount').val(balance.toFixed(2)).attr('max', balance.toFixed(2));
+        $('#orderPaymentOutstanding').text('₨ ' + balance.toLocaleString('en-US', {minimumFractionDigits: 2, maximumFractionDigits: 2}));
+        $('#orderPaymentAmount').val(balance.toLocaleString('en-US', {minimumFractionDigits: 2, maximumFractionDigits: 2})).attr('max', balance.toLocaleString('en-US', {minimumFractionDigits: 2, maximumFractionDigits: 2}));
         $('#orderPaymentReference, #orderPaymentNotes, #orderChequeNumber, #orderChequeBank').val('');
         $('#orderChequeDate').val(new Date().toISOString().slice(0, 10));
         $('#orderPaymentMethod').val('Cash');
@@ -2465,7 +2465,7 @@ async function submitOrderPayment() {
         try { data = raw ? JSON.parse(raw) : {}; } catch (_) {}
         if (!response.ok || !data.success) throw new Error(data.error || `Unable to record payment (HTTP ${response.status})`);
         $('#orderPaymentModal').modal('hide');
-        showAlert((data.message || 'Payment recorded successfully') + '. New balance: ₨ ' + Number(data.new_balance || 0).toFixed(2), 'success');
+        showAlert((data.message || 'Payment recorded successfully') + '. New balance: ₨ ' + Number(data.new_balance || 0).toLocaleString('en-US', {minimumFractionDigits: 2, maximumFractionDigits: 2}), 'success');
         await loadOrders();
     } catch (error) {
         console.error('Error recording order payment', error);
@@ -2643,7 +2643,7 @@ function loadTakeOrderProducts() {
                 item.innerHTML = `
                     <div>
                         <strong>${product.name}${testBadge}</strong><br>
-                        <small class="text-muted">Stock: ${product.stock} | Price: ₨ ${parseFloat(product.price || 0).toFixed(2)}</small>
+                        <small class="text-muted">Stock: ${product.stock} | Price: ₨ ${parseFloat(product.price || 0).toLocaleString('en-US', {minimumFractionDigits: 2, maximumFractionDigits: 2})}</small>
                     </div>
                     <button class="btn btn-sm btn-success" type="button" data-role="add-product" data-product-id="${product.id}" data-product-name="${(product.name || '').replace(/'/g, "\\'")}" data-product-price="${Number(product.price || 0)}">Add</button>
                 `;
@@ -2692,8 +2692,8 @@ function updateTakeOrderItemsTable() {
                 <td>
                     <input type="number" class="form-control form-control-sm" min="1" value="${item.quantity}" data-index="${index}" data-role="qty">
                 </td>
-                <td>₨ ${parseFloat(item.price || 0).toFixed(2)}</td>
-                <td>₨ ${parseFloat(lineTotal).toFixed(2)}</td>
+                <td>₨ ${parseFloat(item.price || 0).toLocaleString('en-US', {minimumFractionDigits: 2, maximumFractionDigits: 2})}</td>
+                <td>₨ ${parseFloat(lineTotal).toLocaleString('en-US', {minimumFractionDigits: 2, maximumFractionDigits: 2})}</td>
                 <td><button class="btn btn-sm btn-outline-danger" type="button" data-index="${index}" data-role="remove-item">Remove</button></td>
             </tr>
         `;
@@ -2701,7 +2701,7 @@ function updateTakeOrderItemsTable() {
 
     body.innerHTML = rowsHtml;
     const totalInput = document.getElementById('takeOrderTotal');
-    if (totalInput) totalInput.value = parseFloat(total).toFixed(2);
+    if (totalInput) totalInput.value = parseFloat(total).toLocaleString('en-US', {minimumFractionDigits: 2, maximumFractionDigits: 2});
 
     body.querySelectorAll('[data-role="qty"]').forEach(el => {
         el.onchange = function() {

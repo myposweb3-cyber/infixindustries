@@ -1361,7 +1361,7 @@ function displayProducts(products) {
         item.setAttribute('role', 'option');
         item.setAttribute('tabindex', '0');
         item.setAttribute('aria-selected', 'false');
-        item.setAttribute('aria-label', `${product.name}, ${currencySymbol} ${(Number(product.price) || 0).toFixed(2)}, stock ${product.stock}`);
+        item.setAttribute('aria-label', `${product.name}, ${currencySymbol} ${(Number(product.price) || 0).toLocaleString('en-US', {minimumFractionDigits: 2, maximumFractionDigits: 2})}, stock ${product.stock}`);
         item.dataset.productIndex = productIndex;
         // If customer-specific price exists, use it for display and add-to-cart.
         const displayPrice = (window.customerLastPrices && window.customerLastPrices[product.id] !== undefined)
@@ -1381,7 +1381,7 @@ function displayProducts(products) {
             </div>
             <div class="product-info">
                 <div class="product-name">${product.name}</div>
-                <div class="product-price">${currencySymbol} ${displayPrice.toFixed(2)}</div>
+                <div class="product-price">${currencySymbol} ${displayPrice.toLocaleString('en-US', {minimumFractionDigits: 2, maximumFractionDigits: 2})}</div>
                 <div class="product-stock">${product.stock} ${product.unit_type}</div>
             </div>
         `;
@@ -1504,7 +1504,7 @@ function updateCartDisplay() {
                 <div class="cart-item-top">
                     <div class="cart-item-name">${item.name}</div>
                     <div class="cart-item-top-right">
-                        <div class="cart-item-total-top">${currencySymbol} ${itemTotal.toFixed(2)}</div>
+                        <div class="cart-item-total-top">${currencySymbol} ${itemTotal.toLocaleString('en-US', {minimumFractionDigits: 2, maximumFractionDigits: 2})}</div>
                         <button class="btn-remove" onclick="removeFromCart(${index})">
                             <i class="fas fa-times"></i>
                         </button>
@@ -1515,7 +1515,7 @@ function updateCartDisplay() {
                         <div class="cart-item-price">
                             <label class="small d-block mb-1">Price</label>
                             <div class="d-flex align-items-center gap-2">
-                                <input type="number" class="item-price form-control form-control-sm" value="${item.price.toFixed(2)}" onchange="setItemPrice(${index}, this.value)" step="0.01" min="0" style="width: 100px;">
+                                <input type="number" class="item-price form-control form-control-sm" value="${item.price.toLocaleString('en-US', {minimumFractionDigits: 2, maximumFractionDigits: 2})}" onchange="setItemPrice(${index}, this.value)" step="0.01" min="0" style="width: 100px;">
                                 <button type="button" class="btn btn-outline-secondary btn-sm cust-price-btn" onclick="useCustomerPrice(${index})">Cust Price</button>
                             </div>
                         </div>
@@ -1574,7 +1574,7 @@ function updateCartDisplay() {
     // Update points discount display
     const pointsDiscountEl = document.getElementById('pointsDiscountValue');
     if (pointsDiscountEl) {
-        pointsDiscountEl.textContent = currencySymbol + ' ' + pointsDiscount.toFixed(2);
+        pointsDiscountEl.textContent = currencySymbol + ' ' + pointsDiscount.toLocaleString('en-US', {minimumFractionDigits: 2, maximumFractionDigits: 2});
     }
     
     updateTotals(subtotal, totalDiscount, tax, total);
@@ -1587,9 +1587,9 @@ function updateTotals(subtotal, discount, tax, total = 0) {
     const taxEl = document.getElementById('tax');
     const totalEl = document.getElementById('total');
     
-    const subtotalText = currencySymbol + ' ' + subtotal.toFixed(2);
-    const taxText = currencySymbol + ' ' + tax.toFixed(2);
-    const totalText = currencySymbol + ' ' + (total || 0).toFixed(2);
+    const subtotalText = currencySymbol + ' ' + subtotal.toLocaleString('en-US', {minimumFractionDigits: 2, maximumFractionDigits: 2});
+    const taxText = currencySymbol + ' ' + tax.toLocaleString('en-US', {minimumFractionDigits: 2, maximumFractionDigits: 2});
+    const totalText = currencySymbol + ' ' + (total || 0).toLocaleString('en-US', {minimumFractionDigits: 2, maximumFractionDigits: 2});
     const stickySubtotalEl = document.getElementById('stickySubtotal');
     const stickyDiscountEl = document.getElementById('stickyDiscount');
     const stickyTotalEl = document.getElementById('stickyTotal');
@@ -1609,7 +1609,7 @@ function updateTotals(subtotal, discount, tax, total = 0) {
         console.log('total element updated');
     }
     if (stickySubtotalEl) stickySubtotalEl.textContent = subtotalText;
-    if (stickyDiscountEl) stickyDiscountEl.textContent = currencySymbol + ' ' + Number(discount || 0).toFixed(2);
+    if (stickyDiscountEl) stickyDiscountEl.textContent = currencySymbol + ' ' + Number(discount || 0).toLocaleString('en-US', {minimumFractionDigits: 2, maximumFractionDigits: 2});
     if (stickyTotalEl) stickyTotalEl.textContent = totalText;
 }
 
@@ -1760,7 +1760,7 @@ function calculateChange() {
 
     if (cashGiven >= total) {
         const change = cashGiven - total;
-        document.getElementById('changeAmount').textContent = change.toFixed(2);
+        document.getElementById('changeAmount').textContent = change.toLocaleString('en-US', {minimumFractionDigits: 2, maximumFractionDigits: 2});
         document.getElementById('changeGroup').style.display = 'block';
     } else {
         document.getElementById('changeGroup').style.display = 'none';
@@ -1909,9 +1909,9 @@ function loadCustomerCreditInfo(customerId) {
                 const availableCredit = creditLimit > 0 ? Math.max(0, creditLimit - currentBalance) : 0;
                 const loyaltyPoints = data.loyalty_points || 0;
                 
-                document.getElementById('customerCurrentBalance').textContent = currencySymbol + ' ' + currentBalance.toFixed(2);
-                document.getElementById('customerCreditLimit').textContent = creditLimit > 0 ? currencySymbol + ' ' + creditLimit.toFixed(2) : 'No Limit';
-                document.getElementById('customerAvailableCredit').textContent = creditLimit > 0 ? currencySymbol + ' ' + availableCredit.toFixed(2) : 'Unlimited';
+                document.getElementById('customerCurrentBalance').textContent = currencySymbol + ' ' + currentBalance.toLocaleString('en-US', {minimumFractionDigits: 2, maximumFractionDigits: 2});
+                document.getElementById('customerCreditLimit').textContent = creditLimit > 0 ? currencySymbol + ' ' + creditLimit.toLocaleString('en-US', {minimumFractionDigits: 2, maximumFractionDigits: 2}) : 'No Limit';
+                document.getElementById('customerAvailableCredit').textContent = creditLimit > 0 ? currencySymbol + ' ' + availableCredit.toLocaleString('en-US', {minimumFractionDigits: 2, maximumFractionDigits: 2}) : 'Unlimited';
                 
                 // Update loyalty points max and placeholder
                 const pointsInput = document.getElementById('pointsToRedeemInput');
@@ -2000,7 +2000,7 @@ function checkout() {
         const total = parseFloat(document.getElementById('total').textContent.replace(currencySymbol, ''));
 
         if (paymentMethod === 'Cash' && cashGiven < total) {
-            showNotification(`Insufficient cash. Total: ${currencySymbol} ${total.toFixed(2)}, Given: ${currencySymbol} ${cashGiven.toFixed(2)}`, 'danger');
+            showNotification(`Insufficient cash. Total: ${currencySymbol} ${total.toLocaleString('en-US', {minimumFractionDigits: 2, maximumFractionDigits: 2})}, Given: ${currencySymbol} ${cashGiven.toLocaleString('en-US', {minimumFractionDigits: 2, maximumFractionDigits: 2})}`, 'danger');
             checkoutBtn.disabled = false;
             return;
         }
@@ -2065,7 +2065,7 @@ function checkout() {
                     product_id: item.product_id,
                     quantity: item.quantity,
                     price: item.price,
-                    discount: parseFloat(computedDiscount.toFixed(2)) || 0,
+                    discount: parseFloat(computedDiscount.toLocaleString('en-US', {minimumFractionDigits: 2, maximumFractionDigits: 2})) || 0,
                     tax: item.tax,
                     discount_type: type,
                     discount_value: val
@@ -2351,10 +2351,10 @@ function showAdminPasswordModal(currentBalance, creditLimit, total, overAmount) 
                 <div class="modal-body">
                     <div class="alert alert-warning mb-3">
                         <strong>Credit Limit Exceeded!</strong><br>
-                        Current: ${currencySymbol} ${currentBalance.toFixed(2)}<br>
-                        Limit: ${currencySymbol} ${creditLimit.toFixed(2)}<br>
-                        New: ${currencySymbol} ${(currentBalance + total).toFixed(2)}<br>
-                        <small class="text-danger">Over by: ${currencySymbol} ${overAmount.toFixed(2)}</small>
+                        Current: ${currencySymbol} ${currentBalance.toLocaleString('en-US', {minimumFractionDigits: 2, maximumFractionDigits: 2})}<br>
+                        Limit: ${currencySymbol} ${creditLimit.toLocaleString('en-US', {minimumFractionDigits: 2, maximumFractionDigits: 2})}<br>
+                        New: ${currencySymbol} ${(currentBalance + total).toLocaleString('en-US', {minimumFractionDigits: 2, maximumFractionDigits: 2})}<br>
+                        <small class="text-danger">Over by: ${currencySymbol} ${overAmount.toLocaleString('en-US', {minimumFractionDigits: 2, maximumFractionDigits: 2})}</small>
                     </div>
                     <p>Admin password verification required for security.</p>
                     <div class="form-group">
@@ -2722,7 +2722,7 @@ function displayHeldBills(bills) {
             <td>#${bill.id}</td>
             <td>${window.formatTimestamp(bill.held_date, true)}</td>
             <td>${bill.items_count} items</td>
-            <td>${currencySymbol} ${bill.total.toFixed(2)}</td>
+            <td>${currencySymbol} ${bill.total.toLocaleString('en-US', {minimumFractionDigits: 2, maximumFractionDigits: 2})}</td>
             <td>${bill.notes || '-'}</td>
             <td>
                 <button class="btn btn-primary btn-sm me-1" onclick="loadHeldBill(${bill.id})">

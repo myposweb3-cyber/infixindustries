@@ -246,9 +246,9 @@ function renderSales(sales) {
             <td>${window.formatTimestamp(sale.date, true)}</td>
             <td>${sale.customer}</td>
             <td>${sale.items_count}</td>
-            <td><strong>${currencySymbol} ${Number(sale.total || 0).toFixed(2)}</strong></td>
-            <td class="text-success">${currencySymbol} ${Number(sale.paid_amount || 0).toFixed(2)}</td>
-            <td class="${Number(sale.balance || 0) > 0 ? 'text-danger fw-semibold' : 'text-success'}">${currencySymbol} ${Number(sale.balance || 0).toFixed(2)}</td>
+            <td><strong>${currencySymbol} ${Number(sale.total || 0).toLocaleString('en-US', {minimumFractionDigits: 2, maximumFractionDigits: 2})}</strong></td>
+            <td class="text-success">${currencySymbol} ${Number(sale.paid_amount || 0).toLocaleString('en-US', {minimumFractionDigits: 2, maximumFractionDigits: 2})}</td>
+            <td class="${Number(sale.balance || 0) > 0 ? 'text-danger fw-semibold' : 'text-success'}">${currencySymbol} ${Number(sale.balance || 0).toLocaleString('en-US', {minimumFractionDigits: 2, maximumFractionDigits: 2})}</td>
             <td>${sale.payment}</td>
             <td>${sale.user}</td>
             <td>
@@ -311,10 +311,10 @@ function viewSaleDetails(saleId) {
             document.getElementById('saleDate').textContent = window.formatTimestamp(data.date, true);
             document.getElementById('saleCustomer').textContent = data.customer;
             document.getElementById('salePayment').textContent = data.payment;
-            document.getElementById('salePaid').textContent = currencySymbol + ' ' + Number((data.total || 0) - (data.balance || 0)).toFixed(2);
-            document.getElementById('saleBalance').textContent = currencySymbol + ' ' + Number(data.balance || 0).toFixed(2);
+            document.getElementById('salePaid').textContent = currencySymbol + ' ' + Number((data.total || 0) - (data.balance || 0)).toLocaleString('en-US', {minimumFractionDigits: 2, maximumFractionDigits: 2});
+            document.getElementById('saleBalance').textContent = currencySymbol + ' ' + Number(data.balance || 0).toLocaleString('en-US', {minimumFractionDigits: 2, maximumFractionDigits: 2});
             document.getElementById('saleUser').textContent = data.user;
-            document.getElementById('saleTotal').textContent = data.total.toFixed(2);
+            document.getElementById('saleTotal').textContent = data.total.toLocaleString('en-US', {minimumFractionDigits: 2, maximumFractionDigits: 2});
 
             // Render items
             const tbody = document.getElementById('saleItemsBody');
@@ -324,8 +324,8 @@ function viewSaleDetails(saleId) {
                 row.innerHTML = `
                     <td>${item.product_name}</td>
                     <td>${item.quantity}</td>
-                    <td>${currencySymbol} ${item.price.toFixed(2)}</td>
-                    <td>${currencySymbol} ${item.total.toFixed(2)}</td>
+                    <td>${currencySymbol} ${item.price.toLocaleString('en-US', {minimumFractionDigits: 2, maximumFractionDigits: 2})}</td>
+                    <td>${currencySymbol} ${item.total.toLocaleString('en-US', {minimumFractionDigits: 2, maximumFractionDigits: 2})}</td>
                 `;
                 tbody.appendChild(row);
             });

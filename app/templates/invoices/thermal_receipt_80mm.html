@@ -467,8 +467,8 @@
                     <div>{{ item.description }}</div>
                     <div class="item-code">{{ item.code }}</div>
                 </div>
-                <div class="item-col3">{{ currency_symbol }}{{ "%.2f"|format(item.unit_price) }}</div>
-                <div class="item-col4">{{ currency_symbol }}{{ "%.2f"|format(item.total) }}</div>
+                <div class="item-col3">{{ currency_symbol }}{{ item.unit_price|format_number }}</div>
+                <div class="item-col4">{{ currency_symbol }}{{ item.total|format_number }}</div>
             </div>
             {% endfor %}
         </div>
@@ -479,24 +479,24 @@
         <div class="totals-section">
             <div class="total-row">
                 <span class="total-label">Subtotal:</span>
-                <span class="total-value">{{ currency_symbol }}{{ "%.2f"|format(subtotal) }}</span>
+                <span class="total-value">{{ currency_symbol }}{{ subtotal|format_number }}</span>
             </div>
             {% if discount_total > 0 %}
             <div class="total-row">
                 <span class="total-label">Discount:</span>
-                <span class="total-value">-{{ currency_symbol }}{{ "%.2f"|format(discount_total) }}</span>
+                <span class="total-value">-{{ currency_symbol }}{{ discount_total|format_number }}</span>
             </div>
             {% endif %}
             {% if tax_amount > 0 %}
             <div class="total-row">
                 <span class="total-label">Tax ({{ tax_rate }}%):</span>
-                <span class="total-value">{{ currency_symbol }}{{ "%.2f"|format(tax_amount) }}</span>
+                <span class="total-value">{{ currency_symbol }}{{ tax_amount|format_number }}</span>
             </div>
             {% endif %}
 
             <div class="grand-total">
                 <span class="grand-total-label">TOTAL</span>
-                <span class="grand-total-value">{{ currency_symbol }}{{ "%.2f"|format(total) }}</span>
+                <span class="grand-total-value">{{ currency_symbol }}{{ total|format_number }}</span>
             </div>
         </div>
 
@@ -509,17 +509,17 @@
 
         <div class="settlement-row">
             <span class="settlement-label">Amount Paid:</span>
-            <span class="settlement-value">{{ currency_symbol }}{{ "%.2f"|format(paid_amount) }}</span>
+            <span class="settlement-value">{{ currency_symbol }}{{ paid_amount|format_number }}</span>
         </div>
         {% if balance_due > 0 %}
         <div class="settlement-row">
             <span class="settlement-label">Balance:</span>
-            <span class="settlement-value">{{ currency_symbol }}{{ "%.2f"|format(balance_due) }}</span>
+            <span class="settlement-value">{{ currency_symbol }}{{ balance_due|format_number }}</span>
         </div>
         {% endif %}
         <div class="settlement-row">
             <span class="settlement-label">Change:</span>
-            <span class="settlement-value">{{ currency_symbol }}{{ "%.2f"|format(change) }}</span>
+            <span class="settlement-value">{{ currency_symbol }}{{ change|format_number }}</span>
         </div>
 
         <div class="divider-dashed"></div>

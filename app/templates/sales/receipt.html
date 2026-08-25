@@ -274,11 +274,11 @@
         <tr>
             <td class="col-code">{{ item.code or '-' }}</td>
             <td class="col-desc">{{ item.name }}</td>
-            <td class="col-qty">{{ "%.2f"|format(item.quantity) }}</td>
-            <td class="col-price">{{ "%.2f"|format(item.unit_price) }}</td>
-            <td class="col-disc">{{ "%.1f"|format(item.discount or 0) }}%</td>
-            <td class="col-tax">{{ "%.2f"|format(item.tax_amount or 0) }}</td>
-            <td class="col-total">{{ "%.2f"|format(item.total) }}</td>
+            <td class="col-qty">{{ item.quantity|format_number }}</td>
+            <td class="col-price">{{ item.unit_price|format_number }}</td>
+            <td class="col-disc">{{ item.discount or 0|format_number }}%</td>
+            <td class="col-tax">{{ item.tax_amount or 0|format_number }}</td>
+            <td class="col-total">{{ item.total|format_number }}</td>
         </tr>
         {% endfor %}
     </table>
@@ -298,34 +298,34 @@
                 <table class="totals-table">
                     <tr class="subtotal">
                         <td class="total-label">Subtotal:</td>
-                        <td class="total-value">{{ "%.2f"|format(subtotal or 0) }}</td>
+                        <td class="total-value">{{ subtotal or 0|format_number }}</td>
                     </tr>
                     {% if discount_total > 0 %}
                     <tr>
                         <td class="total-label">Discount:</td>
-                        <td class="total-value">-{{ "%.2f"|format(discount_total) }}</td>
+                        <td class="total-value">-{{ discount_total|format_number }}</td>
                     </tr>
                     {% endif %}
                     {% if tax_amount > 0 %}
                     <tr class="tax">
                         <td class="total-label">Tax ({{ tax_percentage or 0 }}%):</td>
-                        <td class="total-value">{{ "%.2f"|format(tax_amount) }}</td>
+                        <td class="total-value">{{ tax_amount|format_number }}</td>
                     </tr>
                     {% endif %}
                     <tr class="grand">
                         <td class="total-label">GRAND TOTAL:</td>
-                        <td class="total-value">{{ "%.2f"|format(total or 0) }}</td>
+                        <td class="total-value">{{ total or 0|format_number }}</td>
                     </tr>
                     {% if paid_amount > 0 or paid_amount is defined %}
                     <tr class="paid">
                         <td class="total-label">Cash Given:</td>
-                        <td class="total-value">{{ "%.2f"|format(paid_amount or cash_given or 0) }}</td>
+                        <td class="total-value">{{ paid_amount or cash_given or 0|format_number }}</td>
                     </tr>
                     {% endif %}
                     {% if change > 0 %}
                     <tr class="change">
                         <td class="total-label">Change Given:</td>
-                        <td class="total-value">{{ "%.2f"|format(change) }}</td>
+                        <td class="total-value">{{ change|format_number }}</td>
                     </tr>
                     {% endif %}
                 </table>

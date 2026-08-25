@@ -329,10 +329,10 @@
                     <td class="item-code">{{ item.code }}</td>
                     <td class="item-description">{{ item.name }}</td>
                     <td class="text-center">{{ item.quantity }}</td>
-                    <td class="text-right money">{{ currency_symbol }}{{ "%.2f"|format(item.unit_price) }}</td>
-                    <td class="text-right money">{% if item.discount %}-{% endif %}{{ currency_symbol }}{{ "%.2f"|format(item.discount if item.discount else 0) }}</td>
-                    <td class="text-right money">{{ currency_symbol }}{{ "%.2f"|format(item.tax_amount if item.tax_amount else 0) }}</td>
-                    <td class="text-right money">{{ currency_symbol }}{{ "%.2f"|format(item.total) }}</td>
+                    <td class="text-right money">{{ currency_symbol }}{{ item.unit_price|format_number }}</td>
+                    <td class="text-right money">{% if item.discount %}-{% endif %}{{ currency_symbol }}{{ item.discount if item.discount else 0|format_number }}</td>
+                    <td class="text-right money">{{ currency_symbol }}{{ item.tax_amount if item.tax_amount else 0|format_number }}</td>
+                    <td class="text-right money">{{ currency_symbol }}{{ item.total|format_number }}</td>
                 </tr>
                 {% endfor %}
             </tbody>
@@ -342,27 +342,27 @@
             <div class="payment-card">
                 <div class="section-label">Payment Summary</div>
                 <div class="payment-row"><span>Method</span><strong>{{ payment_method }}</strong></div>
-                <div class="payment-row"><span>Amount paid</span><strong class="money">{{ currency_symbol }}{{ "%.2f"|format(paid_amount) }}</strong></div>
+                <div class="payment-row"><span>Amount paid</span><strong class="money">{{ currency_symbol }}{{ paid_amount|format_number }}</strong></div>
                 {% if payment_method == 'Cash' %}
-                <div class="payment-row"><span>Cash received</span><strong class="money">{{ currency_symbol }}{{ "%.2f"|format(cash_given) }}</strong></div>
-                <div class="payment-row"><span>Change returned</span><strong class="money">{{ currency_symbol }}{{ "%.2f"|format(change) }}</strong></div>
+                <div class="payment-row"><span>Cash received</span><strong class="money">{{ currency_symbol }}{{ cash_given|format_number }}</strong></div>
+                <div class="payment-row"><span>Change returned</span><strong class="money">{{ currency_symbol }}{{ change|format_number }}</strong></div>
                 {% endif %}
                 {% if balance_due > 0 %}
-                <div class="payment-row"><span>Balance due</span><strong class="money">{{ currency_symbol }}{{ "%.2f"|format(balance_due) }}</strong></div>
+                <div class="payment-row"><span>Balance due</span><strong class="money">{{ currency_symbol }}{{ balance_due|format_number }}</strong></div>
                 {% endif %}
             </div>
 
             <table class="totals-table">
-                <tr><td class="label">Subtotal</td><td class="value">{{ currency_symbol }}{{ "%.2f"|format(subtotal) }}</td></tr>
+                <tr><td class="label">Subtotal</td><td class="value">{{ currency_symbol }}{{ subtotal|format_number }}</td></tr>
                 {% if discount_total > 0 %}
-                <tr><td class="label">Discount</td><td class="value">-{{ currency_symbol }}{{ "%.2f"|format(discount_total) }}</td></tr>
+                <tr><td class="label">Discount</td><td class="value">-{{ currency_symbol }}{{ discount_total|format_number }}</td></tr>
                 {% endif %}
                 {% if tax_amount > 0 %}
-                <tr><td class="label">Tax ({{ tax_rate if tax_rate else 0 }}%)</td><td class="value">{{ currency_symbol }}{{ "%.2f"|format(tax_amount) }}</td></tr>
+                <tr><td class="label">Tax ({{ tax_rate if tax_rate else 0 }}%)</td><td class="value">{{ currency_symbol }}{{ tax_amount|format_number }}</td></tr>
                 {% endif %}
-                <tr class="total-row"><td class="label">TOTAL</td><td class="value">{{ currency_symbol }}{{ "%.2f"|format(total) }}</td></tr>
+                <tr class="total-row"><td class="label">TOTAL</td><td class="value">{{ currency_symbol }}{{ total|format_number }}</td></tr>
                 {% if balance_due > 0 %}
-                <tr class="balance-row"><td class="label">Balance due</td><td class="value">{{ currency_symbol }}{{ "%.2f"|format(balance_due) }}</td></tr>
+                <tr class="balance-row"><td class="label">Balance due</td><td class="value">{{ currency_symbol }}{{ balance_due|format_number }}</td></tr>
                 {% endif %}
             </table>
         </section>

@@ -350,8 +350,8 @@
             <div class="item-row">
                 <span class="item-name">{{ item.name }}</span>
                 <span>{{ item.quantity }}</span>
-                <span>{{ currency_symbol }}{{ "%.2f"|format(item.unit_price) }}</span>
-                <span>{{ currency_symbol }}{{ "%.2f"|format(item.total) }}</span>
+                <span>{{ currency_symbol }}{{ item.unit_price|format_number }}</span>
+                <span>{{ currency_symbol }}{{ item.total|format_number }}</span>
             </div>
             {% endfor %}
         </div>
@@ -362,41 +362,41 @@
         <div class="totals-section">
             <div class="total-row">
                 <span class="total-label">Subtotal:</span>
-                <span class="total-value">{{ currency_symbol }}{{ "%.2f"|format(subtotal) }}</span>
+                <span class="total-value">{{ currency_symbol }}{{ subtotal|format_number }}</span>
             </div>
             {% if discount_total and discount_total > 0 %}
             <div class="total-row">
                 <span class="total-label">Discount:</span>
-                <span class="total-value">-{{ currency_symbol }}{{ "%.2f"|format(discount_total) }}</span>
+                <span class="total-value">-{{ currency_symbol }}{{ discount_total|format_number }}</span>
             </div>
             <div class="total-row">
                 <span class="total-label">Subtotal After Discount:</span>
-                <span class="total-value">{{ currency_symbol }}{{ "%.2f"|format(subtotal - discount_total) }}</span>
+                <span class="total-value">{{ currency_symbol }}{{ subtotal - discount_total|format_number }}</span>
             </div>
             {% endif %}
             {% if tax_amount and tax_amount > 0 %}
             <div class="total-row">
                 <span class="total-label">Tax ({{ tax_rate }}%):</span>
-                <span class="total-value">{{ currency_symbol }}{{ "%.2f"|format(tax_amount) }}</span>
+                <span class="total-value">{{ currency_symbol }}{{ tax_amount|format_number }}</span>
             </div>
             {% endif %}
         </div>
 
         <!-- GRAND TOTAL -->
         <div class="grand-total">
-            TOTAL: {{ currency_symbol }}{{ "%.2f"|format(total) }}
+            TOTAL: {{ currency_symbol }}{{ total|format_number }}
         </div>
 
         <!-- PAYMENT METHOD -->
         <div class="payment-section">
             <div class="payment-method"><strong>Payment Method:</strong> {{ payment_method }}</div>
-            <div class="payment-method"><strong>Amount Paid:</strong> {{ currency_symbol }}{{ "%.2f"|format(paid_amount) }}</div>
+            <div class="payment-method"><strong>Amount Paid:</strong> {{ currency_symbol }}{{ paid_amount|format_number }}</div>
             {% if payment_method == 'Cash' %}
-            <div class="payment-method"><strong>Cash Given:</strong> {{ currency_symbol }}{{ "%.2f"|format(cash_given) }}</div>
-            <div class="payment-method"><strong>Change:</strong> {{ currency_symbol }}{{ "%.2f"|format(change) }}</div>
+            <div class="payment-method"><strong>Cash Given:</strong> {{ currency_symbol }}{{ cash_given|format_number }}</div>
+            <div class="payment-method"><strong>Change:</strong> {{ currency_symbol }}{{ change|format_number }}</div>
             {% endif %}
             {% if balance_due > 0 %}
-            <div class="payment-method"><strong>Balance:</strong> {{ currency_symbol }}{{ "%.2f"|format(balance_due) }}</div>
+            <div class="payment-method"><strong>Balance:</strong> {{ currency_symbol }}{{ balance_due|format_number }}</div>
             {% endif %}
         </div>
 

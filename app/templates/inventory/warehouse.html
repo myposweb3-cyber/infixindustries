@@ -445,11 +445,11 @@ function displayProducts(products) {
             <td><strong>${product.name}</strong></td>
             <td>${product.barcode || '-'}</td>
             <td>${product.category || '-'}</td>
-            <td>${parseFloat(product.stock).toFixed(2)}</td>
+            <td>${parseFloat(product.stock).toLocaleString('en-US', {minimumFractionDigits: 2, maximumFractionDigits: 2})}</td>
             <td>${product.unit_type}</td>
-            <td>${currencySymbol}${parseFloat(product.price).toFixed(2)}</td>
-            <td>${currencySymbol}${parseFloat(product.cost_price || 0).toFixed(2)}</td>
-            <td>${parseFloat(product.low_stock_threshold).toFixed(2)}</td>
+            <td>${currencySymbol}${parseFloat(product.price).toLocaleString('en-US', {minimumFractionDigits: 2, maximumFractionDigits: 2})}</td>
+            <td>${currencySymbol}${parseFloat(product.cost_price || 0).toLocaleString('en-US', {minimumFractionDigits: 2, maximumFractionDigits: 2})}</td>
+            <td>${parseFloat(product.low_stock_threshold).toLocaleString('en-US', {minimumFractionDigits: 2, maximumFractionDigits: 2})}</td>
             <td>${statusBadge}</td>
             <td>
                 <button class="btn btn-sm btn-primary" onclick="editProduct(${product.id})">

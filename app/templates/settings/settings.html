@@ -2144,7 +2144,7 @@ function startWeightPolling() {
             .then(response => response.json())
             .then(data => {
                 if (data.weight !== undefined) {
-                    document.getElementById('currentWeight').textContent = data.weight.toFixed(3);
+                    document.getElementById('currentWeight').textContent = data.weight.toLocaleString('en-US', {minimumFractionDigits: 3, maximumFractionDigits: 3});
                     document.getElementById('weightStatus').textContent = data.is_stable ? 'Stable' : 'Unstable';
                 }
             })
@@ -2166,7 +2166,7 @@ function testScale() {
         .then(response => response.json())
         .then(data => {
             if (data.connected) {
-                alert(`Scale Status:\nPort: ${data.port}\nCurrent Weight: ${data.current_weight.toFixed(3)} KG\nStatus: ${data.is_stable ? 'Stable' : 'Unstable'}`);
+                alert(`Scale Status:\nPort: ${data.port}\nCurrent Weight: ${data.current_weight.toLocaleString('en-US', {minimumFractionDigits: 3, maximumFractionDigits: 3})} KG\nStatus: ${data.is_stable ? 'Stable' : 'Unstable'}`);
             } else {
                 alert('Scale is not connected. Please connect first.');
             }

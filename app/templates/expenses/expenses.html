@@ -50,7 +50,7 @@
             <div class="card bg-primary text-white">
                 <div class="card-body">
                     <h5 class="card-title">Total Expenses</h5>
-                    <h2 class="mb-0"><span id="totalExpensesCurrency">Rs </span>{{ "%.2f"|format(total_expenses) }}</h2>
+                    <h2 class="mb-0"><span id="totalExpensesCurrency">Rs </span>{{ total_expenses|format_number }}</h2>
                 </div>
             </div>
         </div>
@@ -64,7 +64,7 @@
             <div class="card">
                 <div class="card-body">
                     <h6 class="card-title text-muted">{{ cat[0] }}</h6>
-                    <h5><span class="categoryCurrency">Rs </span>{{ "%.2f"|format(cat[1] or 0) }}</h5>
+                    <h5><span class="categoryCurrency">Rs </span>{{ cat[1] or 0|format_number }}</h5>
                 </div>
             </div>
         </div>
@@ -93,7 +93,7 @@
                             <td>{{ expense.date.strftime('%Y-%m-%d %H:%M') }}</td>
                             <td><span class="badge bg-info">{{ expense.category }}</span></td>
                             <td>{{ expense.description or '-' }}</td>
-                            <td class="text-end"><span class="tableExpenseCurrency">Rs </span>{{ "%.2f"|format(expense.amount) }}</td>
+                            <td class="text-end"><span class="tableExpenseCurrency">Rs </span>{{ expense.amount|format_number }}</td>
                             <td class="text-center">
                                 <button class="btn btn-sm btn-outline-primary me-1" 
                                         onclick="editExpense({{ expense.id }})"

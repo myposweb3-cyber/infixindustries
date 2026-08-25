@@ -99,6 +99,16 @@ def create_app(config_class=None):
         local_dt = dt + timedelta(hours=5)
         return local_dt.strftime('%d/%m/%Y %H:%M')
 
+    @app.template_filter('format_number')
+    def format_number(value, decimals=2):
+        """Format numeric values with thousands separators for display only."""
+        try:
+            number = float(value or 0)
+            precision = int(decimals)
+            return f"{number:,.{precision}f}"
+        except (TypeError, ValueError):
+            return '0.' + ('0' * int(decimals))
+
     # Company context processor - adds company info to all templates
     @app.context_processor
     def inject_company():

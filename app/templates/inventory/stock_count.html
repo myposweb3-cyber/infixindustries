@@ -84,7 +84,7 @@
 {% endblock %}
 {% block scripts %}
 <script>
-const money = v => `₨ ${Number(v || 0).toFixed(2)}`;
+const money = v => `₨ ${Number(v || 0).toLocaleString('en-US', {minimumFractionDigits: 2, maximumFractionDigits: 2})}`;
 const csrf = document.querySelector('meta[name="csrf-token"]')?.content || '';
 const countModal = document.getElementById('viewCountModal') && window.bootstrap?.Modal ? bootstrap.Modal.getOrCreateInstance(document.getElementById('viewCountModal')) : null;
 let countEntryModal = null;
@@ -206,7 +206,7 @@ function renderCountEntryItems() {
       <td class="fw-semibold">${item.product_name || 'Unknown product'}</td>
       <td class="text-end">${Number(item.system_quantity || 0)}</td>
       <td><input type="number" min="0" step="0.01" class="form-control counted-quantity" data-index="${index}" value="${Number(item.counted_quantity || 0)}" aria-label="Counted quantity for ${item.product_name || 'product'}"></td>
-      <td class="text-end fw-semibold ${varianceClass}" data-variance-index="${index}">${variance > 0 ? '+' : ''}${variance.toFixed(2)}</td>
+      <td class="text-end fw-semibold ${varianceClass}" data-variance-index="${index}">${variance > 0 ? '+' : ''}${variance.toLocaleString('en-US', {minimumFractionDigits: 2, maximumFractionDigits: 2})}</td>
       <td><input type="text" class="form-control variance-reason" data-index="${index}" value="${item.reason || ''}" placeholder="Reason for variance"></td>
     </tr>`;
   }).join('') : '<tr><td colspan="5" class="text-center text-muted py-4">No products in this count.</td></tr>';
@@ -215,7 +215,7 @@ function renderCountEntryItems() {
     editingCountItems[index].counted_quantity = Number(this.value || 0);
     const variance = editingCountItems[index].counted_quantity - Number(editingCountItems[index].system_quantity || 0);
     const cell = body.querySelector(`[data-variance-index="${index}"]`);
-    if (cell) { cell.textContent = `${variance > 0 ? '+' : ''}${variance.toFixed(2)}`; cell.className = `text-end fw-semibold ${variance < 0 ? 'text-danger' : variance > 0 ? 'text-success' : 'text-muted'}`; }
+    if (cell) { cell.textContent = `${variance > 0 ? '+' : ''}${variance.toLocaleString('en-US', {minimumFractionDigits: 2, maximumFractionDigits: 2})}`; cell.className = `text-end fw-semibold ${variance < 0 ? 'text-danger' : variance > 0 ? 'text-success' : 'text-muted'}`; }
   }));
   body.querySelectorAll('.variance-reason').forEach(input => input.addEventListener('input', function() { editingCountItems[Number(this.dataset.index)].reason = this.value; }));
 }

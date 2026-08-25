@@ -721,12 +721,12 @@ function loadOverviewData(startDate, endDate) {
     fetch('/reports/api/sales-summary?start_date='+startDate+'&end_date='+endDate)
         .then(response => response.json())
         .then(data => {
-            document.getElementById('overviewNetSales').textContent = '₨'+(data.net_sales || 0).toFixed(2);
-            document.getElementById('overviewTotalSales').textContent = '₨'+(data.total_sales || 0).toFixed(2);
-            document.getElementById('overviewTotalProfit').textContent = '₨'+(data.total_profit || 0).toFixed(2);
+            document.getElementById('overviewNetSales').textContent = '₨'+(data.net_sales || 0).toLocaleString('en-US', {minimumFractionDigits: 2, maximumFractionDigits: 2});
+            document.getElementById('overviewTotalSales').textContent = '₨'+(data.total_sales || 0).toLocaleString('en-US', {minimumFractionDigits: 2, maximumFractionDigits: 2});
+            document.getElementById('overviewTotalProfit').textContent = '₨'+(data.total_profit || 0).toLocaleString('en-US', {minimumFractionDigits: 2, maximumFractionDigits: 2});
             document.getElementById('overviewTotalTransactions').textContent = data.total_transactions || 0;
-            document.getElementById('overviewAvgTransaction').textContent = '₨'+(data.avg_transaction || 0).toFixed(2);
-            document.getElementById('overviewTotalReturns').textContent = '₨'+(data.total_returns || 0).toFixed(2);
+            document.getElementById('overviewAvgTransaction').textContent = '₨'+(data.avg_transaction || 0).toLocaleString('en-US', {minimumFractionDigits: 2, maximumFractionDigits: 2});
+            document.getElementById('overviewTotalReturns').textContent = '₨'+(data.total_returns || 0).toLocaleString('en-US', {minimumFractionDigits: 2, maximumFractionDigits: 2});
 
             // All Sold Products with totals
             var allSoldProductsBody = document.getElementById('allSoldProductsTableBody');
@@ -739,10 +739,10 @@ function loadOverviewData(startDate, endDate) {
                     totalRev += product.revenue;
                     totalProfit += product.profit;
                     var row = document.createElement('tr');
-                    row.innerHTML = '<td>'+product.name+'</td><td>'+product.category+'</td><td>'+product.sku+'</td><td>'+product.quantity+'</td><td>₨'+product.revenue.toFixed(2)+'</td><td>₨'+product.profit.toFixed(2)+'</td>';
+                    row.innerHTML = '<td>'+product.name+'</td><td>'+product.category+'</td><td>'+product.sku+'</td><td>'+product.quantity+'</td><td>₨'+product.revenue.toLocaleString('en-US', {minimumFractionDigits: 2, maximumFractionDigits: 2})+'</td><td>₨'+product.profit.toLocaleString('en-US', {minimumFractionDigits: 2, maximumFractionDigits: 2})+'</td>';
                     allSoldProductsBody.appendChild(row);
                 });
-                allSoldProductsFoot.innerHTML = '<tr style="font-weight:bold;background-color:#f8f9fa;"><td colspan="3">TOTAL</td><td>'+totalQty+'</td><td>₨'+totalRev.toFixed(2)+'</td><td>₨'+totalProfit.toFixed(2)+'</td></tr>';
+                allSoldProductsFoot.innerHTML = '<tr style="font-weight:bold;background-color:#f8f9fa;"><td colspan="3">TOTAL</td><td>'+totalQty+'</td><td>₨'+totalRev.toLocaleString('en-US', {minimumFractionDigits: 2, maximumFractionDigits: 2})+'</td><td>₨'+totalProfit.toLocaleString('en-US', {minimumFractionDigits: 2, maximumFractionDigits: 2})+'</td></tr>';
             } else {
                 allSoldProductsBody.innerHTML = '<tr><td colspan="6" class="text-center">No products sold</td></tr>';
                 allSoldProductsFoot.innerHTML = '';
@@ -757,10 +757,10 @@ function loadOverviewData(startDate, endDate) {
                 data.customers.forEach(function(customer) {
                     totalCustPurchases += customer.total_purchases;
                     var row = document.createElement('tr');
-                    row.innerHTML = '<td>'+customer.name+'</td><td>'+customer.transactions+'</td><td>₨'+customer.total_purchases.toFixed(2)+'</td>';
+                    row.innerHTML = '<td>'+customer.name+'</td><td>'+customer.transactions+'</td><td>₨'+customer.total_purchases.toLocaleString('en-US', {minimumFractionDigits: 2, maximumFractionDigits: 2})+'</td>';
                     customersBody.appendChild(row);
                 });
-                customersFoot.innerHTML = '<tr style="font-weight:bold;background-color:#f8f9fa;"><td colspan="2">TOTAL</td><td>₨'+totalCustPurchases.toFixed(2)+'</td></tr>';
+                customersFoot.innerHTML = '<tr style="font-weight:bold;background-color:#f8f9fa;"><td colspan="2">TOTAL</td><td>₨'+totalCustPurchases.toLocaleString('en-US', {minimumFractionDigits: 2, maximumFractionDigits: 2})+'</td></tr>';
             } else {
                 customersBody.innerHTML = '<tr><td colspan="3" class="text-center">No customer data</td></tr>';
                 customersFoot.innerHTML = '';
@@ -794,9 +794,9 @@ function loadSalesData(startDate, endDate) {
         .then(response => response.json())
         .then(data => {
             // Sales tab summary - Net Sales
-            document.getElementById('salesNetSales').textContent = '₨'+(data.net_sales || 0).toFixed(2);
-            document.getElementById('salesGrossSales').textContent = '₨'+(data.total_sales || 0).toFixed(2);
-            document.getElementById('salesReturns').textContent = '₨'+(data.total_returns || 0).toFixed(2);
+            document.getElementById('salesNetSales').textContent = '₨'+(data.net_sales || 0).toLocaleString('en-US', {minimumFractionDigits: 2, maximumFractionDigits: 2});
+            document.getElementById('salesGrossSales').textContent = '₨'+(data.total_sales || 0).toLocaleString('en-US', {minimumFractionDigits: 2, maximumFractionDigits: 2});
+            document.getElementById('salesReturns').textContent = '₨'+(data.total_returns || 0).toLocaleString('en-US', {minimumFractionDigits: 2, maximumFractionDigits: 2});
             document.getElementById('salesTransactions').textContent = data.total_transactions || 0;
 
             // Top Products with totals
@@ -808,10 +808,10 @@ function loadSalesData(startDate, endDate) {
                 prodQtyTotal += product.quantity;
                 prodRevTotal += product.revenue;
                 var row = document.createElement('tr');
-                row.innerHTML = '<td>'+product.name+'</td><td>'+product.quantity+'</td><td>₨'+product.revenue.toFixed(2)+'</td>';
+                row.innerHTML = '<td>'+product.name+'</td><td>'+product.quantity+'</td><td>₨'+product.revenue.toLocaleString('en-US', {minimumFractionDigits: 2, maximumFractionDigits: 2})+'</td>';
                 topProductsBody.appendChild(row);
             });
-            topProductsFoot.innerHTML = '<tr style="font-weight:bold;background-color:#f8f9fa;"><td>TOTAL</td><td>'+prodQtyTotal+'</td><td>₨'+prodRevTotal.toFixed(2)+'</td></tr>';
+            topProductsFoot.innerHTML = '<tr style="font-weight:bold;background-color:#f8f9fa;"><td>TOTAL</td><td>'+prodQtyTotal+'</td><td>₨'+prodRevTotal.toLocaleString('en-US', {minimumFractionDigits: 2, maximumFractionDigits: 2})+'</td></tr>';
 
             // Payment Methods with totals
             var paymentMethodsBody = document.getElementById('paymentMethodsTableBody');
@@ -822,10 +822,10 @@ function loadSalesData(startDate, endDate) {
                 payCountTotal += method.count;
                 payAmountTotal += method.total;
                 var row = document.createElement('tr');
-                row.innerHTML = '<td>'+method.method+'</td><td>'+method.count+'</td><td>₨'+method.total.toFixed(2)+'</td>';
+                row.innerHTML = '<td>'+method.method+'</td><td>'+method.count+'</td><td>₨'+method.total.toLocaleString('en-US', {minimumFractionDigits: 2, maximumFractionDigits: 2})+'</td>';
                 paymentMethodsBody.appendChild(row);
             });
-            paymentMethodsFoot.innerHTML = '<tr style="font-weight:bold;background-color:#f8f9fa;"><td>TOTAL</td><td>'+payCountTotal+'</td><td>₨'+payAmountTotal.toFixed(2)+'</td></tr>';
+            paymentMethodsFoot.innerHTML = '<tr style="font-weight:bold;background-color:#f8f9fa;"><td>TOTAL</td><td>'+payCountTotal+'</td><td>₨'+payAmountTotal.toLocaleString('en-US', {minimumFractionDigits: 2, maximumFractionDigits: 2})+'</td></tr>';
         })
         .catch(error => console.error('Error:', error));
 }
@@ -834,10 +834,10 @@ function loadPaymentData(startDate, endDate) {
     fetch('/reports/api/payment-report?start_date='+startDate+'&end_date='+endDate)
         .then(response => response.json())
         .then(data => {
-            document.getElementById('paymentCashTotal').textContent = '₨'+(data.totals.cash_total || 0).toFixed(2);
-            document.getElementById('paymentCardTotal').textContent = '₨'+(data.totals.card_total || 0).toFixed(2);
-            document.getElementById('paymentQRTotal').textContent = '₨'+(data.totals.qr_total || 0).toFixed(2);
-            document.getElementById('paymentCreditTotal').textContent = '₨'+(data.totals.credit_total || 0).toFixed(2);
+            document.getElementById('paymentCashTotal').textContent = '₨'+(data.totals.cash_total || 0).toLocaleString('en-US', {minimumFractionDigits: 2, maximumFractionDigits: 2});
+            document.getElementById('paymentCardTotal').textContent = '₨'+(data.totals.card_total || 0).toLocaleString('en-US', {minimumFractionDigits: 2, maximumFractionDigits: 2});
+            document.getElementById('paymentQRTotal').textContent = '₨'+(data.totals.qr_total || 0).toLocaleString('en-US', {minimumFractionDigits: 2, maximumFractionDigits: 2});
+            document.getElementById('paymentCreditTotal').textContent = '₨'+(data.totals.credit_total || 0).toLocaleString('en-US', {minimumFractionDigits: 2, maximumFractionDigits: 2});
 
             var breakdownBody = document.getElementById('paymentBreakdownTableBody');
             var breakdownFoot = document.getElementById('paymentBreakdownTableFoot');
@@ -849,10 +849,10 @@ function loadPaymentData(startDate, endDate) {
                     payCountTotal += info.count;
                     payAmountTotal += info.total;
                     var row = document.createElement('tr');
-                    row.innerHTML = '<td>'+method+'</td><td>'+info.count+'</td><td>₨'+info.total.toFixed(2)+'</td>';
+                    row.innerHTML = '<td>'+method+'</td><td>'+info.count+'</td><td>₨'+info.total.toLocaleString('en-US', {minimumFractionDigits: 2, maximumFractionDigits: 2})+'</td>';
                     breakdownBody.appendChild(row);
                 }
-                breakdownFoot.innerHTML = '<tr style="font-weight:bold;background-color:#f8f9fa;"><td>TOTAL</td><td>'+payCountTotal+'</td><td>₨'+payAmountTotal.toFixed(2)+'</td></tr>';
+                breakdownFoot.innerHTML = '<tr style="font-weight:bold;background-color:#f8f9fa;"><td>TOTAL</td><td>'+payCountTotal+'</td><td>₨'+payAmountTotal.toLocaleString('en-US', {minimumFractionDigits: 2, maximumFractionDigits: 2})+'</td></tr>';
             } else {
                 breakdownBody.innerHTML = '<tr><td colspan="3" class="text-center">No payment data</td></tr>';
                 breakdownFoot.innerHTML = '';
@@ -867,11 +867,11 @@ function loadShiftReportData(startDate, endDate) {
         .then(data => {
             const summary = data.summary || {};
             document.getElementById('shiftReportCount').textContent = summary.count || 0;
-            document.getElementById('shiftReportExpected').textContent = '₨'+Number(summary.expected_cash || 0).toFixed(2);
-            document.getElementById('shiftReportActual').textContent = '₨'+Number(summary.actual_cash || 0).toFixed(2);
-            document.getElementById('shiftReportVariance').textContent = '₨'+Number(summary.variance || 0).toFixed(2);
+            document.getElementById('shiftReportExpected').textContent = '₨'+Number(summary.expected_cash || 0).toLocaleString('en-US', {minimumFractionDigits: 2, maximumFractionDigits: 2});
+            document.getElementById('shiftReportActual').textContent = '₨'+Number(summary.actual_cash || 0).toLocaleString('en-US', {minimumFractionDigits: 2, maximumFractionDigits: 2});
+            document.getElementById('shiftReportVariance').textContent = '₨'+Number(summary.variance || 0).toLocaleString('en-US', {minimumFractionDigits: 2, maximumFractionDigits: 2});
             const body = document.getElementById('shiftReportTableBody');
-            body.innerHTML = data.shifts && data.shifts.length ? data.shifts.map(shift => '<tr><td>#'+shift.id+'</td><td>'+shift.cashier+'</td><td>'+shift.opened_at+'</td><td>'+(shift.closed_at || '—')+'</td><td>₨'+Number(shift.opening_cash || 0).toFixed(2)+'</td><td>₨'+Number(shift.expected_cash || 0).toFixed(2)+'</td><td>'+(shift.actual_cash === null ? '—' : '₨'+Number(shift.actual_cash).toFixed(2))+'</td><td>₨'+Number(shift.variance || 0).toFixed(2)+'</td><td>'+shift.status+'</td></tr>').join('') : '<tr><td colspan="9" class="text-center">No shift data found</td></tr>';
+            body.innerHTML = data.shifts && data.shifts.length ? data.shifts.map(shift => '<tr><td>#'+shift.id+'</td><td>'+shift.cashier+'</td><td>'+shift.opened_at+'</td><td>'+(shift.closed_at || '—')+'</td><td>₨'+Number(shift.opening_cash || 0).toLocaleString('en-US', {minimumFractionDigits: 2, maximumFractionDigits: 2})+'</td><td>₨'+Number(shift.expected_cash || 0).toLocaleString('en-US', {minimumFractionDigits: 2, maximumFractionDigits: 2})+'</td><td>'+(shift.actual_cash === null ? '—' : '₨'+Number(shift.actual_cash).toLocaleString('en-US', {minimumFractionDigits: 2, maximumFractionDigits: 2}))+'</td><td>₨'+Number(shift.variance || 0).toLocaleString('en-US', {minimumFractionDigits: 2, maximumFractionDigits: 2})+'</td><td>'+shift.status+'</td></tr>').join('') : '<tr><td colspan="9" class="text-center">No shift data found</td></tr>';
         })
         .catch(error => { console.error('Error loading shift report:', error); document.getElementById('shiftReportTableBody').innerHTML = '<tr><td colspan="9" class="text-center text-danger">Unable to load shift report</td></tr>'; });
 }
@@ -882,9 +882,9 @@ function loadCashierData(startDate, endDate) {
         .then(response => response.json())
         .then(data => {
             document.getElementById('cashierCount').textContent = data.summary.cashier_count || 0;
-            document.getElementById('cashierTotalSales').textContent = '₨'+(data.summary.total_sales || 0).toFixed(2);
-            document.getElementById('cashierAvgBill').textContent = '₨'+(data.summary.average_bill || 0).toFixed(2);
-            document.getElementById('cashierTotalDiscount').textContent = '₨'+(data.summary.total_discount_given || 0).toFixed(2);
+            document.getElementById('cashierTotalSales').textContent = '₨'+(data.summary.total_sales || 0).toLocaleString('en-US', {minimumFractionDigits: 2, maximumFractionDigits: 2});
+            document.getElementById('cashierAvgBill').textContent = '₨'+(data.summary.average_bill || 0).toLocaleString('en-US', {minimumFractionDigits: 2, maximumFractionDigits: 2});
+            document.getElementById('cashierTotalDiscount').textContent = '₨'+(data.summary.total_discount_given || 0).toLocaleString('en-US', {minimumFractionDigits: 2, maximumFractionDigits: 2});
 
             var cashierBody = document.getElementById('cashierTableBody');
             var cashierFoot = document.getElementById('cashierTableFoot');
@@ -897,10 +897,10 @@ function loadCashierData(startDate, endDate) {
                     cashDiscTotal += cashier.discount_given;
                     cashRetTotal += cashier.returns_processed;
                     var row = document.createElement('tr');
-                    row.innerHTML = '<td>'+cashier.cashier_name+'</td><td>₨'+cashier.total_sales.toFixed(2)+'</td><td>'+cashier.transactions+'</td><td>₨'+cashier.average_bill.toFixed(2)+'</td><td>₨'+cashier.discount_given.toFixed(2)+'</td><td>'+cashier.returns_processed+'</td>';
+                    row.innerHTML = '<td>'+cashier.cashier_name+'</td><td>₨'+cashier.total_sales.toLocaleString('en-US', {minimumFractionDigits: 2, maximumFractionDigits: 2})+'</td><td>'+cashier.transactions+'</td><td>₨'+cashier.average_bill.toLocaleString('en-US', {minimumFractionDigits: 2, maximumFractionDigits: 2})+'</td><td>₨'+cashier.discount_given.toLocaleString('en-US', {minimumFractionDigits: 2, maximumFractionDigits: 2})+'</td><td>'+cashier.returns_processed+'</td>';
                     cashierBody.appendChild(row);
                 });
-                cashierFoot.innerHTML = '<tr style="font-weight:bold;background-color:#f8f9fa;"><td>TOTAL</td><td>₨'+cashSalesTotal.toFixed(2)+'</td><td>'+cashTransTotal+'</td><td>-</td><td>₨'+cashDiscTotal.toFixed(2)+'</td><td>'+cashRetTotal+'</td></tr>';
+                cashierFoot.innerHTML = '<tr style="font-weight:bold;background-color:#f8f9fa;"><td>TOTAL</td><td>₨'+cashSalesTotal.toLocaleString('en-US', {minimumFractionDigits: 2, maximumFractionDigits: 2})+'</td><td>'+cashTransTotal+'</td><td>-</td><td>₨'+cashDiscTotal.toLocaleString('en-US', {minimumFractionDigits: 2, maximumFractionDigits: 2})+'</td><td>'+cashRetTotal+'</td></tr>';
             } else {
                 cashierBody.innerHTML = '<tr><td colspan="6" class="text-center">No cashier data</td></tr>';
                 cashierFoot.innerHTML = '';
@@ -915,7 +915,7 @@ function loadCategoryData(startDate, endDate) {
         .then(data => {
             document.getElementById('categoryCount').textContent = data.summary.category_count || 0;
             document.getElementById('categoryQuantity').textContent = data.summary.total_quantity_sold || 0;
-            document.getElementById('categoryProfit').textContent = '₨'+(data.summary.total_profit || 0).toFixed(2);
+            document.getElementById('categoryProfit').textContent = '₨'+(data.summary.total_profit || 0).toLocaleString('en-US', {minimumFractionDigits: 2, maximumFractionDigits: 2});
 
             var categoryBody = document.getElementById('categoryTableBody');
             var categoryFoot = document.getElementById('categoryTableFoot');
@@ -927,10 +927,10 @@ function loadCategoryData(startDate, endDate) {
                     catRevTotal += category.revenue;
                     catProfTotal += category.profit;
                     var row = document.createElement('tr');
-                    row.innerHTML = '<td>'+category.category+'</td><td>'+category.quantity_sold+'</td><td>₨'+category.revenue.toFixed(2)+'</td><td>₨'+category.profit.toFixed(2)+'</td>';
+                    row.innerHTML = '<td>'+category.category+'</td><td>'+category.quantity_sold+'</td><td>₨'+category.revenue.toLocaleString('en-US', {minimumFractionDigits: 2, maximumFractionDigits: 2})+'</td><td>₨'+category.profit.toLocaleString('en-US', {minimumFractionDigits: 2, maximumFractionDigits: 2})+'</td>';
                     categoryBody.appendChild(row);
                 });
-                categoryFoot.innerHTML = '<tr style="font-weight:bold;background-color:#f8f9fa;"><td>TOTAL</td><td>'+catQtyTotal+'</td><td>₨'+catRevTotal.toFixed(2)+'</td><td>₨'+catProfTotal.toFixed(2)+'</td></tr>';
+                categoryFoot.innerHTML = '<tr style="font-weight:bold;background-color:#f8f9fa;"><td>TOTAL</td><td>'+catQtyTotal+'</td><td>₨'+catRevTotal.toLocaleString('en-US', {minimumFractionDigits: 2, maximumFractionDigits: 2})+'</td><td>₨'+catProfTotal.toLocaleString('en-US', {minimumFractionDigits: 2, maximumFractionDigits: 2})+'</td></tr>';
                 updateCategoryChart(data.categories);
             } else {
                 categoryBody.innerHTML = '<tr><td colspan="4" class="text-center">No category data</td></tr>';
@@ -958,7 +958,7 @@ function loadReturnsData(startDate, endDate) {
         .then(data => {
             // Update summary cards
             document.getElementById('returnsTotalCount').textContent = data.summary ? data.summary.total_returns : 0;
-            document.getElementById('returnsTotalAmount').textContent = '₨'+(data.summary ? data.summary.total_refund_amount : 0).toFixed(2);
+            document.getElementById('returnsTotalAmount').textContent = '₨'+(data.summary ? data.summary.total_refund_amount : 0).toLocaleString('en-US', {minimumFractionDigits: 2, maximumFractionDigits: 2});
             document.getElementById('returnsCompleted').textContent = data.summary ? data.summary.completed_count : 0;
             document.getElementById('returnsPending').textContent = data.summary ? data.summary.pending_count : 0;
 
@@ -972,10 +972,10 @@ function loadReturnsData(startDate, endDate) {
                     retAmountTotal += ret.total_refund;
                     var statusBadge = ret.status === 'completed' ? 'bg-success' : (ret.status === 'pending' ? 'bg-warning' : 'bg-secondary');
                     var row = document.createElement('tr');
-                    row.innerHTML = '<td>#'+ret.id+'</td><td>'+ret.date+'</td><td>'+ret.invoice_no+'</td><td>'+(ret.customer || 'Walk-in')+'</td><td>'+ret.reason+'</td><td>'+(ret.refund_method || '-')+'</td><td>₨'+ret.total_refund.toFixed(2)+'</td><td><span class="badge '+statusBadge+'">'+ret.status+'</span></td>';
+                    row.innerHTML = '<td>#'+ret.id+'</td><td>'+ret.date+'</td><td>'+ret.invoice_no+'</td><td>'+(ret.customer || 'Walk-in')+'</td><td>'+ret.reason+'</td><td>'+(ret.refund_method || '-')+'</td><td>₨'+ret.total_refund.toLocaleString('en-US', {minimumFractionDigits: 2, maximumFractionDigits: 2})+'</td><td><span class="badge '+statusBadge+'">'+ret.status+'</span></td>';
                     returnsBody.appendChild(row);
                 });
-                returnsFoot.innerHTML = '<tr style="font-weight:bold;background-color:#f8f9fa;"><td colspan="6">TOTAL</td><td>₨'+retAmountTotal.toFixed(2)+'</td><td></td></tr>';
+                returnsFoot.innerHTML = '<tr style="font-weight:bold;background-color:#f8f9fa;"><td colspan="6">TOTAL</td><td>₨'+retAmountTotal.toLocaleString('en-US', {minimumFractionDigits: 2, maximumFractionDigits: 2})+'</td><td></td></tr>';
             } else {
                 returnsBody.innerHTML = '<tr><td colspan="8" class="text-center">No returns found</td></tr>';
                 returnsFoot.innerHTML = '';
@@ -989,7 +989,7 @@ function loadInventoryData() {
         .then(response => response.json())
         .then(data => {
             document.getElementById('inventoryTotalProducts').textContent = data.total_products;
-            document.getElementById('inventoryTotalValue').textContent = '₨'+data.total_value.toFixed(2);
+            document.getElementById('inventoryTotalValue').textContent = '₨'+data.total_value.toLocaleString('en-US', {minimumFractionDigits: 2, maximumFractionDigits: 2});
             document.getElementById('inventoryLowStock').textContent = data.low_stock_count;
             document.getElementById('inventoryOutOfStock').textContent = data.out_of_stock_count;
 
@@ -1009,10 +1009,10 @@ function loadProfitLossData(startDate, endDate) {
     fetch('/reports/api/profit-loss?start_date='+startDate+'&end_date='+endDate)
         .then(response => response.json())
         .then(data => {
-            document.getElementById('plTotalRevenue').textContent = '₨'+(data.summary.gross_sales || 0).toFixed(2);
-            document.getElementById('plCOGS').textContent = '₨'+(data.summary.cogs || 0).toFixed(2);
-            document.getElementById('plGrossProfit').textContent = '₨'+(data.summary.gross_profit || 0).toFixed(2);
-            document.getElementById('plNetProfit').textContent = '₨'+(data.summary.net_profit || 0).toFixed(2);
+            document.getElementById('plTotalRevenue').textContent = '₨'+(data.summary.gross_sales || 0).toLocaleString('en-US', {minimumFractionDigits: 2, maximumFractionDigits: 2});
+            document.getElementById('plCOGS').textContent = '₨'+(data.summary.cogs || 0).toLocaleString('en-US', {minimumFractionDigits: 2, maximumFractionDigits: 2});
+            document.getElementById('plGrossProfit').textContent = '₨'+(data.summary.gross_profit || 0).toLocaleString('en-US', {minimumFractionDigits: 2, maximumFractionDigits: 2});
+            document.getElementById('plNetProfit').textContent = '₨'+(data.summary.net_profit || 0).toLocaleString('en-US', {minimumFractionDigits: 2, maximumFractionDigits: 2});
             
             // Populate the profit & loss table
             var plTableBody = document.getElementById('profitLossTableBody');
@@ -1033,26 +1033,26 @@ function loadProfitLossData(startDate, endDate) {
                     
                     var row = document.createElement('tr');
                     row.innerHTML = '<td>'+month.month+'</td>' +
-                        '<td>₨'+month.gross_sales.toFixed(2)+'</td>' +
-                        '<td>₨'+month.returns.toFixed(2)+'</td>' +
-                        '<td>₨'+month.net_sales.toFixed(2)+'</td>' +
-                        '<td>₨'+month.cogs.toFixed(2)+'</td>' +
-                        '<td>₨'+month.gross_profit.toFixed(2)+'</td>' +
-                        '<td>₨'+month.expenses.toFixed(2)+'</td>' +
-                        '<td>₨'+month.net_profit.toFixed(2)+'</td>';
+                        '<td>₨'+month.gross_sales.toLocaleString('en-US', {minimumFractionDigits: 2, maximumFractionDigits: 2})+'</td>' +
+                        '<td>₨'+month.returns.toLocaleString('en-US', {minimumFractionDigits: 2, maximumFractionDigits: 2})+'</td>' +
+                        '<td>₨'+month.net_sales.toLocaleString('en-US', {minimumFractionDigits: 2, maximumFractionDigits: 2})+'</td>' +
+                        '<td>₨'+month.cogs.toLocaleString('en-US', {minimumFractionDigits: 2, maximumFractionDigits: 2})+'</td>' +
+                        '<td>₨'+month.gross_profit.toLocaleString('en-US', {minimumFractionDigits: 2, maximumFractionDigits: 2})+'</td>' +
+                        '<td>₨'+month.expenses.toLocaleString('en-US', {minimumFractionDigits: 2, maximumFractionDigits: 2})+'</td>' +
+                        '<td>₨'+month.net_profit.toLocaleString('en-US', {minimumFractionDigits: 2, maximumFractionDigits: 2})+'</td>';
                     plTableBody.appendChild(row);
                 });
                 
                 // Add totals row
                 plTableFoot.innerHTML = '<tr style="font-weight:bold;background-color:#f8f9fa;">' +
                     '<td>TOTAL</td>' +
-                    '<td>₨'+totalGrossSales.toFixed(2)+'</td>' +
-                    '<td>₨'+totalReturns.toFixed(2)+'</td>' +
-                    '<td>₨'+totalNetSales.toFixed(2)+'</td>' +
-                    '<td>₨'+totalCOGS.toFixed(2)+'</td>' +
-                    '<td>₨'+totalGrossProfit.toFixed(2)+'</td>' +
-                    '<td>₨'+totalExpenses.toFixed(2)+'</td>' +
-                    '<td>₨'+totalNetProfit.toFixed(2)+'</td></tr>';
+                    '<td>₨'+totalGrossSales.toLocaleString('en-US', {minimumFractionDigits: 2, maximumFractionDigits: 2})+'</td>' +
+                    '<td>₨'+totalReturns.toLocaleString('en-US', {minimumFractionDigits: 2, maximumFractionDigits: 2})+'</td>' +
+                    '<td>₨'+totalNetSales.toLocaleString('en-US', {minimumFractionDigits: 2, maximumFractionDigits: 2})+'</td>' +
+                    '<td>₨'+totalCOGS.toLocaleString('en-US', {minimumFractionDigits: 2, maximumFractionDigits: 2})+'</td>' +
+                    '<td>₨'+totalGrossProfit.toLocaleString('en-US', {minimumFractionDigits: 2, maximumFractionDigits: 2})+'</td>' +
+                    '<td>₨'+totalExpenses.toLocaleString('en-US', {minimumFractionDigits: 2, maximumFractionDigits: 2})+'</td>' +
+                    '<td>₨'+totalNetProfit.toLocaleString('en-US', {minimumFractionDigits: 2, maximumFractionDigits: 2})+'</td></tr>';
             } else {
                 plTableBody.innerHTML = '<tr><td colspan="8" class="text-center">No profit & loss data available</td></tr>';
                 plTableFoot.innerHTML = '';
@@ -1072,7 +1072,7 @@ function updateSalesTrendChart(dailySales) {
     if (!ctx) return;
     ctx = ctx.getContext('2d');
     if (salesTrendChart && typeof salesTrendChart.destroy === 'function') salesTrendChart.destroy();
-    salesTrendChart = new Chart(ctx, { type: 'line', data: { labels: dailySales.map(day => day.date), datasets: [{ label: 'Daily Sales', data: dailySales.map(day => day.total), borderColor: 'rgb(75,192,192)', backgroundColor: 'rgba(75,192,192,0.2)', tension: 0.1 }] }, options: { responsive: true, maintainAspectRatio: false, scales: { y: { beginAtZero: true, ticks: { callback: function(value) { return '₨' + value.toFixed(2); } } } } } });
+    salesTrendChart = new Chart(ctx, { type: 'line', data: { labels: dailySales.map(day => day.date), datasets: [{ label: 'Daily Sales', data: dailySales.map(day => day.total), borderColor: 'rgb(75,192,192)', backgroundColor: 'rgba(75,192,192,0.2)', tension: 0.1 }] }, options: { responsive: true, maintainAspectRatio: false, scales: { y: { beginAtZero: true, ticks: { callback: function(value) { return '₨' + value.toLocaleString('en-US', {minimumFractionDigits: 2, maximumFractionDigits: 2}); } } } } } });
 }
 
 function updatePaymentMethodsChart(paymentMethods) {
@@ -1096,7 +1096,7 @@ function updateInventoryValueChart(categoryValues) {
     if (!ctx) return;
     ctx = ctx.getContext('2d');
     if (inventoryValueChart && typeof inventoryValueChart.destroy === 'function') inventoryValueChart.destroy();
-    inventoryValueChart = new Chart(ctx, { type: 'bar', data: { labels: categoryValues.map(cat => cat.category), datasets: [{ label: 'Inventory Value', data: categoryValues.map(cat => cat.value), backgroundColor: 'rgba(54,162,235,0.5)', borderColor: 'rgb(54,162,235)', borderWidth: 1 }] }, options: { responsive: true, maintainAspectRatio: false, scales: { y: { beginAtZero: true, ticks: { callback: function(value) { return '₨' + value.toFixed(2); } } } } } });
+    inventoryValueChart = new Chart(ctx, { type: 'bar', data: { labels: categoryValues.map(cat => cat.category), datasets: [{ label: 'Inventory Value', data: categoryValues.map(cat => cat.value), backgroundColor: 'rgba(54,162,235,0.5)', borderColor: 'rgb(54,162,235)', borderWidth: 1 }] }, options: { responsive: true, maintainAspectRatio: false, scales: { y: { beginAtZero: true, ticks: { callback: function(value) { return '₨' + value.toLocaleString('en-US', {minimumFractionDigits: 2, maximumFractionDigits: 2}); } } } } } });
 }
 
 function updateProfitLossChart(monthlyBreakdown) {
@@ -1138,7 +1138,7 @@ function updateProfitLossChart(monthlyBreakdown) {
                     y: { 
                         beginAtZero: true, 
                         ticks: { 
-                            callback: function(value) { return '₨' + value.toFixed(2); } 
+                            callback: function(value) { return '₨' + value.toLocaleString('en-US', {minimumFractionDigits: 2, maximumFractionDigits: 2}); }
                         } 
                     } 
                 },
@@ -1273,9 +1273,9 @@ function loadCustomerOutstandingData(startDate, endDate) {
             var totalOutstanding = data.summary ? data.summary.total_outstanding : 0;
             
             document.getElementById('coTotalCustomers').textContent = totalCustomers;
-            document.getElementById('coTotalOverdue').textContent = '₨'+(totalOverdue || 0).toFixed(2);
-            document.getElementById('coTotal0_30').textContent = '₨'+(total0_30 || 0).toFixed(2);
-            document.getElementById('coTotalOutstanding').textContent = '₨'+(totalOutstanding || 0).toFixed(2);
+            document.getElementById('coTotalOverdue').textContent = '₨'+(totalOverdue || 0).toLocaleString('en-US', {minimumFractionDigits: 2, maximumFractionDigits: 2});
+            document.getElementById('coTotal0_30').textContent = '₨'+(total0_30 || 0).toLocaleString('en-US', {minimumFractionDigits: 2, maximumFractionDigits: 2});
+            document.getElementById('coTotalOutstanding').textContent = '₨'+(totalOutstanding || 0).toLocaleString('en-US', {minimumFractionDigits: 2, maximumFractionDigits: 2});
 
             var tableBody = document.getElementById('customerOutstandingTableBody');
             var tableFoot = document.getElementById('customerOutstandingTableFoot');
@@ -1302,12 +1302,12 @@ function loadCustomerOutstandingData(startDate, endDate) {
                     var row = document.createElement('tr');
                     row.innerHTML = '<td>'+customer.name+'</td>' +
                         '<td>'+(customer.phone || '-')+'</td>' +
-                        '<td>₨'+(customer.credit_limit || 0).toFixed(2)+'</td>' +
-                        '<td>₨'+customer.outstanding_0_30.toFixed(2)+'</td>' +
-                        '<td>₨'+customer.outstanding_30_60.toFixed(2)+'</td>' +
-                        '<td>₨'+customer.outstanding_60_90.toFixed(2)+'</td>' +
-                        '<td>₨'+customer.outstanding_90_plus.toFixed(2)+'</td>' +
-                        '<td>₨'+customer.total_outstanding.toFixed(2)+'</td>' +
+                        '<td>₨'+(customer.credit_limit || 0).toLocaleString('en-US', {minimumFractionDigits: 2, maximumFractionDigits: 2})+'</td>' +
+                        '<td>₨'+customer.outstanding_0_30.toLocaleString('en-US', {minimumFractionDigits: 2, maximumFractionDigits: 2})+'</td>' +
+                        '<td>₨'+customer.outstanding_30_60.toLocaleString('en-US', {minimumFractionDigits: 2, maximumFractionDigits: 2})+'</td>' +
+                        '<td>₨'+customer.outstanding_60_90.toLocaleString('en-US', {minimumFractionDigits: 2, maximumFractionDigits: 2})+'</td>' +
+                        '<td>₨'+customer.outstanding_90_plus.toLocaleString('en-US', {minimumFractionDigits: 2, maximumFractionDigits: 2})+'</td>' +
+                        '<td>₨'+customer.total_outstanding.toLocaleString('en-US', {minimumFractionDigits: 2, maximumFractionDigits: 2})+'</td>' +
                         '<td><span class="badge '+statusBadge+'">'+statusText+'</span></td>' +
                         '<td><button class="btn btn-sm btn-success" onclick="openPaymentModal('+customer.id+', \''+customer.name.replace(/'/g, "\\'")+'\', '+customer.total_outstanding+')"><i class="fas fa-money-bill-wave"></i> Pay</button></td>';
                     tableBody.appendChild(row);
@@ -1315,11 +1315,11 @@ function loadCustomerOutstandingData(startDate, endDate) {
                 
                 tableFoot.innerHTML = '<tr style="font-weight:bold;background-color:#f8f9fa;">' +
                     '<td colspan="3">TOTAL</td>' +
-                    '<td>₨'+t0_30.toFixed(2)+'</td>' +
-                    '<td>₨'+t30_60.toFixed(2)+'</td>' +
-                    '<td>₨'+t60_90.toFixed(2)+'</td>' +
-                    '<td>₨'+t90_plus.toFixed(2)+'</td>' +
-                    '<td>₨'+tOutstanding.toFixed(2)+'</td>' +
+                    '<td>₨'+t0_30.toLocaleString('en-US', {minimumFractionDigits: 2, maximumFractionDigits: 2})+'</td>' +
+                    '<td>₨'+t30_60.toLocaleString('en-US', {minimumFractionDigits: 2, maximumFractionDigits: 2})+'</td>' +
+                    '<td>₨'+t60_90.toLocaleString('en-US', {minimumFractionDigits: 2, maximumFractionDigits: 2})+'</td>' +
+                    '<td>₨'+t90_plus.toLocaleString('en-US', {minimumFractionDigits: 2, maximumFractionDigits: 2})+'</td>' +
+                    '<td>₨'+tOutstanding.toLocaleString('en-US', {minimumFractionDigits: 2, maximumFractionDigits: 2})+'</td>' +
                     '<td></td></tr>';
             } else {
                 tableBody.innerHTML = '<tr><td colspan="10" class="text-center">No outstanding balances found</td></tr>';
@@ -1337,7 +1337,7 @@ function loadCustomerPurchaseData(startDate, endDate) {
             // Update summary cards
             document.getElementById('cpTotalCustomers').textContent = data.summary ? data.summary.total_customers : 0;
             document.getElementById('cpTotalTransactions').textContent = data.summary ? data.summary.total_transactions : 0;
-            document.getElementById('cpTotalPurchases').textContent = '₨'+(data.summary ? data.summary.total_purchases : 0).toFixed(2);
+            document.getElementById('cpTotalPurchases').textContent = '₨'+(data.summary ? data.summary.total_purchases : 0).toLocaleString('en-US', {minimumFractionDigits: 2, maximumFractionDigits: 2});
 
             var tableBody = document.getElementById('customerPurchaseTableBody');
             var tableFoot = document.getElementById('customerPurchaseTableFoot');
@@ -1353,15 +1353,15 @@ function loadCustomerPurchaseData(startDate, endDate) {
                     var row = document.createElement('tr');
                     row.innerHTML = '<td>'+customer.name+'</td>' +
                         '<td>'+customer.transaction_count+'</td>' +
-                        '<td>₨'+customer.total_purchases.toFixed(2)+'</td>' +
-                        '<td>₨'+(customer.outstanding_balance || 0).toFixed(2)+'</td>';
+                        '<td>₨'+customer.total_purchases.toLocaleString('en-US', {minimumFractionDigits: 2, maximumFractionDigits: 2})+'</td>' +
+                        '<td>₨'+(customer.outstanding_balance || 0).toLocaleString('en-US', {minimumFractionDigits: 2, maximumFractionDigits: 2})+'</td>';
                     tableBody.appendChild(row);
                 });
                 
                 tableFoot.innerHTML = '<tr style="font-weight:bold;background-color:#f8f9fa;">' +
                     '<td>TOTAL</td>' +
                     '<td>'+totalTransactions+'</td>' +
-                    '<td>₨'+totalPurchases.toFixed(2)+'</td>' +
+                    '<td>₨'+totalPurchases.toLocaleString('en-US', {minimumFractionDigits: 2, maximumFractionDigits: 2})+'</td>' +
                     '<td></td></tr>';
             } else {
                 tableBody.innerHTML = '<tr><td colspan="4" class="text-center">No customer purchase data found</td></tr>';
@@ -1563,8 +1563,8 @@ function loadCustomerLedgerForCustomer(customerId, startDate, endDate) {
                     '<div class="col-md-4"><strong>Name:</strong> '+data.customer.name+'</div>' +
                     '<div class="col-md-4"><strong>Phone:</strong> '+(data.customer.phone || '-')+'</div>' +
                     '<div class="col-md-4"><strong>Email:</strong> '+(data.customer.email || '-')+'</div>' +
-                    '<div class="col-md-4"><strong>Credit Limit:</strong> ₨'+(data.customer.credit_limit || 0).toFixed(2)+'</div>' +
-                    '<div class="col-md-4"><strong>Current Balance:</strong> ₨'+(data.customer.current_balance || 0).toFixed(2)+'</div>' +
+                    '<div class="col-md-4"><strong>Credit Limit:</strong> ₨'+(data.customer.credit_limit || 0).toLocaleString('en-US', {minimumFractionDigits: 2, maximumFractionDigits: 2})+'</div>' +
+                    '<div class="col-md-4"><strong>Current Balance:</strong> ₨'+(data.customer.current_balance || 0).toLocaleString('en-US', {minimumFractionDigits: 2, maximumFractionDigits: 2})+'</div>' +
                     '</div>';
             }
             
@@ -1584,9 +1584,9 @@ function loadCustomerLedgerForCustomer(customerId, startDate, endDate) {
                         '<td>'+entry.time+'</td>' +
                         '<td>'+entry.type+'</td>' +
                         '<td>'+entry.reference+'</td>' +
-                        '<td>₨'+entry.debit.toFixed(2)+'</td>' +
-                        '<td>₨'+entry.credit.toFixed(2)+'</td>' +
-                        '<td>₨'+(entry.balance || 0).toFixed(2)+'</td>' +
+                        '<td>₨'+entry.debit.toLocaleString('en-US', {minimumFractionDigits: 2, maximumFractionDigits: 2})+'</td>' +
+                        '<td>₨'+entry.credit.toLocaleString('en-US', {minimumFractionDigits: 2, maximumFractionDigits: 2})+'</td>' +
+                        '<td>₨'+(entry.balance || 0).toLocaleString('en-US', {minimumFractionDigits: 2, maximumFractionDigits: 2})+'</td>' +
                         '<td>'+(entry.payment_method || '-')+'</td>' +
                         '<td>'+(entry.cheque_bank || '-')+'</td>' +
                         '<td>'+(entry.cheque_date || '-')+'</td>';
@@ -1595,8 +1595,8 @@ function loadCustomerLedgerForCustomer(customerId, startDate, endDate) {
                 
                 tableFoot.innerHTML = '<tr style="font-weight:bold;background-color:#f8f9fa;">' +
                     '<td colspan="4">TOTAL</td>' +
-                    '<td>₨'+totalDebit.toFixed(2)+'</td>' +
-                    '<td>₨'+totalCredit.toFixed(2)+'</td>' +
+                    '<td>₨'+totalDebit.toLocaleString('en-US', {minimumFractionDigits: 2, maximumFractionDigits: 2})+'</td>' +
+                    '<td>₨'+totalCredit.toLocaleString('en-US', {minimumFractionDigits: 2, maximumFractionDigits: 2})+'</td>' +
                     '<td></td>' +
                     '<td></td>' +
                     '<td></td>' +
@@ -1859,7 +1859,7 @@ document.addEventListener('DOMContentLoaded', function() {
             .then(data => {
                 console.log('Payment response:', data);
                 if (data.success) {
-                    showAlert('Payment recorded successfully! New balance: ₨' + data.new_balance.toFixed(2), 'success');
+                    showAlert('Payment recorded successfully! New balance: ₨' + data.new_balance.toLocaleString('en-US', {minimumFractionDigits: 2, maximumFractionDigits: 2}), 'success');
                     var modal = bootstrap.Modal.getInstance(document.getElementById('paymentModal'));
                     if (modal) modal.hide();
                     // Reload the customer outstanding data
@@ -1922,8 +1922,8 @@ function showAlert(message, type) {
 function openPaymentModal(customerId, customerName, outstandingBalance) {
     document.getElementById('paymentCustomerId').value = customerId;
     document.getElementById('paymentCustomerName').value = customerName;
-    document.getElementById('paymentOutstandingBalance').value = '₨' + outstandingBalance.toFixed(2);
-    document.getElementById('paymentAmount').value = outstandingBalance.toFixed(2);
+    document.getElementById('paymentOutstandingBalance').value = '₨' + outstandingBalance.toLocaleString('en-US', {minimumFractionDigits: 2, maximumFractionDigits: 2});
+    document.getElementById('paymentAmount').value = outstandingBalance.toLocaleString('en-US', {minimumFractionDigits: 2, maximumFractionDigits: 2});
     document.getElementById('paymentReference').value = '';
     document.getElementById('paymentNotes').value = '';
     

@@ -50,7 +50,7 @@
             <div class="card bg-primary text-white">
                 <div class="card-body">
                     <h6 class="card-title">Total Amount</h6>
-                    <h4 class="mb-0"><span id="totalCurrency">Rs </span>{{ "%.2f"|format(total_amount) }}</h4>
+                    <h4 class="mb-0"><span id="totalCurrency">Rs </span>{{ total_amount|format_number }}</h4>
                 </div>
             </div>
         </div>
@@ -58,7 +58,7 @@
             <div class="card bg-warning text-dark">
                 <div class="card-body">
                     <h6 class="card-title">Pending</h6>
-                    <h4 class="mb-0"><span id="pendingCurrency">Rs </span>{{ "%.2f"|format(pending_amount) }}</h4>
+                    <h4 class="mb-0"><span id="pendingCurrency">Rs </span>{{ pending_amount|format_number }}</h4>
                     <small>{{ status_counts.pending }} cheque(s)</small>
                 </div>
             </div>
@@ -67,7 +67,7 @@
             <div class="card bg-info text-white">
                 <div class="card-body">
                     <h6 class="card-title">Deposited</h6>
-                    <h4 class="mb-0"><span id="depositedCurrency">Rs </span>{{ "%.2f"|format(deposited_amount) }}</h4>
+                    <h4 class="mb-0"><span id="depositedCurrency">Rs </span>{{ deposited_amount|format_number }}</h4>
                     <small>{{ status_counts.deposited }} cheque(s)</small>
                 </div>
             </div>
@@ -76,7 +76,7 @@
             <div class="card bg-success text-white">
                 <div class="card-body">
                     <h6 class="card-title">Cleared</h6>
-                    <h4 class="mb-0"><span id="clearedCurrency">Rs </span>{{ "%.2f"|format(cleared_amount) }}</h4>
+                    <h4 class="mb-0"><span id="clearedCurrency">Rs </span>{{ cleared_amount|format_number }}</h4>
                     <small>{{ status_counts.cleared }} cheque(s)</small>
                 </div>
             </div>
@@ -153,7 +153,7 @@
                             <td>{{ cheque.customer_name }}</td>
                             <td>{{ cheque.bank_name }}</td>
                             <td>{{ cheque.reference_number or '-' }}</td>
-                            <td class="text-end"><span id="chequeRowCurrency">Rs </span>{{ "%.2f"|format(cheque.amount) }}</td>
+                            <td class="text-end"><span id="chequeRowCurrency">Rs </span>{{ cheque.amount|format_number }}</td>
                             <td>
                                 {% if cheque.status == 'pending' %}
                                 <span class="badge bg-warning text-dark">Pending</span>
