@@ -530,7 +530,11 @@ def create_sale():
             discount=float(data.get('discount', 0.0)),
             tax=float(data.get('tax', 0.0)),
             # Set balance correctly: 0 for paid sales (Cash/Cheque), balance_due for credit
-            balance=0.0 if payment_method in ['Cash', 'Cheque'] else float(data.get('balance', 0.0)),
+            balance=(
+                max(0.0, float(data.get('total', 0.0)) - float(data.get('cash_given', 0.0)))
+                if payment_method == 'Cash'
+                else (0.0 if payment_method == 'Cheque' else float(data.get('balance', 0.0)))
+            ),
             user_id=current_user.id,
             company_id=company_id
         )
@@ -840,12 +844,16 @@ def receipt_html(sale_id):
     # Calculate paid amount correctly
     # For Cash/Cheque: always fully paid
     # For Credit: paid_amount = total - balance
-    if sale.payment in ['Cash', 'Cheque']:
-        paid_amount = sale.total
+    if sale.payment == 'Cash':
+        cash_received = max(0.0, float(sale.cash_given or 0.0))
+        paid_amount = min(float(sale.total or 0.0), cash_received)
+        balance_due = max(0.0, float(sale.total or 0.0) - paid_amount)
+    elif sale.payment == 'Cheque':
+        paid_amount = float(sale.total or 0.0)
         balance_due = 0.0
     else:
-        paid_amount = sale.total - (sale.balance if sale.balance > 0 else 0)
-        balance_due = max(0, sale.balance)
+        balance_due = max(0.0, float(sale.balance or 0.0))
+        paid_amount = max(0.0, float(sale.total or 0.0) - balance_due)
     
     # Get receipt settings using the integrated function
     company_id = get_company_id()
@@ -1060,12 +1068,16 @@ def download_receipt_pdf(sale_id):
         # Calculate paid amount correctly
         # For Cash/Cheque: always fully paid
         # For Credit: paid_amount = total - balance
-        if sale.payment in ['Cash', 'Cheque']:
-            paid_amount = sale.total
+        if sale.payment == 'Cash':
+            cash_received = max(0.0, float(sale.cash_given or 0.0))
+            paid_amount = min(float(sale.total or 0.0), cash_received)
+            balance_due = max(0.0, float(sale.total or 0.0) - paid_amount)
+        elif sale.payment == 'Cheque':
+            paid_amount = float(sale.total or 0.0)
             balance_due = 0.0
         else:
-            paid_amount = sale.total - (sale.balance if sale.balance > 0 else 0)
-            balance_due = max(0, sale.balance)
+            balance_due = max(0.0, float(sale.balance or 0.0))
+            paid_amount = max(0.0, float(sale.total or 0.0) - balance_due)
         
         # Build template data
         discount_base = subtotal + discount_total
@@ -1202,12 +1214,16 @@ def receipt_html_public(sale_id):
     
     change = sale.cash_given - sale.total if sale.payment == 'Cash' else 0
     
-    if sale.payment in ['Cash', 'Cheque']:
-        paid_amount = sale.total
+    if sale.payment == 'Cash':
+        cash_received = max(0.0, float(sale.cash_given or 0.0))
+        paid_amount = min(float(sale.total or 0.0), cash_received)
+        balance_due = max(0.0, float(sale.total or 0.0) - paid_amount)
+    elif sale.payment == 'Cheque':
+        paid_amount = float(sale.total or 0.0)
         balance_due = 0.0
     else:
-        paid_amount = sale.total - (sale.balance if sale.balance > 0 else 0)
-        balance_due = max(0, sale.balance)
+        balance_due = max(0.0, float(sale.balance or 0.0))
+        paid_amount = max(0.0, float(sale.total or 0.0) - balance_due)
     
     # Get receipt settings using company_id from sale
     company_id = sale.company_id if hasattr(sale, 'company_id') else None
@@ -1398,12 +1414,16 @@ def download_receipt_pdf_public(sale_id):
         # Calculate paid amount correctly
         # For Cash/Cheque: always fully paid
         # For Credit: paid_amount = total - balance
-        if sale.payment in ['Cash', 'Cheque']:
-            paid_amount = sale.total
+        if sale.payment == 'Cash':
+            cash_received = max(0.0, float(sale.cash_given or 0.0))
+            paid_amount = min(float(sale.total or 0.0), cash_received)
+            balance_due = max(0.0, float(sale.total or 0.0) - paid_amount)
+        elif sale.payment == 'Cheque':
+            paid_amount = float(sale.total or 0.0)
             balance_due = 0.0
         else:
-            paid_amount = sale.total - (sale.balance if sale.balance > 0 else 0)
-            balance_due = max(0, sale.balance)
+            balance_due = max(0.0, float(sale.balance or 0.0))
+            paid_amount = max(0.0, float(sale.total or 0.0) - balance_due)
         
         # Build template data
         discount_base = subtotal + discount_total
@@ -1566,12 +1586,16 @@ def print_receipt(sale_id):
         # Calculate paid amount correctly
         # For Cash/Cheque: always fully paid
         # For Credit: paid_amount = total - balance
-        if sale.payment in ['Cash', 'Cheque']:
-            paid_amount = sale.total
+        if sale.payment == 'Cash':
+            cash_received = max(0.0, float(sale.cash_given or 0.0))
+            paid_amount = min(float(sale.total or 0.0), cash_received)
+            balance_due = max(0.0, float(sale.total or 0.0) - paid_amount)
+        elif sale.payment == 'Cheque':
+            paid_amount = float(sale.total or 0.0)
             balance_due = 0.0
         else:
-            paid_amount = sale.total - (sale.balance if sale.balance > 0 else 0)
-            balance_due = max(0, sale.balance)
+            balance_due = max(0.0, float(sale.balance or 0.0))
+            paid_amount = max(0.0, float(sale.total or 0.0) - balance_due)
         
         # Build template data
         receipt_customer = _receipt_customer_details(sale, company_id)
