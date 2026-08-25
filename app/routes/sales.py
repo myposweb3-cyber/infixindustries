@@ -21,6 +21,22 @@ from app import csrf
 sales_bp = Blueprint('sales', __name__, template_folder='../../templates')
 
 
+def _sale_total_for_display(sale):
+    """Return the stored sale total, with an item-line fallback for legacy zero totals."""
+    stored_total = max(0.0, float(getattr(sale, 'total', 0) or 0))
+    if stored_total > 0:
+        return stored_total
+    try:
+        return max(0.0, sum(
+            (float(item.price or 0) * float(item.quantity or 0))
+            - float(item.discount or 0)
+            + float(item.tax or 0)
+            for item in (getattr(sale, 'items', None) or [])
+        ))
+    except Exception:
+        return 0.0
+
+
 def _receipt_settlement(sale):
     """Return paid amount, balance, and change using current linked payments.
 
@@ -29,7 +45,7 @@ def _receipt_settlement(sale):
     payments provide a safe fallback for older orders whose balance was not
     updated by the legacy payment flow.
     """
-    total = max(0.0, float(getattr(sale, 'total', 0) or 0))
+    total = _sale_total_for_display(sale)
     stored_balance = max(0.0, float(getattr(sale, 'balance', 0) or 0))
     linked_paid = 0.0
     linked_method = None
@@ -522,7 +538,16 @@ def create_sale():
     try:
         # Validate payment method and amount first
         payment_method = data.get('payment_method', 'Cash')
-        total = float(data.get('total', 0.0))
+        total = float(data.get('total', 0.0) or 0.0)
+        # Never persist a zero total when the checkout contains priced lines.
+        # This protects against stale clients and older formatted-number bugs.
+        if total <= 0:
+            total = max(0.0, sum(
+                (float(item.get('price', 0) or 0) * float(item.get('quantity', 0) or 0))
+                - float(item.get('discount', 0) or 0)
+                + float(item.get('tax', 0) or 0)
+                for item in data.get('items', [])
+            ))
         current_app.logger.info(f"SALES CREATE - Payment method: {payment_method}, Total: {total}")
         current_app.logger.info(f"SALES CREATE - Full payment data received: {{'payment_method': '{payment_method}', 'balance': {data.get('balance', 0)}, 'cash_given': {data.get('cash_given', 0)}}}")
         
@@ -2279,10 +2304,10 @@ def get_all_sales():
                 'id': sale.id,
                 'date': sale.date.strftime('%Y-%m-%d %H:%M:%S'),
                 'customer': sale.customer,
-                'total': sale.total,
+                'total': _sale_total_for_display(sale),
                 'payment': sale.payment,
-                'paid_amount': max(0.0, float(sale.total or 0) - float(sale.balance or 0)),
-                'balance': float(sale.balance or 0),
+                'paid_amount': _receipt_settlement(sale)[0],
+                'balance': _receipt_settlement(sale)[1],
                 'items_count': len(sale.items),
                 'user': sale.user.username if sale.user else 'Unknown'
             })

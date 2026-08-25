@@ -2156,7 +2156,7 @@ function checkout() {
                     product_id: item.product_id,
                     quantity: item.quantity,
                     price: item.price,
-                    discount: parseFloat(computedDiscount.toLocaleString('en-US', {minimumFractionDigits: 2, maximumFractionDigits: 2})) || 0,
+                    discount: Number(computedDiscount.toFixed(2)) || 0,
                     tax: item.tax,
                     discount_type: type,
                     discount_value: val
