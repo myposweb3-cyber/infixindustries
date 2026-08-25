@@ -1643,12 +1643,33 @@ def record_customer_payment(customer_id):
                     )
                     db.session.add(cheque)
 
-        # Apply payment to unpaid sales (oldest first)
+        # Apply an order-linked payment to the selected order first. If no order
+        # was supplied, retain the customer-account oldest-first allocation.
+        current_company_id = get_company_id()
+        target_sale = None
+        if sale_id:
+            try:
+                target_sale_id = int(sale_id)
+            except (TypeError, ValueError):
+                raise ValueError('Invalid sale ID')
+            target_query = Sale.query.filter(
+                Sale.id == target_sale_id,
+                Sale.customer == customer.name,
+                Sale.company_id == current_company_id
+            )
+            target_sale = target_query.first()
+            if not target_sale:
+                raise ValueError('Selected order was not found for this customer')
+            if target_sale.balance <= 0:
+                raise ValueError('Selected order is already fully paid')
+
         unpaid_sales = Sale.query.filter(
             Sale.customer == customer.name,
             Sale.balance > 0,
-            Sale.company_id == get_company_id()
+            Sale.company_id == current_company_id
         ).order_by(Sale.date.asc()).all()
+        if target_sale:
+            unpaid_sales = [target_sale] + [s for s in unpaid_sales if s.id != target_sale.id]
 
         remaining_payment = amount
         for sale in unpaid_sales:

@@ -368,7 +368,7 @@
             </div>
             {% if discount_total and discount_total > 0 %}
             <div class="total-row">
-                <span class="total-label">Discount:</span>
+                <span class="total-label">Discount ({{ discount_percentage|default(0) }}%):</span>
                 <span class="total-value">-{{ currency_symbol }}{{ discount_total|format_number }}</span>
             </div>
             <div class="total-row">
@@ -391,15 +391,14 @@
 
         <!-- PAYMENT METHOD -->
         <div class="payment-section">
+            <div class="payment-method"><strong>Status:</strong> {{ payment_status }}</div>
             <div class="payment-method"><strong>Payment Method:</strong> {{ payment_method }}</div>
             <div class="payment-method"><strong>Amount Paid:</strong> {{ currency_symbol }}{{ paid_amount|format_number }}</div>
             {% if payment_method == 'Cash' %}
             <div class="payment-method"><strong>Cash Given:</strong> {{ currency_symbol }}{{ cash_given|format_number }}</div>
             <div class="payment-method"><strong>Change:</strong> {{ currency_symbol }}{{ change|format_number }}</div>
             {% endif %}
-            {% if balance_due > 0 %}
             <div class="payment-method"><strong>Balance:</strong> {{ currency_symbol }}{{ balance_due|format_number }}</div>
-            {% endif %}
         </div>
 
         <!-- QR CODE (Optional; only display a real generated image.) -->

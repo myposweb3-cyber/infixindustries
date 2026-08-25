@@ -469,7 +469,7 @@
                     </tr>
                     {% if discount_total > 0 %}
                     <tr>
-                        <td class="label">Discount:</td>
+                        <td class="label">Discount ({{ discount_percentage|default(0) }}%):</td>
                         <td class="value">-{{ currency_symbol }}{{ discount_total|format_number }}</td>
                     </tr>
                     {% endif %}
@@ -497,12 +497,14 @@
                         <td class="value">{{ currency_symbol }}{{ change|format_number }}</td>
                     </tr>
                     {% endif %}
-                    {% if balance_due > 0 %}
+                    <tr>
+                        <td class="label">Payment Status:</td>
+                        <td class="value">{{ payment_status }}</td>
+                    </tr>
                     <tr>
                         <td class="label">Balance:</td>
                         <td class="value">{{ currency_symbol }}{{ balance_due|format_number }}</td>
                     </tr>
-                    {% endif %}
                 </table>
             </div>
 

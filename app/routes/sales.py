@@ -901,7 +901,7 @@ def receipt_html(sale_id):
     # Payment status determination
     if balance_due == 0 and sale.total > 0:
         payment_status = 'Paid'
-    elif balance_due > 0 and getattr(sale, 'paid_amount', 0) > 0:
+    elif balance_due > 0 and paid_amount > 0:
         payment_status = 'Partial'
     else:
         payment_status = 'Pending'
@@ -912,6 +912,10 @@ def receipt_html(sale_id):
     # Due date calculation (30 days from invoice date)
     due_date = (local_sale_date + timedelta(days=30)).strftime('%Y-%m-%d')
     
+    discount_base = sum(float(item.get('unit_price', 0) or 0) * float(item.get('quantity', 0) or 0) for item in items_data)
+    discount_percentage = round((discount_total / discount_base) * 100, 2) if discount_base > 0 else 0.0
+    discount_base = subtotal + discount_total
+    discount_percentage = round((discount_total / discount_base) * 100, 2) if discount_base > 0 else 0.0
     receipt_customer = _receipt_customer_details(sale, company_id)
 
     context = {
@@ -948,6 +952,7 @@ def receipt_html(sale_id):
         'subtotal_after_discount': subtotal_after,
         'discount': discount_total,
         'discount_total': discount_total,
+        'discount_percentage': discount_percentage,
         'tax_amount': tax_total,
         'tax_total': tax_total,
         'tax_rate': tax_rate,
@@ -1065,6 +1070,8 @@ def download_receipt_pdf(sale_id):
             balance_due = max(0, sale.balance)
         
         # Build template data
+        discount_base = subtotal + discount_total
+        discount_percentage = round((discount_total / discount_base) * 100, 2) if discount_base > 0 else 0.0
         receipt_customer = _receipt_customer_details(sale, company_id)
         template_data = {
             'company': {
@@ -1091,6 +1098,7 @@ def download_receipt_pdf(sale_id):
             'items': items,
             'subtotal': f"Rs. {subtotal:.2f}",
             'discount': f"Rs. {discount_total:.2f}",
+            'discount_percentage': discount_percentage,
             'tax': f"Rs. {tax_total:.2f}",
             'total': f"Rs. {total:.2f}",
             'paid_amount': f"Rs. {paid_amount:.2f}",
@@ -1250,7 +1258,7 @@ def receipt_html_public(sale_id):
     # Payment status
     if balance_due == 0 and sale.total > 0:
         payment_status = 'Paid'
-    elif balance_due > 0 and getattr(sale, 'paid_amount', 0) > 0:
+    elif balance_due > 0 and paid_amount > 0:
         payment_status = 'Partial'
     else:
         payment_status = 'Pending'
@@ -1288,6 +1296,7 @@ def receipt_html_public(sale_id):
         'subtotal': subtotal,
         'discount': discount_total,
         'discount_total': discount_total,
+        'discount_percentage': discount_percentage,
         'tax_amount': tax_total,
         'tax_total': tax_total,
         'tax_rate': tax_rate,
@@ -1399,6 +1408,8 @@ def download_receipt_pdf_public(sale_id):
             balance_due = max(0, sale.balance)
         
         # Build template data
+        discount_base = subtotal + discount_total
+        discount_percentage = round((discount_total / discount_base) * 100, 2) if discount_base > 0 else 0.0
         receipt_customer = _receipt_customer_details(sale, company_id)
         template_data = {
             'company': {
@@ -1425,6 +1436,7 @@ def download_receipt_pdf_public(sale_id):
             'items': items,
             'subtotal': f"Rs. {subtotal:.2f}",
             'discount': f"Rs. {discount_total:.2f}",
+            'discount_percentage': discount_percentage,
             'tax': f"Rs. {tax_total:.2f}",
             'total': f"Rs. {total:.2f}",
             'paid_amount': f"Rs. {paid_amount:.2f}",

@@ -483,7 +483,7 @@
             </div>
             {% if discount_total > 0 %}
             <div class="total-row">
-                <span class="total-label">Discount:</span>
+                <span class="total-label">Discount ({{ discount_percentage|default(0) }}%):</span>
                 <span class="total-value">-{{ currency_symbol }}{{ discount_total|format_number }}</span>
             </div>
             {% endif %}
