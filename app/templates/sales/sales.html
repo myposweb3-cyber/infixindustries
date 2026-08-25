@@ -1300,6 +1300,16 @@ function loadCategories() {
         });
 }
 
+function parseDisplayedNumber(value) {
+    const normalized = String(value ?? '').replace(/[^0-9.-]/g, '');
+    const parsed = Number(normalized);
+    return Number.isFinite(parsed) ? parsed : 0;
+}
+
+function formatMoney(value) {
+    return Number(value || 0).toLocaleString('en-US', {minimumFractionDigits: 2, maximumFractionDigits: 2});
+}
+
 function loadProducts(search = '', category = '') {
     let url = '/sales/api/products/search';
     const params = new URLSearchParams();
@@ -1361,27 +1371,37 @@ function displayProducts(products) {
         item.setAttribute('role', 'option');
         item.setAttribute('tabindex', '0');
         item.setAttribute('aria-selected', 'false');
-        item.setAttribute('aria-label', `${product.name}, ${currencySymbol} ${(Number(product.price) || 0).toLocaleString('en-US', {minimumFractionDigits: 2, maximumFractionDigits: 2})}, stock ${product.stock}`);
+        const currentPrice = Number(product.price) || 0;
+        const previousPrice = window.customerLastPrices && window.customerLastPrices[product.id] !== undefined
+            ? Number(window.customerLastPrices[product.id])
+            : null;
+        const hasDifferentPreviousPrice = previousPrice !== null && Math.abs(previousPrice - currentPrice) > 0.000001;
+        const defaultPrice = previousPrice !== null ? previousPrice : currentPrice;
+        item.setAttribute('aria-label', `${product.name}, current price ${currencySymbol} ${formatMoney(currentPrice)}, ${previousPrice !== null ? `previous customer price ${currencySymbol} ${formatMoney(previousPrice)}, ` : ''}stock ${product.stock}`);
         item.dataset.productIndex = productIndex;
-        // If customer-specific price exists, use it for display and add-to-cart.
-        const displayPrice = (window.customerLastPrices && window.customerLastPrices[product.id] !== undefined)
-            ? window.customerLastPrices[product.id]
-            : product.price;
-        item.onclick = function() { addProductToCart(product, 1, displayPrice); };
+        item.onclick = function(e) {
+            if (e.target.closest('button')) return;
+            addProductToCart(product, 1, defaultPrice, previousPrice !== null ? 'previous' : 'current');
+        };
         item.onkeydown = function(e) {
-            if (e.key === 'Enter' || e.key === ' ') {
+            if ((e.key === 'Enter' || e.key === ' ') && !e.target.closest('button')) {
                 e.preventDefault();
-                addProductToCart(product, 1, displayPrice);
+                addProductToCart(product, 1, defaultPrice, previousPrice !== null ? 'previous' : 'current');
             }
         };
 
+        const priceOptions = hasDifferentPreviousPrice ? `
+            <div class="customer-price-options" role="group" aria-label="Choose sale price">
+                <button type="button" class="btn btn-sm btn-outline-primary" onclick="addProductToCart(${JSON.stringify(product).replace(/"/g, '&quot;')}, 1, ${previousPrice}, 'previous')">Previous ${currencySymbol} ${formatMoney(previousPrice)}</button>
+                <button type="button" class="btn btn-sm btn-primary" onclick="addProductToCart(${JSON.stringify(product).replace(/"/g, '&quot;')}, 1, ${currentPrice}, 'current')">Current ${currencySymbol} ${formatMoney(currentPrice)}</button>
+            </div>` : `<div class="product-price">${currencySymbol} ${formatMoney(currentPrice)}</div>`;
         item.innerHTML = `
             <div class="product-image">
                 ${imageHtml}
             </div>
             <div class="product-info">
                 <div class="product-name">${product.name}</div>
-                <div class="product-price">${currencySymbol} ${displayPrice.toLocaleString('en-US', {minimumFractionDigits: 2, maximumFractionDigits: 2})}</div>
+                ${priceOptions}
                 <div class="product-stock">${product.stock} ${product.unit_type}</div>
             </div>
         `;
@@ -1414,6 +1434,11 @@ function addToCart(productId, name, price, unitType, quantity = 1, useCustomerPr
 
         if (existingItem) {
             existingItem.quantity = currentQuantity + requestedQuantity;
+            // If the cashier explicitly chose a price, apply it to the existing line too.
+            existingItem.price = Number(price) || 0;
+            if (enableTax && showTaxInSales) {
+                existingItem.tax = existingItem.price * (taxRate / 100);
+            }
         } else {
             let itemTax = 0;
             if (enableTax && showTaxInSales) {
@@ -1756,7 +1781,7 @@ function calculateChange() {
     if (paymentMethod !== 'Cash') return;
 
     const cashGiven = parseFloat(document.getElementById('cashGiven').value) || 0;
-    const total = parseFloat(document.getElementById('total').textContent.replace(currencySymbol, '')) || 0;
+    const total = parseDisplayedNumber(document.getElementById('total').textContent);
 
     if (cashGiven >= total) {
         const change = cashGiven - total;
@@ -1871,15 +1896,9 @@ function selectCustomer(id, name) {
                     window.customerLastPrices[p.product_id] = p.price;
                 });
 
-                // Update existing cart items to use customer-specific prices where applicable
-                let changed = false;
-                cart.forEach(item => {
-                    if (window.customerLastPrices[item.product_id] !== undefined) {
-                        item.price = window.customerLastPrices[item.product_id];
-                        changed = true;
-                    }
-                });
-                if (changed) updateCartDisplay();
+                // Do not silently overwrite items already in the cart. The product cards
+                // now expose both the previous customer price and the current price.
+                displayProducts(productResults);
             }
         })
         .catch(err => {
@@ -1997,7 +2016,7 @@ function checkout() {
     try {
         const paymentMethod = document.getElementById('paymentMethod').value;
         const cashGiven = paymentMethod === 'Cash' ? parseFloat(document.getElementById('cashGiven').value) || 0 : 0;
-        const total = parseFloat(document.getElementById('total').textContent.replace(currencySymbol, ''));
+        const total = parseDisplayedNumber(document.getElementById('total').textContent);
 
         if (paymentMethod === 'Cash' && cashGiven < total) {
             showNotification(`Insufficient cash. Total: ${currencySymbol} ${total.toLocaleString('en-US', {minimumFractionDigits: 2, maximumFractionDigits: 2})}, Given: ${currencySymbol} ${cashGiven.toLocaleString('en-US', {minimumFractionDigits: 2, maximumFractionDigits: 2})}`, 'danger');
@@ -2044,8 +2063,8 @@ function checkout() {
         const discount = parseFloat(document.getElementById('discountInput').value) || 0;
         const pointsToRedeem = parseInt(document.getElementById('pointsToRedeemInput').value) || 0;
         const pointsDiscount = pointsToRedeem * loyaltyPointsConversionRate; // Use conversion rate from settings
-        const subtotal = parseFloat(document.getElementById('subtotal').textContent.replace(currencySymbol, ''));
-        const tax = parseFloat(document.getElementById('tax').textContent.replace(currencySymbol, ''));
+        const subtotal = parseDisplayedNumber(document.getElementById('subtotal').textContent);
+        const tax = parseDisplayedNumber(document.getElementById('tax').textContent);
 
         const saleData = {
             client_request_id: activeCheckoutRequestId,
@@ -2472,8 +2491,8 @@ function verifyAdminPassword(modal) {
 // Process credit checkout
 function processCreditCheckout(customerId, total, heldBillIdToDelete, checkoutBtn, originalText, adminOverride = false) {
     const discount = parseFloat(document.getElementById('discountInput').value) || 0;
-    const subtotal = parseFloat(document.getElementById('subtotal').textContent.replace(currencySymbol, ''));
-    const tax = parseFloat(document.getElementById('tax').textContent.replace(currencySymbol, ''));
+    const subtotal = parseDisplayedNumber(document.getElementById('subtotal').textContent);
+    const tax = parseDisplayedNumber(document.getElementById('tax').textContent);
 
     const saleData = {
         client_request_id: activeCheckoutRequestId || createCheckoutRequestId(),
@@ -2637,9 +2656,9 @@ function holdSale() {
 function proceedWithHoldBill() {
     const notes = window.heldBillNotes || '';
     const discount = parseFloat(document.getElementById('discountInput').value) || 0;
-    const subtotal = parseFloat(document.getElementById('subtotal').textContent.replace(currencySymbol, ''));
-    const tax = parseFloat(document.getElementById('tax').textContent.replace(currencySymbol, ''));
-    const total = parseFloat(document.getElementById('total').textContent.replace(currencySymbol, ''));
+    const subtotal = parseDisplayedNumber(document.getElementById('subtotal').textContent);
+    const tax = parseDisplayedNumber(document.getElementById('tax').textContent);
+    const total = parseDisplayedNumber(document.getElementById('total').textContent);
 
     const holdData = {
         cart: cart,
