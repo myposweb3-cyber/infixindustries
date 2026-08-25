@@ -203,6 +203,23 @@ def search_products_for_customers():
     return jsonify(result)
 
 
+def _current_order_balance(sale):
+    """Return the outstanding balance for one order from its payment history."""
+    total = max(0.0, float(sale.total or 0.0))
+    try:
+        linked_paid = db.session.query(func.coalesce(func.sum(CustomerPayment.amount), 0.0)).filter(
+            CustomerPayment.sale_id == sale.id
+        ).scalar() or 0.0
+        linked_paid = max(0.0, float(linked_paid))
+    except Exception:
+        linked_paid = 0.0
+
+    if linked_paid > 0.0:
+        return max(0.0, total - linked_paid)
+    if (sale.payment or '').lower() == 'cash':
+        return max(0.0, total - max(0.0, float(sale.cash_given or 0.0)))
+    return max(0.0, float(sale.balance or 0.0))
+
 @customers_bp.route('/api/orders')
 @login_required
 def list_orders():
@@ -258,7 +275,7 @@ def list_orders():
             'customer': s.customer,
             'total': s.total,
             'payment': s.payment,
-            'balance': s.balance,
+            'balance': _current_order_balance(s),
             'items': []
         }
         for it in s.items:
@@ -426,7 +443,7 @@ def get_order(order_id):
         'date': sale.date.strftime('%Y-%m-%d %H:%M:%S') if sale.date else None,
         'total': sale.total,
         'payment': sale.payment,
-        'balance': sale.balance,
+        'balance': _current_order_balance(sale),
         'items': items
     })
 
@@ -521,7 +538,7 @@ def record_order_payment(order_id):
         amount = float(data.get('amount', 0))
     except (TypeError, ValueError):
         return jsonify({'error': 'Enter a valid payment amount'}), 400
-    outstanding = max(0.0, float(sale.balance or 0))
+    outstanding = _current_order_balance(sale)
     if amount <= 0:
         return jsonify({'error': 'Payment amount must be greater than zero'}), 400
     if outstanding <= 0:
