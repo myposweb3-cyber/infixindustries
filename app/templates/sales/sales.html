@@ -671,7 +671,18 @@ function setupEventListeners() {
     });
 
     // Cash given input
-    document.getElementById('cashGiven').addEventListener('input', calculateChange);
+    const cashGivenInput = document.getElementById('cashGiven');
+    cashGivenInput.addEventListener('input', calculateChange);
+    // Pressing Enter after entering cash follows the same validated Pay Now
+    // workflow as clicking the checkout button.
+    cashGivenInput.addEventListener('keydown', function(event) {
+        if (event.key !== 'Enter') return;
+        event.preventDefault();
+        event.stopPropagation();
+        const checkoutButton = document.getElementById('checkoutBtn');
+        if (!checkoutButton || checkoutButton.disabled) return;
+        checkout();
+    });
 
     // Receipt buttons
     document.getElementById('downloadReceiptBtn').addEventListener('click', downloadReceipt);
