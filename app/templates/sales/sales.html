@@ -1372,40 +1372,27 @@ function displayProducts(products) {
         item.setAttribute('tabindex', '0');
         item.setAttribute('aria-selected', 'false');
         const currentPrice = Number(product.price) || 0;
-        const previousPrice = window.customerLastPrices && window.customerLastPrices[product.id] !== undefined
-            ? Number(window.customerLastPrices[product.id])
-            : null;
-        const hasDifferentPreviousPrice = previousPrice !== null && Math.abs(previousPrice - currentPrice) > 0.000001;
-        const defaultPrice = previousPrice !== null ? previousPrice : currentPrice;
-        item.setAttribute('aria-label', `${product.name}, current price ${currencySymbol} ${formatMoney(currentPrice)}, ${previousPrice !== null ? `previous customer price ${currencySymbol} ${formatMoney(previousPrice)}, ` : ''}stock ${product.stock}`);
+        item.setAttribute('aria-label', `${product.name}, ${currencySymbol} ${formatMoney(currentPrice)}, stock ${product.stock}`);
         item.dataset.productIndex = productIndex;
-        item.onclick = function(e) {
-            if (e.target.closest('button')) return;
-            addProductToCart(product, 1, defaultPrice, previousPrice !== null ? 'previous' : 'current');
+        item.onclick = function() {
+            addProductToCart(product, 1, currentPrice, 'current');
         };
         item.onkeydown = function(e) {
-            if ((e.key === 'Enter' || e.key === ' ') && !e.target.closest('button')) {
+            if (e.key === 'Enter' || e.key === ' ') {
                 e.preventDefault();
-                addProductToCart(product, 1, defaultPrice, previousPrice !== null ? 'previous' : 'current');
+                addProductToCart(product, 1, currentPrice, 'current');
             }
         };
-
-        const priceOptions = hasDifferentPreviousPrice ? `
-            <div class="customer-price-options" role="group" aria-label="Choose sale price">
-                <button type="button" class="btn btn-sm btn-outline-primary" onclick="addProductToCart(${JSON.stringify(product).replace(/"/g, '&quot;')}, 1, ${previousPrice}, 'previous')">Previous ${currencySymbol} ${formatMoney(previousPrice)}</button>
-                <button type="button" class="btn btn-sm btn-primary" onclick="addProductToCart(${JSON.stringify(product).replace(/"/g, '&quot;')}, 1, ${currentPrice}, 'current')">Current ${currencySymbol} ${formatMoney(currentPrice)}</button>
-            </div>` : `<div class="product-price">${currencySymbol} ${formatMoney(currentPrice)}</div>`;
         item.innerHTML = `
             <div class="product-image">
                 ${imageHtml}
             </div>
             <div class="product-info">
                 <div class="product-name">${product.name}</div>
-                ${priceOptions}
+                <div class="product-price">${currencySymbol} ${formatMoney(currentPrice)}</div>
                 <div class="product-stock">${product.stock} ${product.unit_type}</div>
             </div>
         `;
-
         grid.appendChild(item);
     });
 }
@@ -1448,6 +1435,8 @@ function addToCart(productId, name, price, unitType, quantity = 1, useCustomerPr
                 product_id: productId,
                 name: name,
                 price: Number(price) || 0,
+                current_price: Number(price) || 0,
+                price_source: 'current',
                 quantity: requestedQuantity,
                 unit_type: unitType,
                 discount_value: 0,
@@ -1540,8 +1529,13 @@ function updateCartDisplay() {
                         <div class="cart-item-price">
                             <label class="small d-block mb-1">Price</label>
                             <div class="d-flex align-items-center gap-2">
-                                <input type="number" class="item-price form-control form-control-sm" value="${item.price.toLocaleString('en-US', {minimumFractionDigits: 2, maximumFractionDigits: 2})}" onchange="setItemPrice(${index}, this.value)" step="0.01" min="0" style="width: 100px;">
-                                <button type="button" class="btn btn-outline-secondary btn-sm cust-price-btn" onclick="useCustomerPrice(${index})">Cust Price</button>
+                                <input type="number" class="item-price form-control form-control-sm" value="${formatMoney(item.price)}" onchange="setItemPrice(${index}, this.value)" step="0.01" min="0" style="width: 100px;">
+                                ${currentCustomer && window.customerLastPrices && window.customerLastPrices[item.product_id] !== undefined ? `
+                                <div class="checkout-price-choice mt-2" role="group" aria-label="Choose customer price for ${item.name}">
+                                    <span class="small text-muted d-block mb-1">Customer price options</span>
+                                    <button type="button" class="btn btn-outline-primary btn-sm me-1" onclick="setCustomerCartPrice(${index}, 'previous')">Previous ${currencySymbol} ${formatMoney(window.customerLastPrices[item.product_id])}</button>
+                                    <button type="button" class="btn btn-primary btn-sm" onclick="setCustomerCartPrice(${index}, 'current')">Current ${currencySymbol} ${formatMoney(item.current_price ?? item.price)}</button>
+                                </div>` : ''}
                             </div>
                         </div>
                     </div>
@@ -1690,6 +1684,20 @@ function setItemPrice(index, value) {
     if (enableTax && showTaxInSales) {
         cart[index].tax = price * (taxRate / 100);
     }
+    updateCartDisplay();
+}
+
+function setCustomerCartPrice(index, source) {
+    const item = cart[index];
+    if (!item) return;
+    const currentPrice = Number(item.current_price ?? item.price) || 0;
+    const previousPrice = window.customerLastPrices && window.customerLastPrices[item.product_id] !== undefined
+        ? Number(window.customerLastPrices[item.product_id])
+        : null;
+    const selectedPrice = source === 'previous' && previousPrice !== null ? previousPrice : currentPrice;
+    item.price = selectedPrice;
+    item.price_source = source === 'previous' && previousPrice !== null ? 'previous' : 'current';
+    if (enableTax && showTaxInSales) item.tax = selectedPrice * (taxRate / 100);
     updateCartDisplay();
 }
 
@@ -1895,11 +1903,11 @@ function selectCustomer(id, name) {
                 res.prices.forEach(p => {
                     window.customerLastPrices[p.product_id] = p.price;
                 });
-
-                // Do not silently overwrite items already in the cart. The product cards
-                // now expose both the previous customer price and the current price.
-                displayProducts(productResults);
             }
+            // Show old/current choices directly in the checkout cart without changing
+            // the price of an existing line until the cashier makes a choice.
+            updateCartDisplay();
+            displayProducts(productResults);
         })
         .catch(err => {
             console.error('Failed to load customer last prices:', err);
@@ -3125,6 +3133,27 @@ function resetSale() {
 </script>
 
 <style>
+/* Customer old/current price choices inside checkout */
+.checkout-price-choice {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 4px;
+    max-width: 100%;
+}
+.checkout-price-choice .btn {
+    white-space: nowrap;
+    font-size: 0.72rem;
+}
+@media (max-width: 576px) {
+    .checkout-price-choice {
+        width: min(100%, 280px);
+    }
+    .checkout-price-choice .btn {
+        flex: 1 1 auto;
+        min-width: 122px;
+    }
+}
+
 /* Sales Page Specific Styles */
 .sales-container {
     padding: 0;
