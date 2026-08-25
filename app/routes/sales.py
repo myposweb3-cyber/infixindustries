@@ -58,8 +58,14 @@ def _receipt_settlement(sale):
 
     balance = max(0.0, total - paid)
     original_cash = max(0.0, float(getattr(sale, 'cash_given', 0) or 0))
-    effective_method = linked_method or sale.payment or 'Cash'
-    display_cash_received = max(original_cash, linked_paid) if effective_method == 'Cash' else original_cash
+    # A payment recorded later from the Orders tab is not the original
+    # checkout tender. Label it explicitly so receipts do not show it as
+    # Cash received for the original sale.
+    if linked_method and linked_paid > 0:
+        effective_method = f"Order Payment - {linked_method}"
+    else:
+        effective_method = sale.payment or 'Cash'
+    display_cash_received = original_cash if effective_method == 'Cash' else 0.0
     change = max(0.0, display_cash_received - total) if effective_method == 'Cash' else 0.0
     status = 'Paid' if total > 0 and balance <= 0.005 else ('Partial' if paid > 0 else 'Pending')
     return paid, balance, change, status, linked_paid, effective_method, display_cash_received
