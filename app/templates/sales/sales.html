@@ -1433,41 +1433,55 @@ function addToCart(productId, name, price, unitType, quantity = 1, useCustomerPr
             return;
         }
 
-        if (useCustomerPrice && window.customerLastPrices && window.customerLastPrices[productId] !== undefined) {
-            price = window.customerLastPrices[productId];
-        }
-
+        const catalogPrice = currentCatalogPrice !== null && currentCatalogPrice !== undefined
+            ? Number(currentCatalogPrice) || 0
+            : Number(price) || 0;
+        const previousCustomerPrice = useCustomerPrice && window.customerLastPrices && window.customerLastPrices[productId] !== undefined
+            ? Number(window.customerLastPrices[productId])
+            : null;
+        const canRepresentPreviousAsDiscount = previousCustomerPrice !== null && catalogPrice > 0 && previousCustomerPrice <= catalogPrice;
+        const automaticPreviousDiscount = canRepresentPreviousAsDiscount
+            ? Number(Math.max(0, Math.min(100, ((catalogPrice - previousCustomerPrice) / catalogPrice) * 100)).toFixed(2))
+            : 0;
+        // Keep the live catalog price as the base and expose the old customer
+        // price through the visible percentage discount field.
+        if (canRepresentPreviousAsDiscount) price = catalogPrice;
+        else if (previousCustomerPrice !== null) price = previousCustomerPrice;
         if (existingItem) {
             existingItem.quantity = currentQuantity + requestedQuantity;
-            // If the cashier explicitly chose a price, apply it to the existing line too.
             existingItem.price = Number(price) || 0;
-            if (currentCatalogPrice !== null && currentCatalogPrice !== undefined) {
-                existingItem.current_price = Number(currentCatalogPrice) || 0;
+            existingItem.current_price = catalogPrice;
+            existingItem.price_source = previousCustomerPrice !== null ? 'previous' : 'current';
+            if (previousCustomerPrice !== null && canRepresentPreviousAsDiscount) {
+                existingItem.discount_type = 'percent';
+                existingItem.discount_value = automaticPreviousDiscount;
+                existingItem.auto_customer_price_discount = true;
+            } else if (previousCustomerPrice === null) {
+                existingItem.discount_type = 'amount';
+                existingItem.discount_value = 0;
+                existingItem.auto_customer_price_discount = false;
             }
             if (enableTax && showTaxInSales) {
-                existingItem.tax = existingItem.price * (taxRate / 100);
+                existingItem.tax = (canRepresentPreviousAsDiscount ? previousCustomerPrice : existingItem.price) * (taxRate / 100);
             }
         } else {
+            const effectivePrice = canRepresentPreviousAsDiscount ? previousCustomerPrice : price;
             let itemTax = 0;
-            if (enableTax && showTaxInSales) {
-                itemTax = price * (taxRate / 100);
-            }
+            if (enableTax && showTaxInSales) itemTax = effectivePrice * (taxRate / 100);
             cart.push({
                 product_id: productId,
                 name: name,
                 price: Number(price) || 0,
-                current_price: currentCatalogPrice !== null && currentCatalogPrice !== undefined
-                    ? Number(currentCatalogPrice) || 0
-                    : Number(price) || 0,
-                price_source: 'current',
+                current_price: catalogPrice,
+                price_source: previousCustomerPrice !== null ? 'previous' : 'current',
                 quantity: requestedQuantity,
                 unit_type: unitType,
-                discount_value: 0,
-                discount_type: 'amount',
+                discount_value: canRepresentPreviousAsDiscount ? automaticPreviousDiscount : 0,
+                discount_type: canRepresentPreviousAsDiscount ? 'percent' : 'amount',
+                auto_customer_price_discount: canRepresentPreviousAsDiscount,
                 tax: itemTax
             });
         }
-
         selectedCartIndex = cart.findIndex(item => item.product_id === productId);
         updateCartDisplay();
         showPaymentSection();
