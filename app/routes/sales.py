@@ -873,9 +873,8 @@ def receipt_html(sale_id):
     if tax_total > 0 and taxable_base > 0:
         tax_rate = round((tax_total / taxable_base) * 100, 1)
     
-    change = calculated_change
-    
-    # Calculate paid amount correctly
+    # Calculate paid amount, balance, change, and status from the sale and
+    # any payments linked to this specific order.
     # For Cash/Cheque: always fully paid
     # For Credit: paid_amount = total - balance
     paid_amount, balance_due, calculated_change, calculated_payment_status, linked_payment_total = _receipt_settlement(sale)
