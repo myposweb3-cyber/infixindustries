@@ -41,7 +41,10 @@ def _receipt_settlement(sale):
         linked_paid = 0.0
 
     if sale.payment == 'Cash':
-        paid = min(total, max(0.0, float(getattr(sale, 'cash_given', 0) or 0)))
+        # An order may have been created with Cash as its original method and
+        # receive a later payment from the Orders tab. Count both sources.
+        cash_paid = max(0.0, float(getattr(sale, 'cash_given', 0) or 0))
+        paid = min(total, max(cash_paid, linked_paid))
     elif sale.payment == 'Cheque':
         paid = total
     else:
