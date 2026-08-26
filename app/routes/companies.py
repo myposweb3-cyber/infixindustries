@@ -5,7 +5,7 @@ from app.models import (
     db, Company, User, Sale, SaleItem, SaleRequest, Return, Exchange, ExchangeItem, ReturnItem,
     Cheque, ChequeDeposit, Customer, Supplier, Product, Expense, Warehouse, Promotion,
     InventoryTransaction, CustomerFeedback, HeldBill, SerialNumber, CustomerPayment,
-    AuditLog, Purchase, PurchaseItem, PurchaseReturn, PurchaseReturnItem,
+    AuditLog, CashierShift, Purchase, PurchaseItem, PurchaseReturn, PurchaseReturnItem,
     PurchaseOrder, PurchaseOrderItem, StockCountItem, Setting
 )
 from app import csrf
@@ -315,6 +315,7 @@ def delete_company(company_id):
                 (Expense, 'Expense'),
                 (SerialNumber, 'SerialNumber'),
                 (CustomerPayment, 'CustomerPayment'),
+                (CashierShift, 'CashierShift'),
                 (AuditLog, 'AuditLog'),
                 (Promotion, 'Promotion'),
                 (Product, 'Product'),

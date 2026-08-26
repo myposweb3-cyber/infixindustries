@@ -1410,7 +1410,7 @@ def reset_system():
                 PurchaseReturn, PurchaseReturnItem, InventoryTransaction, 
                 Promotion, CustomerFeedback, HeldBill, Setting, Warehouse,
                 SerialNumber, StockCountItem, PurchaseOrder, PurchaseOrderItem, Cheque, ChequeDeposit,
-                AuditLog, CustomerPayment, Company, User
+                AuditLog, CustomerPayment, CashierShift, Company, User
             )
             from sqlalchemy import or_ as sql_or
             current_app.logger.debug("[RESET] Models imported successfully")
@@ -1526,6 +1526,7 @@ def reset_system():
             (Expense, "Expense"),
             (SerialNumber, "SerialNumber"),
             (CustomerPayment, "CustomerPayment"),
+            (CashierShift, "CashierShift"),
             (AuditLog, "AuditLog"),
             
             # Master data last (but not Product - we handle it specially)
