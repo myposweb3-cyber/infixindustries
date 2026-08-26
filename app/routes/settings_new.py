@@ -1,6 +1,6 @@
 from flask import Blueprint, render_template, request, jsonify, flash, redirect, url_for, current_app, send_file
 from flask_login import login_required, current_user
-from app.models import db, Setting, User, Sale, SaleItem, SaleRequest
+from app.models import db, Setting, User, Sale, SaleItem, SaleRequest, CustomerPayment
 from app.utils.permissions import require_permission
 from app.utils.security import get_company_id
 from app.utils.company import get_user_companies
@@ -1485,14 +1485,20 @@ def reset_system():
         db.session.flush()
         current_app.logger.debug(f"[RESET] Deleted {deposits_count} ChequeDeposits")
         
-        # SaleRequest holds a non-null FK to sales. Delete idempotency records
-        # before Sale rows, otherwise PostgreSQL rejects the reset transaction.
+        # Delete every direct Sale dependent before Sale rows. These records can
+        # be linked by sale_id even when their company_id is NULL.
         if sales_ids:
             sale_requests_count = db.session.query(SaleRequest).filter(
                 SaleRequest.sale_id.in_(sales_ids)
             ).delete(synchronize_session=False)
+            customer_payments_count = db.session.query(CustomerPayment).filter(
+                CustomerPayment.sale_id.in_(sales_ids)
+            ).delete(synchronize_session=False)
             db.session.flush()
-            current_app.logger.debug(f"[RESET] Deleted {sale_requests_count} SaleRequests")
+            current_app.logger.debug(
+                f"[RESET] Deleted {sale_requests_count} SaleRequests and "
+                f"{customer_payments_count} CustomerPayments"
+            )
 
         # Now delete the other tables in order
         tables_to_delete = [

@@ -282,6 +282,9 @@ def delete_company(company_id):
                 db.session.query(SaleRequest).filter(
                     SaleRequest.sale_id.in_(sales_ids)
                 ).delete(synchronize_session=False)
+                db.session.query(CustomerPayment).filter(
+                    CustomerPayment.sale_id.in_(sales_ids)
+                ).delete(synchronize_session=False)
                 db.session.flush()
                 db.session.query(Sale).filter(
                     Sale.company_id == company_id_val
