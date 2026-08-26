@@ -2,7 +2,7 @@ from flask import Blueprint, render_template, request, jsonify, flash, redirect,
 from flask_login import login_required, current_user
 from sqlalchemy import or_, text
 from app.models import (
-    db, Company, User, Sale, SaleItem, Return, Exchange, ExchangeItem, ReturnItem,
+    db, Company, User, Sale, SaleItem, SaleRequest, Return, Exchange, ExchangeItem, ReturnItem,
     Cheque, ChequeDeposit, Customer, Supplier, Product, Expense, Warehouse, Promotion,
     InventoryTransaction, CustomerFeedback, HeldBill, SerialNumber, CustomerPayment,
     AuditLog, Purchase, PurchaseItem, PurchaseReturn, PurchaseReturnItem,
@@ -279,6 +279,10 @@ def delete_company(company_id):
                 db.session.flush()
             
             if sales_ids:
+                db.session.query(SaleRequest).filter(
+                    SaleRequest.sale_id.in_(sales_ids)
+                ).delete(synchronize_session=False)
+                db.session.flush()
                 db.session.query(Sale).filter(
                     Sale.company_id == company_id_val
                 ).delete(synchronize_session=False)
