@@ -1409,7 +1409,7 @@ def reset_system():
                 Product, Customer, Supplier, Expense, Purchase, PurchaseItem,
                 PurchaseReturn, PurchaseReturnItem, InventoryTransaction, 
                 Promotion, CustomerFeedback, HeldBill, Setting, Warehouse,
-                SerialNumber, PurchaseOrder, PurchaseOrderItem, Cheque, ChequeDeposit,
+                SerialNumber, StockCountItem, PurchaseOrder, PurchaseOrderItem, Cheque, ChequeDeposit,
                 AuditLog, CustomerPayment, Company, User
             )
             from sqlalchemy import or_ as sql_or
