@@ -554,7 +554,7 @@
                     {% endif %}
                     <tr>
                         <td class="label-col">Subtotal (After):</td>
-                        <td class="value-col">{{ currency_symbol }}{{ subtotal - discount_total|format_number }}</td>
+                        <td class="value-col">{{ currency_symbol }}{{ (subtotal - discount_total)|format_number }}</td>
                     </tr>
                     {% if tax_total > 0 %}
                     <tr>

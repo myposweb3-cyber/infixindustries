@@ -1159,6 +1159,7 @@ def download_receipt_pdf(sale_id):
             'items': items,
             'subtotal': f"Rs. {subtotal:.2f}",
             'discount': f"Rs. {discount_total:.2f}",
+            'discount_total': discount_total,
             'discount_percentage': discount_percentage,
             'tax': f"Rs. {tax_total:.2f}",
             'total': f"Rs. {total:.2f}",
@@ -1257,6 +1258,8 @@ def receipt_html_public(sale_id):
         subtotal += item_total
     
     discount_total = sum(item['discount'] for item in items_data)
+    discount_base = subtotal + discount_total
+    discount_percentage = round((discount_total / discount_base) * 100, 2) if discount_base > 0 else 0.0
     tax_total = sum(item['tax_amount'] for item in items_data)
     
     tax_rate = 0
@@ -1480,13 +1483,22 @@ def download_receipt_pdf_public(sale_id):
             'due_date': '',
             'status': calculated_payment_status,
             'items': items,
-            'subtotal': f"Rs. {subtotal:.2f}",
-            'discount': f"Rs. {discount_total:.2f}",
+            'subtotal': subtotal,
+            'discount': discount_total,
+            'discount_total': discount_total,
             'discount_percentage': discount_percentage,
-            'tax': f"Rs. {tax_total:.2f}",
-            'total': f"Rs. {total:.2f}",
-            'paid_amount': f"Rs. {paid_amount:.2f}",
-            'balance_due': f"Rs. {balance_due:.2f}"
+            'tax': tax_total,
+            'tax_amount': tax_total,
+            'tax_total': tax_total,
+            'tax_rate': tax_total / subtotal * 100 if subtotal > 0 else 0,
+            'total': total,
+            'paid_amount': paid_amount,
+            'balance_due': balance_due,
+            'payment_status': calculated_payment_status,
+            'cash_given': display_cash_received,
+            'change': calculated_change,
+            'payment_method': effective_payment_method,
+            'currency_symbol': 'Rs. '
         }
         
         # Select template based on format
@@ -1643,6 +1655,8 @@ def print_receipt(sale_id):
             'items': items,
             'subtotal': f"Rs. {subtotal:.2f}",
             'discount': f"Rs. {discount_total:.2f}",
+            'discount_total': discount_total,
+            'discount_percentage': round((discount_total / (subtotal + discount_total)) * 100, 2) if (subtotal + discount_total) > 0 else 0.0,
             'tax': f"Rs. {tax_total:.2f}",
             'total': f"Rs. {total:.2f}",
             'paid_amount': f"Rs. {paid_amount:.2f}",
