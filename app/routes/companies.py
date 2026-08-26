@@ -242,6 +242,7 @@ def delete_company(company_id):
             customer_ids = [c[0] for c in db.session.query(Customer.id).filter(Customer.company_id == company_id_val).all()]
             supplier_ids = [s[0] for s in db.session.query(Supplier.id).filter(Supplier.company_id == company_id_val).all()]
             purchase_ids = [p[0] for p in db.session.query(Purchase.id).filter(Purchase.company_id == company_id_val).all()]
+            product_ids = [p[0] for p in db.session.query(Product.id).filter(Product.company_id == company_id_val).all()]
             
             # Delete cheques linked through any of these relationships
             cheques_to_delete = db.session.query(Cheque.id).filter(
