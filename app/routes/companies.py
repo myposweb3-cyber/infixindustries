@@ -6,7 +6,7 @@ from app.models import (
     Cheque, ChequeDeposit, Customer, Supplier, Product, Expense, Warehouse, Promotion,
     InventoryTransaction, CustomerFeedback, HeldBill, SerialNumber, CustomerPayment,
     AuditLog, Purchase, PurchaseItem, PurchaseReturn, PurchaseReturnItem,
-    PurchaseOrder, PurchaseOrderItem, Setting
+    PurchaseOrder, PurchaseOrderItem, StockCountItem, Setting
 )
 from app import csrf
 from app.utils.permissions import require_permission
@@ -293,6 +293,15 @@ def delete_company(company_id):
             
             # Delete other company data
             
+            # Delete product dependents by product_id before the Product rows.
+            if product_ids:
+                for dependent_model in (StockCountItem, InventoryTransaction, ReturnItem,
+                                        ExchangeItem, SerialNumber, SaleItem, PurchaseItem):
+                    db.session.query(dependent_model).filter(
+                        dependent_model.product_id.in_(product_ids)
+                    ).delete(synchronize_session=False)
+                    db.session.flush()
+
             tables_to_delete = [
                 (PurchaseReturnItem, 'PurchaseReturnItem'),
                 (PurchaseOrderItem, 'PurchaseOrderItem'),

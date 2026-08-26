@@ -45,7 +45,7 @@ def export_company_data_to_sql(company_id):
             Product, Customer, Supplier, Expense, Purchase, PurchaseItem,
             PurchaseReturn, PurchaseReturnItem, InventoryTransaction, 
             Promotion, CustomerFeedback, HeldBill, Setting, Warehouse,
-            SerialNumber, PurchaseOrder, PurchaseOrderItem, Cheque, ChequeDeposit,
+            SerialNumber, StockCountItem, PurchaseOrder, PurchaseOrderItem, Cheque, ChequeDeposit,
             AuditLog, CustomerPayment
         )
     except ImportError as e:
@@ -1593,6 +1593,27 @@ def reset_system():
                 db.session.flush()
                 current_app.logger.debug(f"[RESET] Cleaned {orphan_ret_items} orphaned return items")
             
+            # Remove every direct product dependent before deleting Products.
+            # Some legacy rows have NULL company_id, so filter by product IDs too.
+            if product_ids:
+                product_dependent_models = (
+                    (StockCountItem, 'StockCountItem'),
+                    (InventoryTransaction, 'InventoryTransactionByProduct'),
+                    (ReturnItem, 'ReturnItemByProduct'),
+                    (ExchangeItem, 'ExchangeItemByProduct'),
+                    (SerialNumber, 'SerialNumberByProduct'),
+                    (SaleItem, 'SaleItemByProduct'),
+                    (PurchaseItem, 'PurchaseItemByProduct'),
+                )
+                for dependent_model, dependent_name in product_dependent_models:
+                    dependent_count = db.session.query(dependent_model).filter(
+                        dependent_model.product_id.in_(product_ids)
+                    ).delete(synchronize_session=False)
+                    db.session.flush()
+                    current_app.logger.debug(
+                        f"[RESET] Deleted {dependent_count} {dependent_name} records"
+                    )
+
             # Now delete products
             products_count = db.session.query(Product).filter(
                 Product.company_id == company_id
