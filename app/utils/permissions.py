@@ -47,6 +47,36 @@ def require_permission(permission):
         return decorated_function
     return decorator
 
+def require_any_permission(*permissions):
+    """Require at least one of the supplied permissions for a route."""
+    if not permissions:
+        raise ValueError('At least one permission is required')
+
+    def decorator(f):
+        @wraps(f)
+        def decorated_function(*args, **kwargs):
+            is_api_request = (request.headers.get('Accept') == 'application/json' or
+                              '/api/' in request.path or
+                              (request.blueprint and 'api' in request.blueprint))
+            if not current_user.is_authenticated:
+                if is_api_request:
+                    return jsonify({'error': 'Session expired. Please log in again.', 'code': 'SESSION_EXPIRED'}), 401
+                return redirect(url_for('auth.login'))
+
+            if _is_admin_role(current_user.role):
+                return f(*args, **kwargs)
+
+            if any(getattr(current_user, permission, False) for permission in permissions):
+                return f(*args, **kwargs)
+
+            if is_api_request:
+                return jsonify({'error': 'Permission denied'}), 403
+            flash('You do not have permission to access this feature.', 'danger')
+            return redirect(url_for('main.dashboard'))
+        return decorated_function
+    return decorator
+
+
 def require_any_settings_permission():
     """Decorator to require at least one settings permission."""
     def decorator(f):

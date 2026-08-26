@@ -7,7 +7,7 @@ from flask_login import login_required
 from flask_wtf.csrf import CSRFProtect
 from app.models import db, Product, InventoryTransaction, Warehouse
 from app.utils.security import get_company_id, require_company_context
-from app.utils.permissions import require_permission
+from app.utils.permissions import require_permission, require_any_permission
 from app.utils.audit import log_create, log_update, log_delete, log_audit
 from app import csrf
 from sqlalchemy import or_
@@ -43,7 +43,7 @@ def warehouses():
 @csrf.exempt
 @login_required
 @require_company_context
-@require_permission('can_view_inventory')
+@require_any_permission('can_view_inventory', 'can_access_sales')
 def get_products():
     """API endpoint to get products with pagination and filtering."""
     company_id = get_company_id()
@@ -111,7 +111,7 @@ def get_products():
 @inventory_bp.route('/api/products/<int:product_id>', methods=['GET'])
 @csrf.exempt
 @login_required
-@require_permission('can_view_inventory')
+@require_any_permission('can_view_inventory', 'can_access_sales')
 def get_product(product_id):
     """Get single product details."""
     company_id = get_company_id()

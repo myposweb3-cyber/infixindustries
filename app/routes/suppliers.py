@@ -1,7 +1,7 @@
 from flask import Blueprint, render_template, request, jsonify, flash
 from flask_login import login_required
 from app.models import db, Supplier, Purchase
-from app.utils.permissions import require_permission
+from app.utils.permissions import require_permission, require_any_permission
 from app.utils.security import get_company_id
 from sqlalchemy import desc, or_
 from app import csrf
@@ -18,7 +18,7 @@ def suppliers():
 @suppliers_bp.route('/api/suppliers', methods=['GET'])
 @csrf.exempt
 @login_required
-@require_permission('can_access_suppliers')
+@require_any_permission('can_access_suppliers', 'can_view_inventory', 'can_access_purchases')
 def get_suppliers():
     """API endpoint to get suppliers with pagination and filtering."""
     company_id = get_company_id()
