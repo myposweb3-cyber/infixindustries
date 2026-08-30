@@ -4,6 +4,7 @@ from app.models import db, Product, Sale, SaleRequest, SaleItem, Customer, Setti
 from app.models import Exchange, ExchangeItem, Cheque, CustomerPayment
 from app.utils.permissions import require_permission
 from app.utils.security import get_company_id, require_company_context
+from app.utils.sales_totals import sale_total_for_display as _sale_total_for_display
 from app.utils.company import column_exists_in_db
 from datetime import datetime, timedelta
 from sqlalchemy import desc, case, or_
@@ -21,20 +22,6 @@ from app import csrf
 sales_bp = Blueprint('sales', __name__, template_folder='../../templates')
 
 
-def _sale_total_for_display(sale):
-    """Return the stored sale total, with an item-line fallback for legacy zero totals."""
-    stored_total = max(0.0, float(getattr(sale, 'total', 0) or 0))
-    if stored_total > 0:
-        return stored_total
-    try:
-        return max(0.0, sum(
-            (float(item.price or 0) * float(item.quantity or 0))
-            - float(item.discount or 0)
-            + float(item.tax or 0)
-            for item in (getattr(sale, 'items', None) or [])
-        ))
-    except Exception:
-        return 0.0
 
 
 def _receipt_settlement(sale):

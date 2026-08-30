@@ -2,6 +2,7 @@ from flask import Blueprint, render_template, jsonify, request
 from flask_login import login_required, current_user
 from app.models import db, Sale, Product, Customer, SaleItem, Purchase, Return
 from app.utils.security import get_company_id
+from app.utils.sales_totals import sale_total_for_display
 from sqlalchemy import func, desc, or_
 from datetime import datetime, timedelta
 import calendar
@@ -89,6 +90,9 @@ def dashboard():
     recent_sales = Sale.query.filter(
         Sale.company_id == company_id
     ).order_by(desc(Sale.date)).limit(10).all()
+    # Match Sale History and receipt totals, including legacy rows with sale.total = 0.
+    for sale in recent_sales:
+        sale.dashboard_total = sale_total_for_display(sale)
 
     # Get top customers
     top_customers = db.session.query(

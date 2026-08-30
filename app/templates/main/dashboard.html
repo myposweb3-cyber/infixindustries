@@ -248,7 +248,7 @@
                             <tr>
                                 <td>{{ sale.date | to_local_time }}</td>
                                 <td>{{ sale.customer }}</td>
-                                <td>₨ {{ sale.total|format_number }}</td>
+                                <td>₨ {{ sale.dashboard_total|format_number }}</td>
                                 <td>
                                     <span class="badge bg-{{ 'success' if sale.payment == 'Cash' else 'primary' }}">
                                         {{ sale.payment }}
