@@ -197,15 +197,33 @@ function startSupplierPurchase(supplierId) {
 }
 
 function openSupplierProductModal(supplierId, supplierName) {
-    document.getElementById('supplierProductForm').reset();
-    document.getElementById('supplierProductSupplierId').value = supplierId;
-    document.getElementById('productSupplierName').textContent = supplierName;
-    document.getElementById('supplierProductCategory').value = 'General';
-    new bootstrap.Modal(document.getElementById('supplierProductModal')).show();
+    const modalElement = document.getElementById('supplierProductModal');
+    const form = document.getElementById('supplierProductForm');
+    const supplierIdInput = document.getElementById('supplierProductSupplierId');
+    const supplierNameElement = document.getElementById('productSupplierName');
+    const categoryInput = document.getElementById('supplierProductCategory');
+
+    if (!modalElement || !form || !supplierIdInput) {
+        console.error('Supplier product modal markup is missing. Please refresh the page or redeploy the latest template.', {
+            modal: Boolean(modalElement), form: Boolean(form), supplierIdInput: Boolean(supplierIdInput)
+        });
+        if (typeof showAlert === 'function') showAlert('Add Product is unavailable. Please refresh the page and try again.', 'danger');
+        return;
+    }
+
+    form.reset();
+    supplierIdInput.value = supplierId;
+    if (supplierNameElement) supplierNameElement.textContent = supplierName || 'the selected supplier';
+    if (categoryInput) categoryInput.value = 'General';
+    new bootstrap.Modal(modalElement).show();
 }
 
 function saveSupplierProduct() {
     const form = document.getElementById('supplierProductForm');
+    if (!form) {
+        if (typeof showAlert === 'function') showAlert('Add Product is unavailable. Please refresh the page and try again.', 'danger');
+        return;
+    }
     if (!form.reportValidity()) return;
     const payload = {
         name: document.getElementById('supplierProductName').value.trim(),
