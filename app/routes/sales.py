@@ -451,6 +451,7 @@ def search_customers():
             'id': customer.id,
             'name': customer.name,
             'phone': customer.phone or '',
+            'email': customer.email or '',
             'loyalty_points': int(customer.loyalty_points) if customer.loyalty_points else 0
         })
 
@@ -1944,7 +1945,9 @@ def send_whatsapp_receipt(sale_id):
     
     # Server-side validation (matches frontend)
     phone_digits = ''.join(c for c in phone if c.isdigit())
-    
+    # Customer records commonly store Sri Lankan mobile numbers as 07XXXXXXXX.
+    if phone_digits.startswith('0') and len(phone_digits) == 10:
+        phone_digits = '94' + phone_digits[1:]
     if len(phone_digits) < 10:
         return jsonify({'success': False, 'error': 'Invalid phone number. Need 10+ digits (e.g. 94771234567)'}), 400
     

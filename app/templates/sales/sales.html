@@ -1074,7 +1074,7 @@ function handleCustomerSearchKeydown(e) {
         const customer = customerResults[selectedCustomerIndex] ||
             (customerResults.length === 1 ? customerResults[0] : null);
         if (customer) {
-            selectCustomer(customer.id, customer.name);
+            selectCustomer(customer.id, customer.name, customer.phone, customer.email);
         } else if (customerResults.length > 1) {
             showNotification('Use Arrow Up/Down to choose a customer, then press Enter', 'info');
         }
@@ -2037,7 +2037,7 @@ function displayCustomers(customers) {
         selectButton.textContent = 'Select';
         selectButton.addEventListener('click', event => {
             event.stopPropagation();
-            selectCustomer(customer.id, customer.name);
+            selectCustomer(customer.id, customer.name, customer.phone, customer.email);
         });
         actionCell.appendChild(selectButton);
         row.appendChild(actionCell);
@@ -2052,8 +2052,8 @@ function displayCustomers(customers) {
 }
 
 
-function selectCustomer(id, name) {
-    currentCustomer = { id, name };
+function selectCustomer(id, name, phone = '', email = '') {
+    currentCustomer = { id, name, phone: phone || '', email: email || '' };
     document.getElementById('customerName').textContent = name;
     const customerModalElement = document.getElementById('customerModal');
     const customerModalInstance = bootstrap.Modal.getInstance(customerModalElement);
@@ -3236,26 +3236,16 @@ function sendReceiptEmailAPI() {
 }
 
 function sendReceiptViaWhatsapp() {
-    // Show WhatsApp number input modal
-    console.log('sendReceiptViaWhatsapp called');
-    const whatsappModal = document.getElementById('whatsappNumberModal');
-    console.log('WhatsApp modal element:', whatsappModal);
-    
-    if (!whatsappModal) {
-        console.error('WhatsApp modal not found!');
-        alert('WhatsApp modal not found');
+    const savedPhone = currentCustomer?.phone?.trim() || '';
+    if (savedPhone) {
+        // Use the saved customer number immediately; the API normalizes Sri Lankan 0-prefixed numbers.
+        sendReceiptViaWhatsappAPI(savedPhone);
         return;
     }
-    
-    try {
-        const modal = new bootstrap.Modal(whatsappModal);
-        console.log('Modal created:', modal);
-        modal.show();
-        console.log('Modal shown');
-    } catch (err) {
-        console.error('Error showing modal:', err);
-        alert('Error opening WhatsApp dialog');
-    }
+    const whatsappModal = document.getElementById('whatsappNumberModal');
+    if (!whatsappModal) return;
+    bootstrap.Modal.getOrCreateInstance(whatsappModal).show();
+    setTimeout(() => document.getElementById('whatsappNumber')?.focus(), 250);
 }
 
 function sendReceiptViaWhatsappAPI(phoneNumber) {
