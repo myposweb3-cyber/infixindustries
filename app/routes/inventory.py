@@ -5,7 +5,7 @@ import pandas as pd
 from flask import Blueprint, render_template, request, jsonify, flash, send_file
 from flask_login import login_required
 from flask_wtf.csrf import CSRFProtect
-from app.models import db, Product, InventoryTransaction, Warehouse
+from app.models import db, Product, InventoryTransaction, Warehouse, Purchase, PurchaseItem, Sale, SaleItem
 from app.utils.security import get_company_id, require_company_context
 from app.utils.permissions import require_permission, require_any_permission
 from app.utils.audit import log_create, log_update, log_delete, log_audit
@@ -140,6 +140,66 @@ def get_product(product_id):
         'supplier_name': product.supplier.name if product.supplier else '-',
         'supplier_phone': product.supplier.phone if product.supplier else '-',
         'supplier_email': product.supplier.email if product.supplier else '-'
+    })
+
+@inventory_bp.route('/api/products/<int:product_id>/supplier-history', methods=['GET'])
+@csrf.exempt
+@login_required
+@require_any_permission('can_view_inventory', 'can_access_sales', 'can_access_purchases')
+def get_product_supplier_history(product_id):
+    """Return supplier purchase history and a non-destructive FIFO stock estimate."""
+    company_id = get_company_id()
+    product = Product.query.filter(
+        Product.id == product_id,
+        Product.company_id == company_id
+    ).first()
+    if not product:
+        return jsonify({'error': 'Product not found'}), 404
+
+    purchases = db.session.query(PurchaseItem, Purchase).join(
+        Purchase, Purchase.id == PurchaseItem.purchase_id
+    ).filter(
+        PurchaseItem.product_id == product_id,
+        PurchaseItem.company_id == company_id,
+        Purchase.company_id == company_id
+    ).order_by(Purchase.date.asc(), Purchase.id.asc(), PurchaseItem.id.asc()).all()
+
+    sold_quantity = db.session.query(
+        db.func.coalesce(db.func.sum(SaleItem.quantity), 0)
+    ).join(Sale, Sale.id == SaleItem.sale_id).filter(
+        SaleItem.product_id == product_id,
+        Sale.company_id == company_id
+    ).scalar() or 0
+    remaining_to_allocate = max(0.0, float(sold_quantity))
+    rows = []
+    total_received = 0.0
+    for item, purchase in purchases:
+        received = max(0.0, float(item.quantity or 0))
+        total_received += received
+        sold_from_batch = min(received, remaining_to_allocate)
+        remaining_to_allocate -= sold_from_batch
+        rows.append({
+            'purchase_id': purchase.id,
+            'reference': purchase.invoice_number or f'PUR-{purchase.id}',
+            'date': purchase.date.strftime('%Y-%m-%d') if purchase.date else None,
+            'supplier_id': purchase.supplier_id,
+            'supplier_name': purchase.supplier.name if purchase.supplier else 'Unknown supplier',
+            'quantity_received': received,
+            'quantity_sold_estimate': sold_from_batch,
+            'quantity_remaining_estimate': max(0.0, received - sold_from_batch),
+            'unit_cost': float(item.cost_price or 0),
+            'total_cost': float(item.total_cost or 0),
+            'status': purchase.status or 'received'
+        })
+
+    return jsonify({
+        'product_id': product.id,
+        'product_name': product.name,
+        'current_stock': float(product.stock or 0),
+        'total_received': total_received,
+        'total_sold': float(sold_quantity),
+        'allocation_method': 'FIFO estimate from purchase history; current stock remains authoritative',
+        'rows': rows
     })
 
 @inventory_bp.route('/api/products', methods=['POST'])

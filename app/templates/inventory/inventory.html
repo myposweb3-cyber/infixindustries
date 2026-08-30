@@ -323,6 +323,17 @@
                         </div>
                     </div>
                 </div>
+                <div class="row mt-4">
+                    <div class="col-12">
+                        <div class="d-flex justify-content-between align-items-center mb-2">
+                            <h6 class="mb-0"><i class="fas fa-route me-1"></i>Supplier & Stock Traceability</h6>
+                            <small class="text-muted">FIFO estimate from purchase history</small>
+                        </div>
+                        <div id="productSupplierTraceability" class="table-responsive">
+                            <div class="text-muted small">Loading supplier history...</div>
+                        </div>
+                    </div>
+                </div>
             </div>
             <div class="modal-footer">
                 <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Close</button>
@@ -995,6 +1006,7 @@ function viewProductDetails(productId) {
                 <p><strong>Email:</strong> ${product.supplier_email || '-'}</p>
             `;
             $('#productSupplierInfo').html(supplierInfoHtml);
+            loadProductSupplierTraceability(productId, product.unit_type || '');
         })
         .fail(function() {
             showAlert('Error loading product details', 'danger');
@@ -1003,6 +1015,48 @@ function viewProductDetails(productId) {
     $('#productDetailsModal').modal('show');
 }
 
+function loadProductSupplierTraceability(productId, unitType) {
+    const target = $('#productSupplierTraceability');
+    target.html('<div class="text-muted small">Loading supplier history...</div>');
+    $.get('/inventory/api/products/' + productId + '/supplier-history')
+        .done(function(data) {
+            if (!data.rows || data.rows.length === 0) {
+                target.html('<div class="alert alert-light border small mb-0">No purchase history is recorded for this product.</div>');
+                return;
+            }
+            const money = value => '₨ ' + Number(value || 0).toLocaleString('en-US', {minimumFractionDigits: 2, maximumFractionDigits: 2});
+            const qty = value => Number(value || 0).toLocaleString('en-US', {maximumFractionDigits: 3});
+            const rows = data.rows.map(row => `
+                <tr>
+                    <td>${row.supplier_name || 'Unknown supplier'}</td>
+                    <td>${row.reference || '-'}</td>
+                    <td>${row.date || '-'}</td>
+                    <td class="text-end">${qty(row.quantity_received)}</td>
+                    <td class="text-end">${money(row.unit_cost)}</td>
+                    <td class="text-end">${qty(row.quantity_sold_estimate)}</td>
+                    <td class="text-end fw-semibold">${qty(row.quantity_remaining_estimate)}</td>
+                </tr>`).join('');
+            target.html(`
+                <div class="table-responsive">
+                    <table class="table table-sm table-bordered align-middle mb-2">
+                        <thead class="table-light">
+                            <tr>
+                                <th>Supplier</th><th>Purchase</th><th>Date</th>
+                                <th class="text-end">Received</th><th class="text-end">Unit cost</th>
+                                <th class="text-end">Sold est.</th><th class="text-end">Remaining est.</th>
+                            </tr>
+                        </thead>
+                        <tbody>${rows}</tbody>
+                    </table>
+                </div>
+                <div class="small text-muted">Current product stock: <strong>${qty(data.current_stock)}</strong> ${unitType || ''}. Total received: ${qty(data.total_received)}; total sold: ${qty(data.total_sold)}.</div>
+            `);
+        })
+        .fail(function(xhr) {
+            const message = xhr.status === 403 ? 'You do not have permission to view supplier history.' : 'Supplier history could not be loaded.';
+            target.html('<div class="alert alert-warning small mb-0">' + message + '</div>');
+        });
+}
 function exportInventory() {
     // Show loading indicator
     showAlert('Exporting products...', 'info');
