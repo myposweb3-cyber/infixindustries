@@ -1,6 +1,6 @@
 from flask import Blueprint, render_template, request, jsonify, flash
 from flask_login import login_required
-from app.models import db, Supplier, Purchase
+from app.models import db, Supplier, Purchase, Product
 from app.utils.permissions import require_permission, require_any_permission
 from app.utils.security import get_company_id
 from sqlalchemy import desc, or_
@@ -50,7 +50,14 @@ def get_suppliers():
     }
 
     for supplier in suppliers_list.items:
-        purchase_count = Purchase.query.filter_by(supplier_id=supplier.id).count()
+        purchase_count = Purchase.query.filter(
+            Purchase.supplier_id == supplier.id,
+            Purchase.company_id == company_id
+        ).count()
+        product_count = Product.query.filter(
+            Product.supplier_id == supplier.id,
+            Product.company_id == company_id
+        ).count()
         
         result['suppliers'].append({
             'id': supplier.id,
@@ -59,7 +66,8 @@ def get_suppliers():
             'phone': supplier.phone or '',
             'email': supplier.email or '',
             'address': supplier.address or '',
-            'purchase_count': int(purchase_count)
+            'purchase_count': int(purchase_count),
+            'product_count': int(product_count)
         })
 
     return jsonify(result)
@@ -83,6 +91,10 @@ def get_supplier(supplier_id):
         Purchase.supplier_id == supplier.id,
         Purchase.company_id == company_id
     ).order_by(desc(Purchase.date)).limit(10).all()
+    products = Product.query.filter(
+        Product.supplier_id == supplier.id,
+        Product.company_id == company_id
+    ).order_by(Product.name).all()
 
     return jsonify({
         'id': supplier.id,
@@ -91,6 +103,15 @@ def get_supplier(supplier_id):
         'phone': supplier.phone,
         'email': supplier.email,
         'address': supplier.address,
+        'products': [{
+            'id': p.id,
+            'name': p.name,
+            'barcode': p.barcode,
+            'stock': p.stock or 0,
+            'unit_type': p.unit_type or 'unit',
+            'cost_price': p.cost_price or 0,
+            'price': p.price or 0
+        } for p in products],
         'purchases': [{
             'id': p.id,
             'date': p.date.strftime('%Y-%m-%d') if p.date else None,

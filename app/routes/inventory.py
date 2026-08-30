@@ -246,7 +246,7 @@ def set_batch_policy():
 @inventory_bp.route('/api/products', methods=['POST'])
 @csrf.exempt
 @login_required
-@require_permission('can_edit_inventory')
+@require_any_permission('can_edit_inventory', 'can_access_suppliers')
 def create_product():
     """Create a new product."""
     data = request.get_json()

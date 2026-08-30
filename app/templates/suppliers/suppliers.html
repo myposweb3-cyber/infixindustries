@@ -38,13 +38,14 @@
                             <th>Contact Person</th>
                             <th>Phone</th>
                             <th>Email</th>
+                            <th>Products</th>
                             <th>Purchases</th>
                             <th>Actions</th>
                         </tr>
                     </thead>
                     <tbody id="suppliersTableBody">
                         <tr>
-                            <td colspan="6" class="text-center py-4">
+                            <td colspan="7" class="text-center py-4">
                                 <div class="spinner-border text-primary" role="status">
                                     <span class="visually-hidden">Loading...</span>
                                 </div>
@@ -104,6 +105,35 @@
 </div>
 
 <!-- View Supplier Modal -->
+<!-- Add Product for Supplier Modal -->
+<div class="modal fade" id="supplierProductModal" tabindex="-1" aria-labelledby="supplierProductModalLabel" aria-hidden="true">
+    <div class="modal-dialog modal-lg">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title" id="supplierProductModalLabel">Add Product</h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+            </div>
+            <div class="modal-body">
+                <div class="alert alert-info py-2"><i class="fas fa-link me-1"></i>This product will be linked to <strong id="productSupplierName">the selected supplier</strong>.</div>
+                <form id="supplierProductForm">
+                    <input type="hidden" id="supplierProductSupplierId">
+                    <div class="row g-3">
+                        <div class="col-md-8"><label class="form-label" for="supplierProductName">Product Name *</label><input class="form-control" id="supplierProductName" required></div>
+                        <div class="col-md-4"><label class="form-label" for="supplierProductBarcode">Barcode</label><input class="form-control" id="supplierProductBarcode"></div>
+                        <div class="col-md-4"><label class="form-label" for="supplierProductPrice">Selling Price *</label><input type="number" class="form-control" id="supplierProductPrice" min="0" step="0.01" required></div>
+                        <div class="col-md-4"><label class="form-label" for="supplierProductCost">Cost Price</label><input type="number" class="form-control" id="supplierProductCost" min="0" step="0.01" value="0"></div>
+                        <div class="col-md-4"><label class="form-label" for="supplierProductStock">Opening Stock</label><input type="number" class="form-control" id="supplierProductStock" min="0" step="0.01" value="0"></div>
+                        <div class="col-md-4"><label class="form-label" for="supplierProductUnit">Unit Type</label><select class="form-select" id="supplierProductUnit"><option value="unit">Unit</option><option value="kg">Kilogram (kg)</option><option value="g">Gram (g)</option><option value="l">Liter (L)</option><option value="ml">Milliliter (mL)</option><option value="box">Box</option><option value="pack">Pack</option><option value="case">Case</option></select></div>
+                        <div class="col-md-8"><label class="form-label" for="supplierProductCategory">Category</label><input class="form-control" id="supplierProductCategory" value="General"></div>
+                        <div class="col-12"><label class="form-label" for="supplierProductDescription">Description</label><textarea class="form-control" id="supplierProductDescription" rows="2"></textarea></div>
+                    </div>
+                </form>
+            </div>
+            <div class="modal-footer"><button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancel</button><button type="button" class="btn btn-primary" onclick="saveSupplierProduct()"><i class="fas fa-save me-1"></i>Save Product</button></div>
+        </div>
+    </div>
+</div>
+
 <div class="modal fade" id="viewSupplierModal" tabindex="-1" aria-labelledby="viewSupplierModalLabel" aria-hidden="true">
     <div class="modal-dialog modal-lg">
         <div class="modal-content">
@@ -120,6 +150,10 @@
                         <p class="mb-1"><strong>Phone:</strong> <span id="viewSupplierPhone"></span></p>
                         <p class="mb-1"><strong>Email:</strong> <span id="viewSupplierEmail"></span></p>
                         <p class="mb-0"><strong>Address:</strong> <span id="viewSupplierAddress"></span></p>
+                    </div>
+                    <div class="col-12 mt-4">
+                        <div class="d-flex justify-content-between align-items-center mb-2"><h6 class="text-muted mb-0">Linked Products</h6><button type="button" class="btn btn-sm btn-outline-primary" id="supplierAddProductFromDetails"><i class="fas fa-plus me-1"></i>Add Product</button></div>
+                        <div class="table-responsive"><table class="table table-sm" id="supplierProductsTable"><thead><tr><th>Product</th><th>Barcode</th><th>Stock</th><th>Cost</th><th>Selling Price</th></tr></thead><tbody></tbody></table></div>
                     </div>
                     <div class="col-md-6">
                         <h6 class="text-muted mb-2">Recent Purchases</h6>
@@ -140,6 +174,7 @@
                 </div>
             </div>
             <div class="modal-footer">
+                <a class="btn btn-primary" id="supplierPurchaseLink" href="#"><i class="fas fa-cart-plus me-1"></i>New Purchase</a>
                 <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Close</button>
             </div>
         </div>
@@ -152,6 +187,50 @@
 let currentPage = 1;
 let totalPages = 1;
 let currencySymbol = 'Rs. ';
+
+function escapeHtml(value) {
+    return String(value ?? '').replace(/[&<>'"]/g, char => ({'&':'&amp;','<':'&lt;','>':'&gt;',"'":'&#39;','"':'&quot;'}[char]));
+}
+
+function startSupplierPurchase(supplierId) {
+    window.location.href = `/purchases?open_modal=new_purchase&supplier_id=${supplierId}`;
+}
+
+function openSupplierProductModal(supplierId, supplierName) {
+    document.getElementById('supplierProductForm').reset();
+    document.getElementById('supplierProductSupplierId').value = supplierId;
+    document.getElementById('productSupplierName').textContent = supplierName;
+    document.getElementById('supplierProductCategory').value = 'General';
+    new bootstrap.Modal(document.getElementById('supplierProductModal')).show();
+}
+
+function saveSupplierProduct() {
+    const form = document.getElementById('supplierProductForm');
+    if (!form.reportValidity()) return;
+    const payload = {
+        name: document.getElementById('supplierProductName').value.trim(),
+        price: Number(document.getElementById('supplierProductPrice').value || 0),
+        cost_price: Number(document.getElementById('supplierProductCost').value || 0),
+        stock: Number(document.getElementById('supplierProductStock').value || 0),
+        unit_type: document.getElementById('supplierProductUnit').value,
+        category: document.getElementById('supplierProductCategory').value.trim() || 'General',
+        barcode: document.getElementById('supplierProductBarcode').value.trim() || null,
+        description: document.getElementById('supplierProductDescription').value.trim() || null,
+        supplier_id: Number(document.getElementById('supplierProductSupplierId').value)
+    };
+    if (payload.price < 0 || payload.cost_price < 0 || payload.stock < 0) {
+        showAlert('Prices and opening stock cannot be negative', 'danger');
+        return;
+    }
+    fetch('/inventory/api/products', {method: 'POST', headers: {'Content-Type': 'application/json'}, body: JSON.stringify(payload)})
+        .then(async response => { const result = await response.json(); if (!response.ok) throw new Error(result.error || 'Unable to create product'); return result; })
+        .then(result => {
+            showAlert(result.message || 'Product created successfully', 'success');
+            bootstrap.Modal.getInstance(document.getElementById('supplierProductModal')).hide();
+            loadSuppliers();
+        })
+        .catch(error => { console.error('Error creating supplier product:', error); showAlert(error.message, 'danger'); });
+}
 
 // Load currency symbol on page load
 function loadCurrencySymbol() {
@@ -206,8 +285,15 @@ function loadSuppliers() {
                 <td>${supplier.contact_person || '-'}</td>
                 <td>${supplier.phone || '-'}</td>
                 <td>${supplier.email || '-'}</td>
+                <td><span class="badge bg-primary">${supplier.product_count || 0} products</span></td>
                 <td><span class="badge bg-info">${supplier.purchase_count} purchases</span></td>
                 <td>
+                    <button class="btn btn-sm btn-success me-1" onclick="openSupplierProductModal(${supplier.id}, '${escapeHtml(supplier.name)}')" title="Add product">
+                        <i class="fas fa-box-open"></i>
+                    </button>
+                    <button class="btn btn-sm btn-primary me-1" onclick="startSupplierPurchase(${supplier.id})" title="New purchase">
+                        <i class="fas fa-cart-plus"></i>
+                    </button>
                     <button class="btn btn-sm btn-info me-1" onclick="viewSupplier(${supplier.id})" title="View">
                         <i class="fas fa-eye"></i>
                     </button>
@@ -342,6 +428,19 @@ function viewSupplier(id) {
         document.getElementById('viewSupplierPhone').textContent = data.phone || '-';
         document.getElementById('viewSupplierEmail').textContent = data.email || '-';
         document.getElementById('viewSupplierAddress').textContent = data.address || '-';
+        document.getElementById('supplierPurchaseLink').href = `/purchases?open_modal=new_purchase&supplier_id=${data.id}`;
+        document.getElementById('supplierAddProductFromDetails').onclick = () => {
+            bootstrap.Modal.getInstance(document.getElementById('viewSupplierModal')).hide();
+            openSupplierProductModal(data.id, data.name);
+        };
+        const productTbody = document.querySelector('#supplierProductsTable tbody');
+        if (!data.products || data.products.length === 0) {
+            productTbody.innerHTML = '<tr><td colspan="5" class="text-center text-muted">No products linked to this supplier</td></tr>';
+        } else {
+            productTbody.innerHTML = data.products.map(p => `
+                <tr><td>${escapeHtml(p.name)}</td><td>${escapeHtml(p.barcode || '-')}</td><td>${Number(p.stock || 0).toLocaleString()}</td><td>${currencySymbol} ${Number(p.cost_price || 0).toLocaleString('en-US', {minimumFractionDigits: 2})}</td><td>${currencySymbol} ${Number(p.price || 0).toLocaleString('en-US', {minimumFractionDigits: 2})}</td></tr>
+            `).join('');
+        }
         
         const tbody = document.querySelector('#purchaseHistoryTable tbody');
         if (data.purchases.length === 0) {

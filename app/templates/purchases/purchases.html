@@ -170,7 +170,7 @@
                                     <select class="form-select" id="product_search">
                                         <option value="" disabled selected>Search for a product to add</option>
                                         {% for product in products %}
-                                        <option value="{{ product.id }}" data-name="{{ product.name }}" data-cost="{{ product.cost_price or 0 }}">{{ product.name }}</option>
+                                        <option value="{{ product.id }}" data-name="{{ product.name }}" data-cost="{{ product.cost_price or 0 }}" data-supplier-id="{{ product.supplier_id or '' }}">{{ product.name }}</option>
                                         {% endfor %}
                                     </select>
                                 </div>
@@ -350,6 +350,7 @@ function viewPurchase(purchaseId) {
 document.addEventListener('DOMContentLoaded', function() {
     const modal = document.getElementById('newPurchaseModal');
     const productSearch = document.getElementById('product_search');
+    const supplierSelect = document.getElementById('supplier_id');
     const itemsTableBody = document.querySelector('#itemsTable tbody');
     const totalAmountInput = document.getElementById('total_amount');
     const itemsJsonInput = document.getElementById('items_json');
@@ -358,6 +359,20 @@ document.addEventListener('DOMContentLoaded', function() {
     if (!productSearch || !itemsTableBody || !totalAmountInput || !itemsJsonInput) {
         console.error('Required elements not found in the DOM');
         return;
+    }
+
+    function filterProductsForSupplier() {
+        const supplierId = supplierSelect ? supplierSelect.value : '';
+        Array.from(productSearch.options).forEach(option => {
+            if (!option.value) return;
+            const optionSupplierId = option.getAttribute('data-supplier-id') || '';
+            option.hidden = Boolean(supplierId && optionSupplierId && optionSupplierId !== supplierId);
+        });
+    }
+
+    if (supplierSelect) {
+        supplierSelect.addEventListener('change', filterProductsForSupplier);
+        filterProductsForSupplier();
     }
 
     productSearch.addEventListener('change', function() {
@@ -464,6 +479,17 @@ document.addEventListener('DOMContentLoaded', function() {
 
     const urlParams = new URLSearchParams(window.location.search);
     if (urlParams.get('open_modal') === 'new_purchase') {
+        const supplierId = urlParams.get('supplier_id');
+        if (supplierId) {
+            const supplierSelect = document.getElementById('supplier_id');
+            supplierSelect.value = supplierId;
+            supplierSelect.dispatchEvent(new Event('change'));
+            const selectedSupplier = supplierSelect.options[supplierSelect.selectedIndex];
+            if (selectedSupplier) {
+                const supplierName = selectedSupplier.textContent.trim();
+                document.getElementById('product_search').setAttribute('data-supplier-name', supplierName);
+            }
+        }
         new bootstrap.Modal(modal).show();
     }
 });
