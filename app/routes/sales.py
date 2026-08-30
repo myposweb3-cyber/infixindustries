@@ -1970,30 +1970,40 @@ def send_whatsapp_receipt(sale_id):
         for item in sale.items
     ])
     
-    # Get base URL for links
-    from urllib.parse import urljoin
+    # Use the same canonical total and settlement calculation as all other receipts.
+    from app.routes.invoices import get_receipt_settings
+    receipt_settings = get_receipt_settings(get_company_id())
+    currency_symbol = receipt_settings.get('currency_symbol', 'Rs. ')
+    total = _sale_total_for_display(sale)
+    paid_amount, balance_due, calculated_change, payment_status, _, effective_method, display_cash_received = _receipt_settlement(sale)
     base_url = request.host_url.rstrip('/')
-    receipt_html_url = f"{base_url}/sales/{sale.id}/receipt/html?format=a4"
-    
-    text = f"""*POS SYSTEM*
-
-🧾 *RECEIPT # {sale.id}*
-Date: {sale.date.strftime('%Y-%m-%d %H:%M')}
+    receipt_html_url = f"{base_url}/sales/api/sales/{sale.id}/receipt/html-public?format=a4"
+    receipt_pdf_url = f"{base_url}/sales/api/sales/{sale.id}/receipt/pdf-public?format=a4"
+    business_name = receipt_settings.get('business_name') or receipt_settings.get('company_name') or 'Our Store'
+    text = f"""*{business_name}*
+*Receipt #{sale.id}*
+Date: {sale.date.strftime('%d %b %Y, %I:%M %p') if sale.date else '-'}
 Cashier: {cashier}
-Payment: {sale.payment}
+Payment method: {effective_method}
 
-ITEMS:
 {items}
 
-Subtotal     Rs.{subtotal:>9.2f}
-*Total       Rs.{sale.total:>9.2f}*
-Paid:        Rs.{sale.cash_given:>9.2f}
-Balance:     Rs.{sale.balance:>9.2f}
+Subtotal: {currency_symbol}{subtotal:,.2f}
+Discount: {currency_symbol}{float(sale.discount or 0):,.2f}
+Tax: {currency_symbol}{float(sale.tax or 0):,.2f}
+*Total: {currency_symbol}{total:,.2f}*
+Paid: {currency_symbol}{paid_amount:,.2f}
+Balance: {currency_symbol}{balance_due:,.2f}
+Status: {payment_status}
+Change: {currency_symbol}{calculated_change:,.2f}
 
-View Receipt (Same as Sales History):
+View receipt:
 {receipt_html_url}
 
-Thank you for shopping!"""
+Download PDF:
+{receipt_pdf_url}
+
+{receipt_settings.get('thank_you_message', 'Thank you for shopping with us. We appreciate your business.')}"""
 
     # Prefer Twilio if configured and available
     twilio_enabled = (send_whatsapp_via_twilio is not None and 
