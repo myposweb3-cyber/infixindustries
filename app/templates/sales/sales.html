@@ -276,6 +276,9 @@
                     <button type="button" class="btn btn-lg btn-success" id="sendWhatsappBtn" onclick="handleSendWhatsapp()">
                         <i class="fab fa-whatsapp me-2"></i>Send on WhatsApp
                     </button>
+                    <button type="button" class="btn btn-lg btn-outline-primary" id="sendEmailBtn" onclick="sendReceiptViaEmail()">
+                        <i class="fas fa-envelope me-2"></i>Send by Email
+                    </button>
                 </div>
                 <hr class="my-3">
                 <button type="button" class="btn btn-secondary w-100" data-bs-dismiss="modal">Skip for Now</button>
@@ -314,6 +317,27 @@
     </div>
 </div>
 
+<!-- Email Receipt Modal -->
+<div class="modal fade" id="emailReceiptModal" tabindex="-1" aria-labelledby="emailReceiptTitle" aria-hidden="true">
+    <div class="modal-dialog modal-dialog-centered">
+        <div class="modal-content">
+            <div class="modal-header bg-primary text-white">
+                <h5 class="modal-title" id="emailReceiptTitle"><i class="fas fa-envelope me-2"></i>Email receipt</h5>
+                <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal" aria-label="Close"></button>
+            </div>
+            <div class="modal-body">
+                <label for="receiptEmail" class="form-label">Customer email address</label>
+                <input type="email" class="form-control" id="receiptEmail" placeholder="customer@example.com" autocomplete="email">
+                <div class="form-text">The customer will receive a PDF attachment and secure links to view or download the receipt.</div>
+                <div class="alert alert-danger mt-3 d-none" id="receiptEmailError"></div>
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancel</button>
+                <button type="button" class="btn btn-primary" onclick="sendReceiptEmailAPI()"><i class="fas fa-paper-plane me-1"></i>Send email</button>
+            </div>
+        </div>
+    </div>
+</div>
 <!-- Edit Product Modal -->
 <div class="modal fade" id="editProductModal" tabindex="-1">
     <div class="modal-dialog modal-lg">
@@ -3171,6 +3195,44 @@ function handleSendWhatsapp() {
     if (modal) modal.hide();
     if (receiptActionTimeout) clearTimeout(receiptActionTimeout);
     sendReceiptViaWhatsapp();
+}
+
+function sendReceiptViaEmail() {
+    const emailModal = document.getElementById('emailReceiptModal');
+    const emailInput = document.getElementById('receiptEmail');
+    if (!emailModal || !emailInput) return;
+    emailInput.value = currentCustomer?.email || '';
+    document.getElementById('receiptEmailError')?.classList.add('d-none');
+    bootstrap.Modal.getOrCreateInstance(emailModal).show();
+    setTimeout(() => emailInput.focus(), 250);
+}
+
+function sendReceiptEmailAPI() {
+    const saleId = pendingSaleId;
+    const emailInput = document.getElementById('receiptEmail');
+    const email = emailInput?.value.trim() || '';
+    const errorEl = document.getElementById('receiptEmailError');
+    if (!saleId || !email) {
+        if (errorEl) { errorEl.textContent = 'Please enter the customer email address.'; errorEl.classList.remove('d-none'); }
+        return;
+    }
+    if (!emailInput.checkValidity()) {
+        if (errorEl) { errorEl.textContent = 'Please enter a valid email address.'; errorEl.classList.remove('d-none'); }
+        return;
+    }
+    const csrfToken = document.querySelector('meta[name="csrf-token"]')?.getAttribute('content') || '';
+    fetch(`/sales/api/sales/${saleId}/send-email`, {
+        method: 'POST', headers: {'Content-Type': 'application/json', 'X-CSRFToken': csrfToken},
+        body: JSON.stringify({email})
+    }).then(async response => {
+        const data = await response.json();
+        if (!response.ok || !data.success) throw new Error(data.error || 'Unable to send email');
+        bootstrap.Modal.getOrCreateInstance(document.getElementById('emailReceiptModal')).hide();
+        showNotification('Receipt email sent successfully.', 'success');
+        setTimeout(() => resetSale(), 2000);
+    }).catch(error => {
+        if (errorEl) { errorEl.textContent = error.message; errorEl.classList.remove('d-none'); }
+    });
 }
 
 function sendReceiptViaWhatsapp() {

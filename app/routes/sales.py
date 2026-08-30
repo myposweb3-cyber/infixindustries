@@ -1787,27 +1787,34 @@ def send_receipt_whatsapp(sale_id):
         tax_amount = sale.tax or 0
         total = sale.total or (subtotal - discount_total + tax_amount)
         
-        # Get the base URL for receipt link
-        from urllib.parse import urljoin
+        # Use public receipt routes so customers can open the links without staff login.
         base_url = request.host_url.rstrip('/')
-        receipt_url = f"{base_url}/sales/{sale_id}/receipt/html?format={format_type}"
-        
-        # Build message text with receipt link
-        message_text = f"""Thank you for your purchase!
+        receipt_url = f"{base_url}/sales/api/sales/{sale_id}/receipt/html-public?format={format_type}"
+        receipt_pdf_url = f"{base_url}/sales/api/sales/{sale_id}/receipt/pdf-public?format={format_type}"
+        paid_amount, balance_due, calculated_change, payment_status, _, _, _ = _receipt_settlement(sale)
+        business_name = receipt_settings.get('business_name') or receipt_settings.get('company_name') or 'Our Store'
+        message_text = f"""*{business_name}*
+*Receipt #{sale.id}*
+Date: {sale.date.strftime('%d %b %Y, %I:%M %p') if sale.date else '-'}
 
-Sale #: {sale.id}
+{items_text.rstrip()}
 
-{items_text}
-Discount: {currency_symbol}{discount_total:.2f}
-Tax: {currency_symbol}{tax_amount:.2f}
-Total: {currency_symbol}{total:.2f}
+Subtotal: {currency_symbol}{subtotal:,.2f}
+Discount: {currency_symbol}{discount_total:,.2f}
+Tax: {currency_symbol}{tax_amount:,.2f}
+*Total: {currency_symbol}{total:,.2f}*
+Paid: {currency_symbol}{paid_amount:,.2f}
+Balance: {currency_symbol}{balance_due:,.2f}
+Status: {payment_status}
+Payment method: {sale.payment or '-'}
 
-Payment: {sale.payment}
-
-View Receipt:
+View receipt:
 {receipt_url}
 
-{receipt_settings.get('thank_you_message', 'Thank you for shopping with us!')}"""
+Download PDF:
+{receipt_pdf_url}
+
+{receipt_settings.get('thank_you_message', 'Thank you for shopping with us. We appreciate your business.')}"""
         
         # Generate WhatsApp link
         whatsapp_link = generate_whatsapp_link(phone_number, message_text)
@@ -1849,10 +1856,11 @@ def send_email_receipt(sale_id):
     data = request.get_json() or {}
     to_email = data.get('email')
     format_type = data.get('format')
-    
+
     if not to_email:
         return jsonify({'error': 'Email address required'}), 400
-    
+    if '@' not in to_email or '.' not in to_email.rsplit('@', 1)[-1]:
+        return jsonify({'error': 'Please provide a valid email address'}), 400
     company_id = get_company_id()
     # If no format specified, use default from settings
     if not format_type:
@@ -1868,7 +1876,10 @@ def send_email_receipt(sale_id):
 
     # Get receipt settings
     receipt_settings = get_receipt_settings(company_id)
-    
+    currency_symbol_value = receipt_settings.get('currency_symbol', 'Rs. ')
+    if format_type == 'a3':
+        # Public receipt routes support thermal, A5, and A4 only.
+        format_type = 'a4'
     # Format business_settings for the generator
     # Map company_name to business_name for generator compatibility
     mapped_settings = receipt_settings.copy()
@@ -1881,11 +1892,37 @@ def send_email_receipt(sale_id):
     pdf_buffer.seek(0)
     pdf_bytes = pdf_buffer.read()
 
-    # Get business name from receipt settings
-    business_name = receipt_settings.get('company_name', 'POS System')
-    
-    subject = f'Receipt from {business_name} - Sale #{sale_id}'
-    body = f'Thank you for your purchase. Please find attached your {format_type.upper()} receipt for Sale #{sale_id}.'
+    # Include both a browser link and the attached PDF for convenient customer access.
+    business_name = receipt_settings.get('business_name') or receipt_settings.get('company_name') or 'Our Store'
+    base_url = request.host_url.rstrip('/')
+    receipt_url = f"{base_url}/sales/api/sales/{sale_id}/receipt/html-public?format={format_type}"
+    receipt_pdf_url = f"{base_url}/sales/api/sales/{sale_id}/receipt/pdf-public?format={format_type}"
+    paid_amount, balance_due, calculated_change, payment_status, _, _, _ = _receipt_settlement(sale)
+    subject = f'Receipt #{sale_id} from {business_name}'
+    body = f"""Dear Customer,
+
+Thank you for your purchase from {business_name}.
+
+Receipt number: #{sale_id}
+Date: {sale.date.strftime('%d %b %Y, %I:%M %p') if sale.date else '-'}
+Total: {currency_symbol_value}{float(sale.total or 0):,.2f}
+Paid: {currency_symbol_value}{paid_amount:,.2f}
+Balance: {currency_symbol_value}{balance_due:,.2f}
+Payment status: {payment_status}
+Payment method: {sale.payment or '-'}
+
+View your receipt online:
+{receipt_url}
+
+Download the receipt PDF:
+{receipt_pdf_url}
+
+A PDF copy is also attached to this email.
+
+{receipt_settings.get('thank_you_message', 'Thank you for shopping with us. We appreciate your business.')}
+
+Kind regards,
+{business_name}"""
 
     filename = f'receipt_{sale_id}_{format_type}.pdf'
     ok, msg = send_email(to_email, subject, body, attachments=[(filename, pdf_bytes, 'application/pdf')])
