@@ -4,7 +4,8 @@ from app.models import db, Product, Sale, SaleRequest, SaleItem, Customer, Setti
 from app.models import Exchange, ExchangeItem, Cheque, CustomerPayment
 from app.utils.permissions import require_permission
 from app.utils.security import get_company_id, require_company_context
-from app.utils.sales_totals import sale_total_for_display as _sale_total_for_display
+from app.utils.sales_totals import sale_total_for_display
+from app.utils.inventory_batches import allocate_batches, restore_batches
 from app.utils.company import column_exists_in_db
 from datetime import datetime, timedelta
 from sqlalchemy import desc, case, or_
@@ -22,6 +23,11 @@ from app import csrf
 sales_bp = Blueprint('sales', __name__, template_folder='../../templates')
 
 
+
+
+def _sale_total_for_display(sale):
+    """Compatibility wrapper around the shared canonical sale-total helper."""
+    return sale_total_for_display(sale)
 
 
 def _receipt_settlement(sale):
@@ -675,6 +681,16 @@ def create_sale():
                 'company_id': company_id
             })
             
+            # Allocate tracked stock from supplier batches using the company policy.
+            # Legacy/untracked remainder continues through product-level stock.
+            allocate_batches(
+                product_id=product.id,
+                quantity=item['quantity'],
+                company_id=company_id,
+                sale_id=sale.id,
+                allocation_type='sale'
+            )
+
             # Update product stock in memory
             product.stock = new_stock
             
@@ -2554,6 +2570,12 @@ def create_return():
             # Restore stock
             product = Product.query.get(sale_item.product_id)
             if product:
+                restore_batches(
+                    product_id=product.id,
+                    quantity=return_qty,
+                    company_id=get_company_id(),
+                    return_id=return_record.id
+                )
                 product.stock += return_qty
                 
                 # Create inventory transaction for stock restoration

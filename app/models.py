@@ -210,6 +210,53 @@ class Product(db.Model):
     # Relationships
     supplier = db.relationship('Supplier', backref='products')
 
+class InventoryBatch(db.Model):
+    """Supplier-specific receipt batch with independently tracked stock."""
+    __tablename__ = 'inventory_batches'
+
+    id = db.Column(db.Integer, primary_key=True)
+    product_id = db.Column(db.Integer, db.ForeignKey('products.id'), nullable=False, index=True)
+    supplier_id = db.Column(db.Integer, db.ForeignKey('suppliers.id'), nullable=True, index=True)
+    purchase_id = db.Column(db.Integer, db.ForeignKey('purchases.id'), nullable=True, index=True)
+    purchase_item_id = db.Column(db.Integer, db.ForeignKey('purchase_items.id'), nullable=True, index=True)
+    batch_code = db.Column(db.String(100), nullable=False)
+    received_at = db.Column(db.DateTime, default=datetime.utcnow, nullable=False, index=True)
+    expiry_date = db.Column(db.Date, nullable=True, index=True)
+    unit_cost = db.Column(db.Float, nullable=False, default=0.0)
+    quantity_received = db.Column(db.Float, nullable=False, default=0.0)
+    quantity_remaining = db.Column(db.Float, nullable=False, default=0.0)
+    status = db.Column(db.String(20), nullable=False, default='active')
+    company_id = db.Column(db.Integer, db.ForeignKey('companies.id'), nullable=True, index=True)
+
+    product = db.relationship('Product', backref='inventory_batches')
+    supplier = db.relationship('Supplier', backref='inventory_batches')
+    purchase = db.relationship('Purchase', backref='inventory_batches')
+    purchase_item = db.relationship('PurchaseItem', backref='inventory_batches')
+    company = db.relationship('Company', backref='inventory_batches', foreign_keys=[company_id])
+    allocations = db.relationship('InventoryBatchAllocation', backref='batch', lazy=True, cascade='all, delete-orphan')
+
+class InventoryBatchAllocation(db.Model):
+    """Quantity consumed from or returned to a specific inventory batch."""
+    __tablename__ = 'inventory_batch_allocations'
+
+    id = db.Column(db.Integer, primary_key=True)
+    batch_id = db.Column(db.Integer, db.ForeignKey('inventory_batches.id'), nullable=False, index=True)
+    product_id = db.Column(db.Integer, db.ForeignKey('products.id'), nullable=False, index=True)
+    sale_id = db.Column(db.Integer, db.ForeignKey('sales.id'), nullable=True, index=True)
+    sale_item_id = db.Column(db.Integer, db.ForeignKey('sale_items.id'), nullable=True)
+    return_id = db.Column(db.Integer, db.ForeignKey('returns.id'), nullable=True, index=True)
+    quantity = db.Column(db.Float, nullable=False)
+    unit_cost = db.Column(db.Float, nullable=False, default=0.0)
+    allocation_type = db.Column(db.String(20), nullable=False, default='sale')
+    created_at = db.Column(db.DateTime, default=datetime.utcnow, nullable=False)
+    company_id = db.Column(db.Integer, db.ForeignKey('companies.id'), nullable=True, index=True)
+
+    product = db.relationship('Product', backref='inventory_batch_allocations')
+    sale = db.relationship('Sale', backref='inventory_batch_allocations', foreign_keys=[sale_id])
+    sale_item = db.relationship('SaleItem', backref='inventory_batch_allocations', foreign_keys=[sale_item_id])
+    return_record = db.relationship('Return', backref='inventory_batch_allocations', foreign_keys=[return_id])
+    company = db.relationship('Company', backref='inventory_batch_allocations', foreign_keys=[company_id])
+
 class Sale(db.Model):
     """Sale model for transactions."""
     __tablename__ = 'sales'

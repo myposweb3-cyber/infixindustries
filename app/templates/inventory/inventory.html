@@ -52,6 +52,19 @@
         </div>
     </div>
 </div>
+<div class="row mb-3">
+    <div class="col-md-6 ms-auto">
+        <div class="input-group input-group-sm">
+            <span class="input-group-text"><i class="fas fa-layer-group me-1"></i>Batch allocation</span>
+            <select id="batchAllocationPolicy" class="form-select" aria-label="Batch allocation policy">
+                <option value="FIFO">FIFO — First In, First Out</option>
+                <option value="FEFO">FEFO — First Expiry, First Out</option>
+            </select>
+            <button type="button" class="btn btn-outline-primary" id="saveBatchAllocationPolicy">Save</button>
+        </div>
+        <small class="text-muted d-block mt-1">Applies to future sales. Existing stock remains unchanged.</small>
+    </div>
+</div>
 
 <!-- Inventory Analytics Cards -->
 <div class="row mb-4">
@@ -537,6 +550,10 @@ $(document).ready(function() {
         loadProducts();
     });
 
+    loadBatchAllocationPolicy();
+
+    $(document).on('click', '#saveBatchAllocationPolicy', saveBatchAllocationPolicy);
+
     // Low stock only checkbox
     $(document).on('change', '#lowStockOnly', function() {
         console.log('Low stock only toggled to:', $(this).is(':checked'));
@@ -560,6 +577,27 @@ $(document).ready(function() {
     
     console.log('All event handlers attached successfully');
 });
+
+function loadBatchAllocationPolicy() {
+    $.get('/inventory/api/inventory/batch-policy')
+        .done(function(data) { $('#batchAllocationPolicy').val(data.policy || 'FIFO'); })
+        .fail(function() { console.warn('Batch allocation policy could not be loaded'); });
+}
+
+function saveBatchAllocationPolicy() {
+    const policy = $('#batchAllocationPolicy').val();
+    $.ajax({
+        url: '/inventory/api/inventory/batch-policy',
+        type: 'POST',
+        contentType: 'application/json',
+        headers: { 'X-CSRFToken': $('meta[name="csrf-token"]').attr('content') || '' },
+        data: JSON.stringify({ policy: policy })
+    }).done(function() {
+        showAlert('Batch allocation policy saved: ' + policy, 'success');
+    }).fail(function(xhr) {
+        showAlert((xhr.responseJSON && xhr.responseJSON.error) || 'Unable to save batch allocation policy', 'danger');
+    });
+}
 
 function debounce(func, wait) {
     let timeout;

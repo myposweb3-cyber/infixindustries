@@ -3,6 +3,7 @@ from flask_login import login_required, current_user
 from app.utils.permissions import require_permission
 from app.utils.security import get_company_id, require_company_context
 from app.models import db, Purchase, Supplier, PurchaseReturn, Product, PurchaseItem, InventoryTransaction, PurchaseReturnItem
+from app.utils.inventory_batches import create_purchase_batch
 from sqlalchemy import desc, or_
 from datetime import datetime
 import json
@@ -173,6 +174,17 @@ def new_purchase():
                     company_id=company_id  # Set company_id for multi-company support
                 )
                 db.session.add(purchase_item)
+                db.session.flush()  # obtain purchase_item.id for batch traceability
+                expiry_date = None
+                if item.get('expiry_date'):
+                    expiry_date = datetime.strptime(str(item['expiry_date']), '%Y-%m-%d').date()
+                create_purchase_batch(
+                    purchase,
+                    purchase_item,
+                    company_id,
+                    batch_code=item.get('batch_code') or None,
+                    expiry_date=expiry_date
+                )
 
                 # Update product stock and cost price
                 previous_stock = product.stock

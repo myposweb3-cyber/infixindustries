@@ -5,7 +5,7 @@ import pandas as pd
 from flask import Blueprint, render_template, request, jsonify, flash, send_file
 from flask_login import login_required
 from flask_wtf.csrf import CSRFProtect
-from app.models import db, Product, InventoryTransaction, Warehouse, Purchase, PurchaseItem, Sale, SaleItem
+from app.models import db, Product, InventoryTransaction, Warehouse, Purchase, PurchaseItem, Sale, SaleItem, Setting
 from app.utils.security import get_company_id, require_company_context
 from app.utils.permissions import require_permission, require_any_permission
 from app.utils.audit import log_create, log_update, log_delete, log_audit
@@ -201,6 +201,47 @@ def get_product_supplier_history(product_id):
         'allocation_method': 'FIFO estimate from purchase history; current stock remains authoritative',
         'rows': rows
     })
+
+@inventory_bp.route('/api/inventory/batch-policy', methods=['GET'])
+@csrf.exempt
+@login_required
+@require_any_permission('can_view_inventory', 'can_access_sales', 'can_access_purchases')
+def get_batch_policy():
+    company_id = get_company_id()
+    setting = Setting.query.filter_by(
+        company_id=company_id,
+        setting_category='inventory',
+        setting_key='batch_allocation_policy'
+    ).first()
+    policy = (setting.setting_value if setting else 'FIFO') or 'FIFO'
+    policy = policy.upper() if policy.upper() in {'FIFO', 'FEFO'} else 'FIFO'
+    return jsonify({'policy': policy, 'options': ['FIFO', 'FEFO']})
+
+@inventory_bp.route('/api/inventory/batch-policy', methods=['POST'])
+@csrf.exempt
+@login_required
+@require_permission('can_edit_inventory')
+def set_batch_policy():
+    policy = str((request.get_json(silent=True) or {}).get('policy', '')).upper().strip()
+    if policy not in {'FIFO', 'FEFO'}:
+        return jsonify({'error': 'Policy must be FIFO or FEFO'}), 400
+    company_id = get_company_id()
+    setting = Setting.query.filter_by(
+        company_id=company_id,
+        setting_category='inventory',
+        setting_key='batch_allocation_policy'
+    ).first()
+    if setting:
+        setting.setting_value = policy
+    else:
+        db.session.add(Setting(
+            company_id=company_id,
+            setting_category='inventory',
+            setting_key='batch_allocation_policy',
+            setting_value=policy
+        ))
+    db.session.commit()
+    return jsonify({'success': True, 'policy': policy})
 
 @inventory_bp.route('/api/products', methods=['POST'])
 @csrf.exempt
