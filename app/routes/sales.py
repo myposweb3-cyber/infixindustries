@@ -815,7 +815,7 @@ def get_receipt(sale_id):
         'customer': sale.customer,
         'items': [],
         'subtotal': 0,
-        'total': sale.total,
+        'total': _sale_total_for_display(sale),
         'payment': sale.payment,
         'cash_given': display_cash_received,
         'balance': sale.balance
@@ -1022,7 +1022,7 @@ def receipt_html(sale_id):
         'tax_amount': tax_total,
         'tax_total': tax_total,
         'tax_rate': tax_rate,
-        'total': sale.total,
+        'total': _sale_total_for_display(sale),
         'paid_amount': paid_amount,
         'linked_payment_total': linked_payment_total,
         'balance_due': balance_due,
@@ -1124,7 +1124,7 @@ def download_receipt_pdf(sale_id):
         subtotal = sum(item['unit_price'] * item['qty'] for item in items)
         discount_total = sum(item['discount'] for item in items)
         tax_total = sum(item['tax'] for item in items)
-        total = sale.total
+        total = _sale_total_for_display(sale)
         
         # Calculate paid amount correctly
         # For Cash/Cheque: always fully paid
@@ -1354,7 +1354,7 @@ def receipt_html_public(sale_id):
         'tax_amount': tax_total,
         'tax_total': tax_total,
         'tax_rate': tax_rate,
-        'total': sale.total,
+        'total': _sale_total_for_display(sale),
         'paid_amount': paid_amount,
         'linked_payment_total': linked_payment_total,
         'balance_due': balance_due,
@@ -1450,7 +1450,7 @@ def download_receipt_pdf_public(sale_id):
         subtotal = sum(item['unit_price'] * item['qty'] for item in items)
         discount_total = sum(item['discount'] for item in items)
         tax_total = sum(item['tax'] for item in items)
-        total = sale.total
+        total = _sale_total_for_display(sale)
         
         # Calculate paid amount correctly
         # For Cash/Cheque: always fully paid
@@ -1622,7 +1622,7 @@ def print_receipt(sale_id):
         subtotal = sum(item['unit_price'] * item['qty'] for item in items)
         discount_total = sum(item['discount'] for item in items)
         tax_total = sum(item['tax'] for item in items)
-        total = sale.total
+        total = _sale_total_for_display(sale)
         
         # Calculate paid amount correctly
         # For Cash/Cheque: always fully paid
@@ -1786,7 +1786,7 @@ def send_receipt_whatsapp(sale_id):
         # Calculate totals
         discount_total = sale.discount or 0
         tax_amount = sale.tax or 0
-        total = sale.total or (subtotal - discount_total + tax_amount)
+        total = _sale_total_for_display(sale) or (subtotal - discount_total + tax_amount)
         
         # Use public receipt routes so customers can open the links without staff login.
         base_url = request.host_url.rstrip('/')
@@ -2398,7 +2398,7 @@ def get_sale(sale_id):
         'customer': sale.customer,
         'customer_phone': customer_details.get('phone', ''),
         'customer_email': customer_details.get('email', ''),
-        'total': sale.total,
+        'total': _sale_total_for_display(sale),
         'payment': sale.payment,
         'cash_given': sale.cash_given,
         'balance': sale.balance,
@@ -2480,7 +2480,7 @@ def get_sale_items_for_return(sale_id):
         'sale_id': sale.id,
         'sale_date': sale.date.strftime('%Y-%m-%d %H:%M:%S'),
         'customer': sale.customer,
-        'total': sale.total,
+        'total': _sale_total_for_display(sale),
         'payment': sale.payment,
         'items': items
     })
