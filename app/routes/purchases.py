@@ -142,13 +142,28 @@ def new_purchase():
                 flash('No items added to the purchase.', 'danger')
                 return redirect(url_for('purchases.purchases', open_modal='new_purchase'))
 
+            # Compute the authoritative total from item values. The browser
+            # total is display-only and must never be trusted for persistence.
+            normalized_items = []
+            computed_total = 0.0
+            for item in items:
+                quantity = float(item.get('quantity', 0))
+                cost_price = float(str(item.get('cost_price', 0)).replace(',', ''))
+                if quantity <= 0 or cost_price < 0:
+                    raise ValueError('Each purchase item must have a positive quantity and a valid cost price.')
+                item['quantity'] = quantity
+                item['cost_price'] = cost_price
+                computed_total += quantity * cost_price
+                normalized_items.append(item)
+            items = normalized_items
+
             # Create Purchase
             purchase = Purchase(
                 supplier_id=data.get('supplier_id'),
                 invoice_number=data.get('invoice_number'),
                 date=datetime.strptime(data.get('date'), '%Y-%m-%d'),
-                total_amount=float(data.get('total_amount')),
-                amount_paid=float(data.get('amount_paid', 0.0)),
+                total_amount=round(computed_total, 2),
+                amount_paid=float(str(data.get('amount_paid', 0.0)).replace(',', '')),
                 status=data.get('status'),
                 company_id=get_company_id()  # Set company_id
             )
