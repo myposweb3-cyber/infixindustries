@@ -1809,10 +1809,9 @@ Balance: {currency_symbol}{balance_due:,.2f}
 Status: {payment_status}
 Payment method: {sale.payment or '-'}
 
-View receipt:
+View your receipt online:
 {receipt_url}
-
-Download PDF:
+Download your PDF receipt:
 {receipt_pdf_url}
 
 {receipt_settings.get('thank_you_message', 'Thank you for shopping with us. We appreciate your business.')}"""
@@ -1997,10 +1996,9 @@ Balance: {currency_symbol}{balance_due:,.2f}
 Status: {payment_status}
 Change: {currency_symbol}{calculated_change:,.2f}
 
-View receipt:
+View your receipt online:
 {receipt_html_url}
-
-Download PDF:
+Download your PDF receipt:
 {receipt_pdf_url}
 
 {receipt_settings.get('thank_you_message', 'Thank you for shopping with us. We appreciate your business.')}"""
