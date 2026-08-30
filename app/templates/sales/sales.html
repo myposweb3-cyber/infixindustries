@@ -473,6 +473,7 @@ let selectedCustomerIndex = -1;
 let offlineQueue = [];
 let activeCheckoutRequestId = null;
 let offlineSyncInProgress = false;
+let currentPayableTotal = 0;
 const OFFLINE_QUEUE_KEY = 'infix_pos_offline_checkout_queue_v1';
 const CART_STATE_KEY = 'infix_pos_active_cart_v1';
 
@@ -1727,7 +1728,8 @@ function openBillingReview() {
 }
 
 function updateTotals(subtotal, discount, tax, total = 0) {
-    console.log('updateTotals() called with:', {subtotal, discount, tax, total, currencySymbol});
+    currentPayableTotal = Math.max(0, Number(total) || 0);
+    console.log('updateTotals() called with:', {subtotal, discount, tax, total: currentPayableTotal, currencySymbol});
     
     const subtotalEl = document.getElementById('subtotal');
     const taxEl = document.getElementById('tax');
@@ -1757,6 +1759,8 @@ function updateTotals(subtotal, discount, tax, total = 0) {
     if (stickySubtotalEl) stickySubtotalEl.textContent = subtotalText;
     if (stickyDiscountEl) stickyDiscountEl.textContent = currencySymbol + ' ' + Number(discount || 0).toLocaleString('en-US', {minimumFractionDigits: 2, maximumFractionDigits: 2});
     if (stickyTotalEl) stickyTotalEl.textContent = totalText;
+    // Keep cash change synchronized when the cart, discount, tax, or customer changes.
+    if (document.getElementById('paymentMethod')?.value === 'Cash') calculateChange();
 }
 
 function changeQuantity(index, delta) {
@@ -1931,18 +1935,17 @@ function toggleCashFields(paymentMethod) {
 
 function calculateChange() {
     const paymentMethod = document.getElementById('paymentMethod').value;
-    if (paymentMethod !== 'Cash') return;
+    const changeGroup = document.getElementById('changeGroup');
+    const changeAmount = document.getElementById('changeAmount');
+    if (paymentMethod !== 'Cash' || !changeGroup || !changeAmount) return;
 
-    const cashGiven = parseFloat(document.getElementById('cashGiven').value) || 0;
-    const total = parseDisplayedNumber(document.getElementById('total').textContent);
+    const cashGiven = Math.max(0, Number.parseFloat(document.getElementById('cashGiven').value) || 0);
+    const total = Math.max(0, Number(currentPayableTotal) || 0);
+    const change = Math.max(0, cashGiven - total);
 
-    if (cashGiven >= total) {
-        const change = cashGiven - total;
-        document.getElementById('changeAmount').textContent = change.toLocaleString('en-US', {minimumFractionDigits: 2, maximumFractionDigits: 2});
-        document.getElementById('changeGroup').style.display = 'block';
-    } else {
-        document.getElementById('changeGroup').style.display = 'none';
-    }
+    // Never display the full cash amount as change. Change is only the excess.
+    changeAmount.textContent = change.toLocaleString('en-US', {minimumFractionDigits: 2, maximumFractionDigits: 2});
+    changeGroup.style.display = cashGiven >= total && total > 0 ? 'block' : 'none';
 }
 
 function loadCustomers(search = '') {
