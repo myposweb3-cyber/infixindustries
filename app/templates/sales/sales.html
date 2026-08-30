@@ -69,6 +69,16 @@
                     </div>
                 </div>
                 <div class="card-body p-3">
+                    <!-- Cart Summary -->
+                    <div class="cart-summary-bar d-flex align-items-center justify-content-between gap-2 mb-3" id="cartSummaryBar" aria-live="polite">
+                        <div class="cart-summary-count">
+                            <i class="fas fa-list-check me-2"></i><strong id="cartItemCount">0 items</strong>
+                            <span class="text-muted ms-1" id="cartUnitCount"></span>
+                        </div>
+                        <button type="button" class="btn btn-outline-primary btn-sm" id="reviewBillBtn" onclick="openBillingReview()" disabled>
+                            <i class="fas fa-receipt me-1"></i>Review bill
+                        </button>
+                    </div>
                     <!-- Cart Items -->
                     <div class="cart-items" id="cartItems">
                         <div class="empty-cart text-center text-muted py-5">
@@ -378,6 +388,34 @@
     </div>
 </div>
 
+<!-- Billing Review Modal -->
+<div class="modal fade" id="billingReviewModal" tabindex="-1" aria-labelledby="billingReviewTitle" aria-hidden="true">
+    <div class="modal-dialog modal-xl modal-dialog-scrollable">
+        <div class="modal-content billing-review-modal">
+            <div class="modal-header">
+                <div>
+                    <h5 class="modal-title mb-1" id="billingReviewTitle"><i class="fas fa-receipt me-2"></i>Review billing list</h5>
+                    <div class="small text-muted" id="billingReviewMeta">Check all items before payment</div>
+                </div>
+                <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+            </div>
+            <div class="modal-body p-0">
+                <div class="billing-review-table-wrap">
+                    <table class="table table-hover align-middle mb-0 billing-review-table">
+                        <thead>
+                            <tr><th>#</th><th>Product</th><th class="text-end">Qty</th><th class="text-end">Unit price</th><th class="text-end">Discount</th><th class="text-end">Line total</th></tr>
+                        </thead>
+                        <tbody id="billingReviewItems"></tbody>
+                    </table>
+                </div>
+            </div>
+            <div class="modal-footer justify-content-between">
+                <span class="fw-semibold" id="billingReviewTotal">Total: Rs. 0.00</span>
+                <button type="button" class="btn btn-primary" data-bs-dismiss="modal"><i class="fas fa-arrow-right me-1"></i>Continue to payment</button>
+            </div>
+        </div>
+    </div>
+</div>
 <!-- New Customer Modal -->
 <div class="modal fade" id="newCustomerModal" tabindex="-1">
     <div class="modal-dialog">
@@ -1518,6 +1556,7 @@ function addToCart(productId, name, price, unitType, quantity = 1, useCustomerPr
 
 function updateCartDisplay() {
     persistCartState();
+    updateCartSummary();
     const cartItems = document.getElementById('cartItems');
     
     if (cart.length === 0) {
@@ -1643,6 +1682,48 @@ function updateCartDisplay() {
     }
     
     updateTotals(subtotal, totalDiscount, tax, total);
+}
+
+function updateCartSummary() {
+    const lineCount = cart.length;
+    const unitCount = cart.reduce((sum, item) => sum + (Number(item.quantity) || 0), 0);
+    const countEl = document.getElementById('cartItemCount');
+    const unitsEl = document.getElementById('cartUnitCount');
+    const reviewBtn = document.getElementById('reviewBillBtn');
+    if (countEl) countEl.textContent = `${lineCount} ${lineCount === 1 ? 'item' : 'items'}`;
+    if (unitsEl) unitsEl.textContent = lineCount ? `(${unitCount.toLocaleString('en-US', {maximumFractionDigits: 2})} total units)` : '';
+    if (reviewBtn) reviewBtn.disabled = lineCount === 0;
+}
+
+function openBillingReview() {
+    if (!cart.length) return;
+    const tbody = document.getElementById('billingReviewItems');
+    const meta = document.getElementById('billingReviewMeta');
+    const totalEl = document.getElementById('billingReviewTotal');
+    if (!tbody) return;
+    let totalUnits = 0;
+    tbody.innerHTML = cart.map((item, index) => {
+        const quantity = Number(item.quantity) || 0;
+        const price = Number(item.price) || 0;
+        const gross = price * quantity;
+        const discountValue = Number(item.discount_value) || 0;
+        const discountType = item.discount_type || 'amount';
+        const discount = discountType === 'percent' ? gross * discountValue / 100 : discountValue;
+        const lineTotal = Math.max(0, gross - discount);
+        totalUnits += quantity;
+        return `<tr>
+            <td class="text-muted">${index + 1}</td>
+            <td><div class="fw-semibold billing-review-product">${item.name || 'Unnamed product'}</div>${item.barcode ? `<small class="text-muted">${item.barcode}</small>` : ''}</td>
+            <td class="text-end">${quantity.toLocaleString('en-US', {maximumFractionDigits: 2})}</td>
+            <td class="text-end">${currencySymbol} ${price.toLocaleString('en-US', {minimumFractionDigits: 2, maximumFractionDigits: 2})}</td>
+            <td class="text-end">${discount ? `${currencySymbol} ${discount.toLocaleString('en-US', {minimumFractionDigits: 2, maximumFractionDigits: 2})}${discountType === 'percent' ? ` (${discountValue}%)` : ''}` : '-'}</td>
+            <td class="text-end fw-semibold">${currencySymbol} ${lineTotal.toLocaleString('en-US', {minimumFractionDigits: 2, maximumFractionDigits: 2})}</td>
+        </tr>`;
+    }).join('');
+    if (meta) meta.textContent = `${cart.length} ${cart.length === 1 ? 'line' : 'lines'} • ${totalUnits.toLocaleString('en-US', {maximumFractionDigits: 2})} total units • ${currentCustomer ? currentCustomer.name || 'Selected customer' : 'Walk-in customer'}`;
+    if (totalEl) totalEl.textContent = `Total: ${document.getElementById('total')?.textContent || `${currencySymbol} 0.00`}`;
+    const modal = document.getElementById('billingReviewModal');
+    if (modal && window.bootstrap) bootstrap.Modal.getOrCreateInstance(modal).show();
 }
 
 function updateTotals(subtotal, discount, tax, total = 0) {
@@ -3483,6 +3564,53 @@ function resetSale() {
 /* Slightly elevate the product name color */
 .product-name { color: var(--text-dark); }
 
+/* Cart Summary and Billing Review */
+.cart-summary-bar {
+    min-height: 42px;
+    padding: 8px 10px;
+    background: #f8fafc;
+    border: 1px solid #e2e8f0;
+    border-radius: 10px;
+}
+.cart-summary-count {
+    color: #334155;
+    font-size: 13px;
+}
+.cart-summary-count i {
+    color: #4f46e5;
+}
+.billing-review-modal {
+    border: 0;
+    border-radius: 14px;
+    overflow: hidden;
+}
+.billing-review-table-wrap {
+    max-height: min(62vh, 620px);
+    overflow: auto;
+}
+.billing-review-table {
+    min-width: 760px;
+}
+.billing-review-table thead th {
+    position: sticky;
+    top: 0;
+    z-index: 1;
+    background: #f8fafc;
+    color: #475569;
+    font-size: 12px;
+    text-transform: uppercase;
+    letter-spacing: .03em;
+    white-space: nowrap;
+}
+.billing-review-table td,
+.billing-review-table th {
+    padding: 12px 14px;
+}
+.billing-review-product {
+    max-width: 360px;
+    overflow-wrap: anywhere;
+}
+
 /* Cart Items */
 .cart-items {
     min-height: 150px;
@@ -4051,10 +4179,23 @@ function resetSale() {
         font-size: 9px;
     }
 
+    .cart-summary-bar {
+        align-items: stretch;
+        flex-direction: column;
+    }
+    .cart-summary-bar .btn {
+        width: 100%;
+    }
     .cart-items {
-        max-height: none;
+        max-height: 42vh;
         min-height: 90px;
-        overflow: visible;
+        overflow-y: auto;
+    }
+    .billing-review-table-wrap {
+        max-height: 60vh;
+    }
+    .billing-review-table {
+        min-width: 700px;
     }
 
     .cart-item {
