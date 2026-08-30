@@ -827,7 +827,7 @@ function renderProducts(products) {
                 <td>${product.category || '-'}</td>
                 <td>${currencySymbol} ${parseFloat(product.price || 0).toLocaleString('en-US', {minimumFractionDigits: 2, maximumFractionDigits: 2})}</td>
                 <td>${currencySymbol} ${parseFloat(product.cost_price || 0).toLocaleString('en-US', {minimumFractionDigits: 2, maximumFractionDigits: 2})}</td>
-                <td>${product.stock} ${stockBadge}</td>
+                <td>${Number(product.stock || 0).toLocaleString()} ${stockBadge}${product.records_merged > 1 ? '<div><small class="text-warning"><i class="fas fa-layer-group me-1"></i>Merged ' + product.records_merged + ' legacy records</small></div>' : ''}</td>
                 <td>${product.low_stock_threshold || 5}</td>
                 <td>${product.unit_type || 'unit'}</td>
                 <td>${product.barcode || '-'}</td>

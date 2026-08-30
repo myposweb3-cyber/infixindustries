@@ -79,22 +79,53 @@ def get_products():
         except ValueError:
             pass  # Invalid warehouse_id, ignore the filter
 
-    products = query.paginate(page=page, per_page=per_page)
+    # Collapse identical master-product records before pagination. Older imports or
+    # repeated product creation can leave several rows with the same SKU identity.
+    product_records = query.order_by(Product.name, Product.id).all()
+    grouped_products = {}
+    for product in product_records:
+        identity = (
+            (product.name or '').strip().casefold(),
+            (product.barcode or '').strip().casefold(),
+            round(float(product.price or 0), 4),
+            round(float(product.cost_price or 0), 4),
+            (product.unit_type or 'unit').strip().casefold(),
+            (product.category or 'General').strip().casefold()
+        )
+        if identity not in grouped_products:
+            grouped_products[identity] = {
+                'product': product,
+                'stock': float(product.stock or 0),
+                'duplicate_ids': [product.id],
+                'last_updated': product.last_updated
+            }
+        else:
+            grouped_products[identity]['stock'] += float(product.stock or 0)
+            grouped_products[identity]['duplicate_ids'].append(product.id)
+            if product.last_updated and (not grouped_products[identity]['last_updated'] or product.last_updated > grouped_products[identity]['last_updated']):
+                grouped_products[identity]['last_updated'] = product.last_updated
+
+    unique_records = list(grouped_products.values())
+    total = len(unique_records)
+    pages = max(1, (total + per_page - 1) // per_page) if per_page > 0 else 1
+    start = max(0, (page - 1) * per_page)
+    page_records = unique_records[start:start + per_page] if per_page > 0 else unique_records
 
     result = {
         'products': [],
-        'total': products.total,
-        'pages': products.pages,
-        'current_page': products.page
+        'total': total,
+        'pages': pages,
+        'current_page': page
     }
 
-    for product in products.items:
+    for record in page_records:
+        product = record['product']
         result['products'].append({
             'id': product.id,
             'name': product.name,
             'price': float(product.price) if product.price else 0,
             'cost_price': float(product.cost_price) if product.cost_price else 0,
-            'stock': float(product.stock) if product.stock else 0,
+            'stock': record['stock'],
             'unit_type': product.unit_type or '',
             'category': product.category or '',
             'low_stock_threshold': float(product.low_stock_threshold) if product.low_stock_threshold else 0,
@@ -103,7 +134,9 @@ def get_products():
             'image_path': product.image_path or '',
             'warehouse_id': product.warehouse_id,
             'supplier_id': product.supplier_id,
-            'last_updated': product.last_updated.strftime('%Y-%m-%d %H:%M:%S') if product.last_updated else None
+            'duplicate_ids': record['duplicate_ids'],
+            'records_merged': len(record['duplicate_ids']),
+            'last_updated': record['last_updated'].strftime('%Y-%m-%d %H:%M:%S') if record['last_updated'] else None
         })
 
     return jsonify(result)
