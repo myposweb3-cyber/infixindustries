@@ -170,7 +170,7 @@
                                     <select class="form-select" id="product_search">
                                         <option value="" disabled selected>Search for a product to add</option>
                                         {% for product in products %}
-                                        <option value="{{ product.id }}" data-name="{{ product.name }}" data-cost="{{ product.cost_price or 0 }}" data-supplier-id="{{ product.supplier_id or '' }}">{{ product.name }}</option>
+                                        <option value="{{ product.id }}" data-name="{{ product.name }}" data-barcode="{{ product.barcode or '' }}" data-cost="{{ product.cost_price or 0 }}" data-supplier-id="{{ product.supplier_id or '' }}">{{ product.name }}</option>
                                         {% endfor %}
                                     </select>
                                 </div>
@@ -361,13 +361,14 @@ document.addEventListener('DOMContentLoaded', function() {
         return;
     }
 
-    const seenProductIds = new Set();
+    const seenProductKeys = new Set();
     Array.from(productSearch.options).forEach(option => {
         if (!option.value) return;
-        if (seenProductIds.has(String(option.value))) {
+        const productKey = `${(option.getAttribute('data-name') || option.textContent || '').trim().toLocaleLowerCase()}::${(option.getAttribute('data-barcode') || '').trim().toLocaleLowerCase()}`;
+        if (seenProductKeys.has(productKey)) {
             option.remove();
         } else {
-            seenProductIds.add(String(option.value));
+            seenProductKeys.add(productKey);
         }
     });
 

@@ -54,10 +54,14 @@ def get_suppliers():
             Purchase.supplier_id == supplier.id,
             Purchase.company_id == company_id
         ).count()
-        product_count = Product.query.filter(
+        supplier_products = Product.query.filter(
             Product.supplier_id == supplier.id,
             Product.company_id == company_id
-        ).count()
+        ).order_by(Product.name, Product.id).all()
+        unique_product_keys = {
+            ((p.name or '').strip().casefold(), (p.barcode or '').strip().casefold())
+            for p in supplier_products
+        }
         
         result['suppliers'].append({
             'id': supplier.id,
@@ -67,7 +71,7 @@ def get_suppliers():
             'email': supplier.email or '',
             'address': supplier.address or '',
             'purchase_count': int(purchase_count),
-            'product_count': int(product_count)
+            'product_count': len(unique_product_keys)
         })
 
     return jsonify(result)
@@ -94,7 +98,24 @@ def get_supplier(supplier_id):
     products = Product.query.filter(
         Product.supplier_id == supplier.id,
         Product.company_id == company_id
-    ).order_by(Product.name).all()
+    ).order_by(Product.name, Product.id).all()
+    grouped_products = {}
+    for product in products:
+        key = ((product.name or '').strip().casefold(), (product.barcode or '').strip().casefold())
+        if key not in grouped_products:
+            grouped_products[key] = {
+                'id': product.id,
+                'name': product.name,
+                'barcode': product.barcode,
+                'stock': float(product.stock or 0),
+                'unit_type': product.unit_type or 'unit',
+                'cost_price': float(product.cost_price or 0),
+                'price': float(product.price or 0),
+                'record_count': 1
+            }
+        else:
+            grouped_products[key]['stock'] += float(product.stock or 0)
+            grouped_products[key]['record_count'] += 1
 
     return jsonify({
         'id': supplier.id,
@@ -103,15 +124,7 @@ def get_supplier(supplier_id):
         'phone': supplier.phone,
         'email': supplier.email,
         'address': supplier.address,
-        'products': [{
-            'id': p.id,
-            'name': p.name,
-            'barcode': p.barcode,
-            'stock': p.stock or 0,
-            'unit_type': p.unit_type or 'unit',
-            'cost_price': p.cost_price or 0,
-            'price': p.price or 0
-        } for p in products],
+        'products': list(grouped_products.values()),
         'purchases': [{
             'id': p.id,
             'date': p.date.strftime('%Y-%m-%d') if p.date else None,
