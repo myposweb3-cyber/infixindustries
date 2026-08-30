@@ -361,6 +361,16 @@ document.addEventListener('DOMContentLoaded', function() {
         return;
     }
 
+    const seenProductIds = new Set();
+    Array.from(productSearch.options).forEach(option => {
+        if (!option.value) return;
+        if (seenProductIds.has(String(option.value))) {
+            option.remove();
+        } else {
+            seenProductIds.add(String(option.value));
+        }
+    });
+
     function filterProductsForSupplier() {
         const supplierId = supplierSelect ? supplierSelect.value : '';
         Array.from(productSearch.options).forEach(option => {

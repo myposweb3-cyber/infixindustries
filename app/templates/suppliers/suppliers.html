@@ -455,8 +455,9 @@ function viewSupplier(id) {
         if (!data.products || data.products.length === 0) {
             productTbody.innerHTML = '<tr><td colspan="5" class="text-center text-muted">No products linked to this supplier</td></tr>';
         } else {
-            productTbody.innerHTML = data.products.map(p => `
-                <tr><td>${escapeHtml(p.name)}</td><td>${escapeHtml(p.barcode || '-')}</td><td>${Number(p.stock || 0).toLocaleString()}</td><td>${currencySymbol} ${Number(p.cost_price || 0).toLocaleString('en-US', {minimumFractionDigits: 2})}</td><td>${currencySymbol} ${Number(p.price || 0).toLocaleString('en-US', {minimumFractionDigits: 2})}</td></tr>
+            const uniqueProducts = Array.from(new Map(data.products.filter(p => p && p.id != null).map(p => [String(p.id), p])).values());
+            productTbody.innerHTML = uniqueProducts.map(p => `
+                <tr data-product-id="${escapeHtml(p.id)}"><td>${escapeHtml(p.name)}</td><td>${escapeHtml(p.barcode || '-')}</td><td>${Number(p.stock || 0).toLocaleString()}</td><td>${currencySymbol} ${Number(p.cost_price || 0).toLocaleString('en-US', {minimumFractionDigits: 2})}</td><td>${currencySymbol} ${Number(p.price || 0).toLocaleString('en-US', {minimumFractionDigits: 2})}</td></tr>
             `).join('');
         }
         
