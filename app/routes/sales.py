@@ -2381,10 +2381,13 @@ def get_sale(sale_id):
     if not sale:
         return jsonify({'error': 'Sale not found'}), 404
 
+    customer_details = _receipt_customer_details(sale, get_company_id())
     sale_data = {
         'id': sale.id,
         'date': sale.date.strftime('%Y-%m-%d %H:%M:%S'),
         'customer': sale.customer,
+        'customer_phone': customer_details.get('phone', ''),
+        'customer_email': customer_details.get('email', ''),
         'total': sale.total,
         'payment': sale.payment,
         'cash_given': sale.cash_given,

@@ -404,6 +404,13 @@ function showEmailModal(saleId) {
     
     const modalElement = document.getElementById('emailModal');
     const m = new bootstrap.Modal(modalElement);
+    fetch(`/sales/api/sales/${saleId}`)
+        .then(response => response.ok ? response.json() : null)
+        .then(data => {
+            const emailInput = document.getElementById('emailInput');
+            if (emailInput && data?.customer_email) emailInput.value = data.customer_email;
+        })
+        .catch(() => {});
     
     modalElement.addEventListener('shown.bs.modal', function() {
         const emailInput = document.getElementById('emailInput');
@@ -493,7 +500,7 @@ function sendEmailReceipt(saleId) {
     showEmailModal(saleId);
 }
 
-function showWhatsappPhoneModal(saleId) {
+function showWhatsappPhoneModalManual(saleId, prefilledPhone = '') {
     const html = `
     <div class="modal fade" id="whatsappPhoneModal" tabindex="-1" data-bs-backdrop="static" data-bs-keyboard="false">
         <div class="modal-dialog modal-dialog-centered">
@@ -517,7 +524,7 @@ function showWhatsappPhoneModal(saleId) {
                                 <i class="fab fa-whatsapp"></i>
                             </span>
                             <input type="tel" id="whatsappPhone" class="form-control form-control-lg" 
-                                   placeholder="+94771234567" autocomplete="off" 
+                                   placeholder="+94771234567" autocomplete="off" value="${prefilledPhone || ''}"
                                    style="font-size: 1.1rem; letter-spacing: 0.1em;" />
                         </div>
                     </div>
@@ -648,7 +655,44 @@ function showWhatsappPhoneModal(saleId) {
     m.show();
 }
 
-// Wrapper function to trigger the modal
+function showWhatsappPhoneModal(saleId) {
+    fetch(`/sales/api/sales/${saleId}`)
+        .then(response => response.ok ? response.json() : null)
+        .then(data => {
+            const savedPhone = data?.customer_phone || '';
+            if (savedPhone) {
+                sendHistoricalWhatsapp(saleId, savedPhone);
+            } else {
+                showWhatsappPhoneModalManual(saleId);
+            }
+        })
+        .catch(() => showWhatsappPhoneModalManual(saleId));
+}
+
+function sendHistoricalWhatsapp(saleId, phone) {
+    let phoneDigits = String(phone).replace(/\D/g, '');
+    if (phoneDigits.startsWith('0') && phoneDigits.length === 10) phoneDigits = '94' + phoneDigits.slice(1);
+    if (!phoneDigits) return showWhatsappPhoneModalManual(saleId);
+    fetch(`/api/settings/categories/receipt`, {headers: {'Accept': 'application/json'}})
+        .then(response => response.json())
+        .then(settings => fetch(`/sales/api/sales/${saleId}/send-whatsapp`, {
+            method: 'POST',
+            headers: {'Content-Type': 'application/json', 'X-CSRFToken': document.querySelector('meta[name="csrf-token"]')?.getAttribute('content') || ''},
+            body: JSON.stringify({phone: phoneDigits, format: settings.default_format || 'a4'})
+        }))
+        .then(response => response.json().then(data => ({ok: response.ok, data})))
+        .then(({ok, data}) => {
+            if (ok && data.success && data.wa_link) {
+                window.open(data.wa_link, '_blank');
+                showAlert('WhatsApp opened with the customer receipt prepared.', 'success');
+            } else {
+                showAlert(data.error || 'Unable to prepare WhatsApp receipt.', 'danger');
+            }
+        })
+        .catch(error => showAlert('Unable to prepare WhatsApp receipt: ' + error.message, 'danger'));
+}
+
+// Wrapper function to trigger the automatic customer-aware flow.
 function sendWhatsappReceipt(saleId) {
     showWhatsappPhoneModal(saleId);
 }
