@@ -86,9 +86,9 @@
                         {% for purchase in purchases %}
                         <tr>
                             <td>{{ purchase.id }}</td>
-                            <td>{{ purchase.date.strftime('%Y-%m-%d') }}</td>
+                            <td>{{ purchase.date.strftime('%Y-%m-%d') if purchase.date else 'N/A' }}</td>
                             <td>{{ purchase.invoice_number or 'N/A' }}</td>
-                            <td>{{ purchase.supplier.name }}</td>
+                            <td>{{ purchase.supplier.name if purchase.supplier else 'N/A' }}</td>
                             <td>
                                 {% if purchase.status == 'paid' %}
                                 <span class="badge bg-success text-capitalize">{{ purchase.status }}</span>
@@ -98,9 +98,9 @@
                                 <span class="badge bg-danger text-capitalize">{{ purchase.status }}</span>
                                 {% endif %}
                             </td>
-                            <td class="text-end">{{ purchase.total_amount or 0|format_number }}</td>
-                            <td class="text-end">{{ purchase.amount_paid or 0|format_number }}</td>
-                            <td class="text-end">{{ (purchase.total_amount or 0) - (purchase.amount_paid or 0)|format_number }}</td>
+                            <td class="text-end">{{ (purchase.total_amount or 0)|format_number }}</td>
+                            <td class="text-end">{{ (purchase.amount_paid or 0)|format_number }}</td>
+                            <td class="text-end">{{ ((purchase.total_amount or 0) - (purchase.amount_paid or 0))|format_number }}</td>
                             <td>
                                 <button class="btn btn-sm btn-info" title="View Details" onclick="viewPurchase({{ purchase.id }})"><i class="fas fa-eye"></i></button>
                                 <button class="btn btn-sm btn-warning" title="Edit Status" onclick="editPurchase({{ purchase.id }})"><i class="fas fa-edit"></i></button>
