@@ -427,7 +427,7 @@
                 <div class="billing-review-table-wrap">
                     <table class="table table-hover align-middle mb-0 billing-review-table">
                         <thead>
-                            <tr><th>#</th><th>Product</th><th class="text-end">Qty</th><th class="text-end">Unit price</th><th class="text-end">Discount</th><th class="text-end">Line total</th></tr>
+                            <tr><th>#</th><th>Product</th><th class="text-end">Qty</th><th class="text-end">Unit price</th><th class="text-end">Discount</th><th class="text-end">Line total</th><th class="text-end">Actions</th></tr>
                         </thead>
                         <tbody id="billingReviewItems"></tbody>
                     </table>
@@ -1720,6 +1720,21 @@ function updateCartSummary() {
     if (reviewBtn) reviewBtn.disabled = lineCount === 0;
 }
 
+function adjustBillingReviewQuantity(index, delta) {
+    if (!cart[index]) return;
+    changeQuantity(index, delta);
+    if (cart.length) openBillingReview();
+}
+function removeBillingReviewItem(index) {
+    if (!cart[index]) return;
+    removeFromCart(index);
+    const modal = document.getElementById('billingReviewModal');
+    if (cart.length) {
+        openBillingReview();
+    } else if (modal && window.bootstrap) {
+        bootstrap.Modal.getOrCreateInstance(modal).hide();
+    }
+}
 function openBillingReview() {
     if (!cart.length) return;
     const tbody = document.getElementById('billingReviewItems');
@@ -1739,10 +1754,17 @@ function openBillingReview() {
         return `<tr>
             <td class="text-muted">${index + 1}</td>
             <td><div class="fw-semibold billing-review-product">${item.name || 'Unnamed product'}</div>${item.barcode ? `<small class="text-muted">${item.barcode}</small>` : ''}</td>
-            <td class="text-end">${quantity.toLocaleString('en-US', {maximumFractionDigits: 2})}</td>
+            <td class="text-end">
+                <div class="billing-review-qty-controls">
+                    <button type="button" class="btn btn-sm btn-outline-secondary" onclick="adjustBillingReviewQuantity(${index}, -1)" aria-label="Decrease quantity">−</button>
+                    <span class="billing-review-qty">${quantity.toLocaleString('en-US', {maximumFractionDigits: 2})}</span>
+                    <button type="button" class="btn btn-sm btn-outline-secondary" onclick="adjustBillingReviewQuantity(${index}, 1)" aria-label="Increase quantity">+</button>
+                </div>
+            </td>
             <td class="text-end">${currencySymbol} ${price.toLocaleString('en-US', {minimumFractionDigits: 2, maximumFractionDigits: 2})}</td>
             <td class="text-end">${discount ? `${currencySymbol} ${discount.toLocaleString('en-US', {minimumFractionDigits: 2, maximumFractionDigits: 2})}${discountType === 'percent' ? ` (${discountValue}%)` : ''}` : '-'}</td>
             <td class="text-end fw-semibold">${currencySymbol} ${lineTotal.toLocaleString('en-US', {minimumFractionDigits: 2, maximumFractionDigits: 2})}</td>
+            <td class="text-end"><button type="button" class="btn btn-sm btn-outline-danger" onclick="removeBillingReviewItem(${index})" aria-label="Remove ${item.name || 'product'}"><i class="fas fa-trash-alt"></i><span class="d-none d-md-inline ms-1">Remove</span></button></td>
         </tr>`;
     }).join('');
     if (meta) meta.textContent = `${cart.length} ${cart.length === 1 ? 'line' : 'lines'} • ${totalUnits.toLocaleString('en-US', {maximumFractionDigits: 2})} total units • ${currentCustomer ? currentCustomer.name || 'Selected customer' : 'Walk-in customer'}`;
@@ -3664,6 +3686,24 @@ function resetSale() {
 .billing-review-product {
     max-width: 360px;
     overflow-wrap: anywhere;
+}
+.billing-review-qty-controls {
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+    white-space: nowrap;
+}
+.billing-review-qty-controls .btn {
+    width: 30px;
+    height: 30px;
+    padding: 0;
+    line-height: 1;
+    font-size: 18px;
+}
+.billing-review-qty {
+    min-width: 34px;
+    text-align: center;
+    font-weight: 700;
 }
 
 /* Cart Items */
