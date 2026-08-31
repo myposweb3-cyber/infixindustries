@@ -83,8 +83,20 @@ def api_send_custom_reminder(customer_id):
         scheduler = MessageScheduler()
         ok, result = scheduler.send_custom_reminder(customer_id, message, channel)
         
+        fallback_links = []
+        if isinstance(result, list):
+            for channel_name, channel_ok, channel_result in result:
+                if channel_ok and isinstance(channel_result, dict) and channel_result.get('wa_link'):
+                    fallback_links.append(channel_result['wa_link'])
         if ok:
-            return jsonify({'success': True, 'message': 'Message sent successfully', 'details': result})
+            return jsonify({
+                'success': True,
+                'message': 'WhatsApp message link ready' if fallback_links else 'Message sent successfully',
+                'wa_link': fallback_links[0] if fallback_links else None,
+                'wa_links': fallback_links,
+                'fallback': bool(fallback_links),
+                'details': result
+            })
         else:
             return jsonify({'success': False, 'error': result}), 200
     except Exception as e:
