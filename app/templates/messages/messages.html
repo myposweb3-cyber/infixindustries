@@ -727,7 +727,8 @@ document.addEventListener('DOMContentLoaded', function() {
         })
         .then(({data}) => {
             if (data.success) {
-                showToast(data.message || 'Message sent successfully!');
+                if (data.wa_link) window.open(data.wa_link, '_blank', 'noopener');
+                showToast(data.wa_link ? 'WhatsApp message link opened. Review and send it in WhatsApp.' : (data.message || 'Message sent successfully!'));
                 document.getElementById('messageText').value = '';
                 document.getElementById('selectedCustomerId').value = '';
                 document.getElementById('selectedCustomerInfo').style.display = 'none';
@@ -953,9 +954,10 @@ document.addEventListener('DOMContentLoaded', function() {
         .then(res => res.json())
         .then(data => {
             if (data.success) {
-                showToast('Receipt sent successfully!');
+                if (data.wa_link) window.open(data.wa_link, '_blank', 'noopener');
+                showToast(data.wa_link ? 'WhatsApp receipt link opened. Review and send it in WhatsApp.' : (data.message || 'Receipt sent successfully!'));
             } else {
-                showToast(data.error || 'Failed to send receipt', false);
+                showToast(data.error || 'Receipt could not be sent. Check the selected contact details.', false);
             }
         })
         .catch(err => {
@@ -1083,7 +1085,8 @@ document.addEventListener('DOMContentLoaded', function() {
         .then(res => res.json())
         .then(data => {
             if (data.success) {
-                showToast('Self reminder sent!');
+                if (data.wa_link) window.open(data.wa_link, '_blank', 'noopener');
+                showToast(data.wa_link ? 'WhatsApp self-reminder link opened.' : (data.message || 'Self reminder sent!'));
                 document.getElementById('selfMessageText').value = '';
             } else {
                 showToast(data.error || 'Failed to send reminder', false);

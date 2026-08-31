@@ -154,9 +154,10 @@ def api_send_self_message():
         ok, result = send_reminder_to_self(message, channel)
         
         if ok:
-            return jsonify({'success': True, 'message': 'Self reminder sent successfully'})
+            wa_link = result.get('wa_link') if isinstance(result, dict) else None
+            return jsonify({'success': True, 'message': 'WhatsApp message link ready' if wa_link else 'Self reminder sent successfully', 'wa_link': wa_link, 'fallback': bool(wa_link)})
         else:
-            return jsonify({'success': False, 'error': result}), 400
+            return jsonify({'success': False, 'error': result}), 200
     except Exception as e:
         logger.error(f"Error sending self message: {e}")
         return jsonify({'error': str(e)}), 500
@@ -237,14 +238,14 @@ def api_send_receipt_for_sale(sale_id):
     try:
         ok, result = send_sale_receipt(sale_id, phone, email, channel)
         
+        fallback_links = []
+        if isinstance(result, list):
+            for channel_name, channel_ok, msg in result:
+                if channel_ok and isinstance(msg, dict) and msg.get('wa_link'):
+                    fallback_links.append(msg['wa_link'])
         if ok:
-            return jsonify({'success': True, 'message': 'Receipt sent successfully'})
-        else:
-            if isinstance(result, list):
-                for channel_name, success, msg in result:
-                    if not success and 'wa.me' in str(msg):
-                        return jsonify({'success': True, 'message': 'WhatsApp link generated', 'wa_link': msg})
-            return jsonify({'success': False, 'error': str(result)}), 400
+            return jsonify({'success': True, 'message': 'WhatsApp message link ready' if fallback_links else 'Receipt sent successfully', 'wa_link': fallback_links[0] if fallback_links else None, 'wa_links': fallback_links, 'fallback': bool(fallback_links)})
+        return jsonify({'success': False, 'error': str(result)}), 200
     except Exception as e:
         logger.error(f"Error sending receipt: {e}")
         return jsonify({'error': str(e)}), 500
