@@ -6,6 +6,7 @@ Supports WhatsApp (via Twilio) and Email notifications
 from datetime import datetime, timedelta
 from flask import current_app
 from app.models import db, Customer, Sale, Setting
+from app.utils.security import get_company_id
 from app.utils.whatsapp_twilio import send_whatsapp_via_twilio
 from app.utils.whatsapp_sender import generate_whatsapp_link
 from app.utils.email_sender import send_email
@@ -158,13 +159,32 @@ class MessageScheduler:
         return self._send_whatsapp(admin_phone, message)
     
     # ========== Payment Reminders ==========
+
+    def get_customer_outstanding_balance(self, customer):
+        """Return the live unpaid-sale balance for a customer in the active company."""
+        company_id = get_company_id()
+        query = Sale.query.filter(
+            Sale.customer == customer.name,
+            Sale.balance > 0
+        )
+        if company_id is not None and hasattr(Sale, 'company_id'):
+            query = query.filter(Sale.company_id == company_id)
+        return round(sum(float(sale.balance or 0) for sale in query.all()), 2)
     
     def send_payment_reminder(self, customer_id, days_overdue=0):
         """
         Send payment reminder to customer with credit/balance
         """
-        customer = Customer.query.get(customer_id)
-        if not customer or customer.current_balance <= 0:
+        company_id = get_company_id()
+        customer_query = Customer.query.filter(Customer.id == customer_id)
+        if company_id is not None and hasattr(Customer, 'company_id'):
+            customer_query = customer_query.filter(Customer.company_id == company_id)
+        customer = customer_query.first()
+        if not customer:
+            return False, "Customer not found"
+
+        outstanding_balance = self.get_customer_outstanding_balance(customer)
+        if outstanding_balance <= 0:
             return False, "No outstanding balance"
         
         if not customer.phone:
@@ -175,7 +195,7 @@ class MessageScheduler:
         message = f"⏰ *Payment Reminder*\n"
         message += f"━━━━━━━━━━━━━━━━━━━━\n"
         message += f"Dear {customer.name},\n\n"
-        message += f"This is a friendly reminder that you have an outstanding balance of *{customer.current_balance:.2f}* at {business_name}.\n\n"
+        message += f"This is a friendly reminder that you have an outstanding balance of *{outstanding_balance:.2f}* at {business_name}.\n\n"
         
         if days_overdue > 0:
             message += f"Your payment is {days_overdue} day(s) overdue.\n\n"
@@ -191,15 +211,13 @@ class MessageScheduler:
         Called by scheduler
         """
         # Get customers with credit balances
+        company_id = get_company_id()
+        customer_query = Customer.query
+        if company_id is not None and hasattr(Customer, 'company_id'):
+            customer_query = customer_query.filter(Customer.company_id == company_id)
         if hasattr(Customer, 'is_active'):
-            customers = Customer.query.filter(
-                Customer.current_balance > 0,
-                Customer.is_active == True
-            ).all()
-        else:
-            customers = Customer.query.filter(
-                Customer.current_balance > 0
-            ).all()
+            customer_query = customer_query.filter(Customer.is_active == True)
+        customers = customer_query.all()
         
         results = []
         for customer in customers:

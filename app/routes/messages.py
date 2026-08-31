@@ -46,19 +46,20 @@ def api_get_customers_for_messaging():
             )
         )
     
-    if with_balance:
-        query = query.filter(Customer.current_balance > 0)
-    
+    # Balance filtering is applied after calculating live unpaid-sale totals below.
     customers = query.order_by(Customer.name).limit(50).all()
-    
+    scheduler = MessageScheduler()
     result = []
     for customer in customers:
+        live_balance = scheduler.get_customer_outstanding_balance(customer)
+        if with_balance and live_balance <= 0:
+            continue
         result.append({
             'id': customer.id,
             'name': customer.name,
             'phone': customer.phone,
             'email': customer.email,
-            'current_balance': customer.current_balance,
+            'current_balance': live_balance,
             'total_purchases': customer.total_purchases
         })
     
