@@ -535,6 +535,8 @@ document.addEventListener('DOMContentLoaded', function() {
     const toast = new bootstrap.Toast(document.getElementById('messageToast'));
     let allCustomers = [];
     let selectedCustomers = new Set();
+    const messageBusinessName = {{ (current_company.name if current_company else 'POS System')|tojson }};
+    let selectedCustomerForMessage = null;
 
     // ==================== Utility Functions ====================
     
@@ -647,11 +649,21 @@ document.addEventListener('DOMContentLoaded', function() {
     });
 
     function selectCustomer(id, name, phone, balance) {
+        selectedCustomerForMessage = { id: id, name: name, phone: phone || '', balance: Number(balance) || 0 };
         document.getElementById('selectedCustomerId').value = id;
         document.getElementById('selectedCustomerName').textContent = name;
         document.getElementById('selectedCustomerPhone').textContent = phone || 'No phone';
         document.getElementById('selectedCustomerBalance').textContent = `Balance: ${formatCurrency(balance)}`;
         document.getElementById('selectedCustomerInfo').style.display = 'block';
+    }
+
+    function resolveMessageTemplate(message) {
+        const customer = selectedCustomerForMessage || {name: 'Customer', balance: 0};
+        return message
+            .replaceAll('{customer_name}', customer.name || 'Customer')
+            .replaceAll('{balance}', formatCurrency(customer.balance))
+            .replaceAll('{business_name}', messageBusinessName || 'POS System')
+            .replaceAll('{phone}', customer.phone || '');
     }
 
     // ==================== Message Templates ====================
@@ -673,7 +685,7 @@ document.addEventListener('DOMContentLoaded', function() {
 
                 grid.querySelectorAll('.template-card').forEach(card => {
                     card.addEventListener('click', function() {
-                        const message = decodeURIComponent(this.dataset.message);
+                        const message = resolveMessageTemplate(decodeURIComponent(this.dataset.message));
                         document.getElementById('messageText').value = message;
                         updatePreview();
                     });
@@ -701,7 +713,8 @@ document.addEventListener('DOMContentLoaded', function() {
     
     document.getElementById('sendMessageBtn').addEventListener('click', function() {
         const customerId = document.getElementById('selectedCustomerId').value;
-        const message = document.getElementById('messageText').value;
+        const rawMessage = document.getElementById('messageText').value;
+        const message = resolveMessageTemplate(rawMessage);
         const channel = document.querySelector('input[name="channel"]:checked')?.value || 'whatsapp';
 
         if (!customerId) {
@@ -731,6 +744,7 @@ document.addEventListener('DOMContentLoaded', function() {
                 showToast(data.wa_link ? 'WhatsApp message link opened. Review and send it in WhatsApp.' : (data.message || 'Message sent successfully!'));
                 document.getElementById('messageText').value = '';
                 document.getElementById('selectedCustomerId').value = '';
+                selectedCustomerForMessage = null;
                 document.getElementById('selectedCustomerInfo').style.display = 'none';
                 updatePreview();
             } else {
