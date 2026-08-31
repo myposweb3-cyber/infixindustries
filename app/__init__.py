@@ -62,6 +62,7 @@ def create_app(config_class=None):
     from app.routes.companies import companies_bp
     from app.routes.cheques import cheques_bp
     from app.routes.audit import audit_bp
+    from app.routes.messages import messages_bp
     from app.routes.invoices import invoices_bp
     from app.routes.shifts import shifts_bp
     from app.routes.stock_counts import stock_counts_bp
@@ -81,6 +82,7 @@ def create_app(config_class=None):
     app.register_blueprint(companies_bp, url_prefix='/companies')
     app.register_blueprint(cheques_bp, url_prefix='/cheques')
     app.register_blueprint(audit_bp, url_prefix='/audit')
+    app.register_blueprint(messages_bp)
     app.register_blueprint(invoices_bp)
     app.register_blueprint(shifts_bp)
     app.register_blueprint(stock_counts_bp)
