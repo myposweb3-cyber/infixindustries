@@ -702,7 +702,7 @@ document.addEventListener('DOMContentLoaded', function() {
     document.getElementById('sendMessageBtn').addEventListener('click', function() {
         const customerId = document.getElementById('selectedCustomerId').value;
         const message = document.getElementById('messageText').value;
-        const channel = document.querySelector('input[name="channel"]:checked').value;
+        const channel = document.querySelector('input[name="channel"]:checked')?.value || 'whatsapp';
 
         if (!customerId) {
             showToast('Please select a customer', false);
@@ -716,7 +716,6 @@ document.addEventListener('DOMContentLoaded', function() {
         this.disabled = true;
         this.innerHTML = '<i class="fas fa-spinner fa-spin me-2"></i>Sending...';
 
-        const channel = document.querySelector('input[name="channel"]:checked')?.value || 'whatsapp';
         fetch('/api/messages/customer/' + customerId + '/custom-reminder', {
             method: 'POST',
             headers: { 'Content-Type': 'application/json' },
