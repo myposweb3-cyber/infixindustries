@@ -139,10 +139,16 @@ def api_send_all_payment_reminders():
         results = scheduler.send_bulk_payment_reminders()
         
         success_count = sum(1 for _, ok, _ in results if ok)
+        wa_links = [
+            {'customer_id': customer_id, 'wa_link': msg.get('wa_link')}
+            for customer_id, ok, msg in results
+            if ok and isinstance(msg, dict) and msg.get('wa_link')
+        ]
         return jsonify({
-            'success': True, 
-            'message': f'Sent {success_count} payment reminders',
-            'results': results
+            'success': True,
+            'message': f'Prepared {len(wa_links)} WhatsApp reminder link(s)' if wa_links else f'Sent {success_count} payment reminders',
+            'results': results,
+            'wa_links': wa_links
         })
     except Exception as e:
         logger.error(f"Error sending bulk payment reminders: {e}")
@@ -197,10 +203,16 @@ def api_send_bulk_message():
         results = send_bulk_to_customers(customer_ids, message, channel)
         
         success_count = sum(1 for _, _, ok, _ in results if ok)
+        wa_links = [
+            {'customer_id': customer_id, 'customer_name': customer_name, 'wa_link': msg.get('wa_link')}
+            for customer_id, customer_name, ok, msg in results
+            if ok and isinstance(msg, dict) and msg.get('wa_link')
+        ]
         return jsonify({
             'success': True,
-            'message': f'Sent {success_count} messages',
-            'results': results
+            'message': f'Prepared {len(wa_links)} WhatsApp message link(s)' if wa_links else f'Sent {success_count} messages',
+            'results': results,
+            'wa_links': wa_links
         })
     except Exception as e:
         logger.error(f"Error sending bulk message: {e}")
@@ -226,10 +238,16 @@ def api_send_bulk_to_all():
         results = scheduler.send_bulk_to_all(message, channel)
         
         success_count = sum(1 for _, _, ok, _ in results if ok)
+        wa_links = [
+            {'customer_id': customer_id, 'customer_name': customer_name, 'wa_link': msg.get('wa_link')}
+            for customer_id, customer_name, ok, msg in results
+            if ok and isinstance(msg, dict) and msg.get('wa_link')
+        ]
         return jsonify({
             'success': True,
-            'message': f'Sent {success_count} messages to all customers',
-            'results': results
+            'message': f'Prepared {len(wa_links)} WhatsApp message link(s)' if wa_links else f'Sent {success_count} messages to all customers',
+            'results': results,
+            'wa_links': wa_links
         })
     except Exception as e:
         logger.error(f"Error sending bulk to all: {e}")

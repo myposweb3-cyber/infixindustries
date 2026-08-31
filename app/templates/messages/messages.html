@@ -771,6 +771,14 @@ document.addEventListener('DOMContentLoaded', function() {
         .catch(err => console.error(err));
     });
 
+    function openWhatsAppLinks(links, label='WhatsApp message') {
+        const validLinks = (links || []).map(item => typeof item === 'string' ? item : item.wa_link).filter(Boolean);
+        validLinks.forEach((link, index) => {
+            setTimeout(() => window.open(link, '_blank', 'noopener'), index * 250);
+        });
+        return validLinks.length;
+    }
+
     // ==================== Bulk Messaging ====================
     
     function renderBulkCustomerTable(customers) {
@@ -860,7 +868,8 @@ document.addEventListener('DOMContentLoaded', function() {
         .then(res => res.json())
         .then(data => {
             if (data.success) {
-                showToast(data.message);
+                const opened = openWhatsAppLinks(data.wa_links);
+                showToast(opened ? `${opened} WhatsApp link(s) opened. Review and send each message.` : data.message);
                 selectedCustomers.clear();
                 document.getElementById('bulkMessageText').value = '';
                 document.getElementById('selectedCount').textContent = '0';
@@ -1048,7 +1057,8 @@ document.addEventListener('DOMContentLoaded', function() {
         .then(res => res.json())
         .then(data => {
             if (data.success) {
-                showToast(data.message);
+                const opened = openWhatsAppLinks(data.wa_links);
+                showToast(opened ? `${opened} WhatsApp reminder link(s) opened. Review and send each message.` : data.message);
             } else {
                 showToast(data.error || 'Failed to send reminders', false);
             }
