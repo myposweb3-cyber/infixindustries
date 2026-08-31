@@ -286,15 +286,37 @@ class MessageScheduler:
     
     # ========== Custom Reminders ==========
     
-    def send_custom_reminder(self, customer_id, message_text):
-        """
-        Send custom reminder to a specific customer
-        """
-        customer = Customer.query.get(customer_id)
-        if not customer or not customer.phone:
-            return False, "Customer not found or no phone"
-        
-        return self._send_whatsapp(customer.phone, message_text)
+    def send_custom_reminder(self, customer_id, message_text, channel='whatsapp'):
+        """Send a custom message to a customer through the selected channel."""
+        company_id = get_company_id()
+        customer_query = Customer.query.filter(Customer.id == customer_id)
+        if company_id is not None and hasattr(Customer, 'company_id'):
+            customer_query = customer_query.filter(Customer.company_id == company_id)
+        customer = customer_query.first()
+        if not customer:
+            return False, "Customer not found"
+        if not message_text or not message_text.strip():
+            return False, "Message is required"
+
+        channel = (channel or 'whatsapp').lower()
+        results = []
+        if channel in ('whatsapp', 'both'):
+            if not customer.phone:
+                results.append(('whatsapp', False, 'No phone number'))
+            else:
+                results.append(('whatsapp', *self._send_whatsapp(customer.phone, message_text)))
+        if channel in ('email', 'both'):
+            if not customer.email:
+                results.append(('email', False, 'No email address'))
+            else:
+                subject = f"Message from {self._get_business_name()}"
+                results.append(('email', *self._send_email(customer.email, subject, message_text)))
+        if not results:
+            return False, "Unsupported message channel"
+        successful = [result for result in results if result[1]]
+        if successful:
+            return True, results
+        return False, '; '.join(f'{channel_name}: {reason}' for channel_name, _, reason in results)
     
     def send_reminder_to_self(self, message_text, channel='whatsapp'):
         """

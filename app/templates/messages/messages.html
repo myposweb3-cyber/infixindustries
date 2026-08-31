@@ -716,21 +716,25 @@ document.addEventListener('DOMContentLoaded', function() {
         this.disabled = true;
         this.innerHTML = '<i class="fas fa-spinner fa-spin me-2"></i>Sending...';
 
+        const channel = document.querySelector('input[name="channel"]:checked')?.value || 'whatsapp';
         fetch('/api/messages/customer/' + customerId + '/custom-reminder', {
             method: 'POST',
             headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify({ message: message })
+            body: JSON.stringify({ message: message, channel: channel })
         })
-        .then(res => res.json())
-        .then(data => {
+        .then(async res => {
+            const data = await res.json().catch(() => ({}));
+            return { ok: res.ok, data };
+        })
+        .then(({data}) => {
             if (data.success) {
-                showToast('Message sent successfully!');
+                showToast(data.message || 'Message sent successfully!');
                 document.getElementById('messageText').value = '';
                 document.getElementById('selectedCustomerId').value = '';
                 document.getElementById('selectedCustomerInfo').style.display = 'none';
                 updatePreview();
             } else {
-                showToast(data.error || 'Failed to send message', false);
+                showToast(data.error || 'Message could not be sent. Check the customer contact details.', false);
             }
         })
         .catch(err => {

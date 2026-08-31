@@ -74,18 +74,19 @@ def api_get_customers_for_messaging():
 def api_send_custom_reminder(customer_id):
     data = request.get_json() or {}
     message = data.get('message')
+    channel = data.get('channel', 'whatsapp')
     
-    if not message:
-        return jsonify({'error': 'Message is required'}), 400
+    if not message or not message.strip():
+        return jsonify({'success': False, 'error': 'Message is required'}), 400
     
     try:
         scheduler = MessageScheduler()
-        ok, result = scheduler.send_custom_reminder(customer_id, message)
+        ok, result = scheduler.send_custom_reminder(customer_id, message, channel)
         
         if ok:
-            return jsonify({'success': True, 'message': 'Reminder sent successfully'})
+            return jsonify({'success': True, 'message': 'Message sent successfully', 'details': result})
         else:
-            return jsonify({'success': False, 'error': result}), 400
+            return jsonify({'success': False, 'error': result}), 200
     except Exception as e:
         logger.error(f"Error sending custom reminder: {e}")
         return jsonify({'error': str(e)}), 500
