@@ -238,10 +238,22 @@
                         <span class="nav-text">Settings</span>
                     </a>
                 </li>
+                {% endif %}
+
+                {% if current_user.can_access_audit_logs %}
                 <li class="nav-item">
                     <a href="{{ url_for('audit.audit_logs') }}" class="nav-link {% if request.endpoint == 'audit.audit_logs' %}active{% endif %}">
                         <i class="nav-icon fas fa-history"></i>
                         <span class="nav-text">Audit Logs</span>
+                    </a>
+                </li>
+                {% endif %}
+
+                {% if current_user.can_access_messages %}
+                <li class="nav-item">
+                    <a href="{{ url_for('messages.messages') }}" class="nav-link {% if request.endpoint == 'messages.messages' %}active{% endif %}">
+                        <i class="nav-icon fas fa-envelope"></i>
+                        <span class="nav-text">Messages</span>
                     </a>
                 </li>
                 {% endif %}

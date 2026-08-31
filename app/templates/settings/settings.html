@@ -973,6 +973,15 @@
                             <button class="nav-link" id="purchases-tab" data-bs-toggle="tab" data-bs-target="#purchases-perms" type="button" role="tab" aria-controls="purchases-perms" aria-selected="false">Purchases</button>
                         </li>
                         <li class="nav-item" role="presentation">
+                            <button class="nav-link" id="suppliers-tab" data-bs-toggle="tab" data-bs-target="#suppliers-perms" type="button" role="tab" aria-controls="suppliers-perms" aria-selected="false">Suppliers</button>
+                        </li>
+                        <li class="nav-item" role="presentation">
+                            <button class="nav-link" id="payments-tab" data-bs-toggle="tab" data-bs-target="#payments-perms" type="button" role="tab" aria-controls="payments-perms" aria-selected="false">Payments</button>
+                        </li>
+                        <li class="nav-item" role="presentation">
+                            <button class="nav-link" id="communications-tab" data-bs-toggle="tab" data-bs-target="#communications-perms" type="button" role="tab" aria-controls="communications-perms" aria-selected="false">Communications</button>
+                        </li>
+                        <li class="nav-item" role="presentation">
                             <button class="nav-link" id="returns-tab" data-bs-toggle="tab" data-bs-target="#returns-perms" type="button" role="tab" aria-controls="returns-perms" aria-selected="false">Returns</button>
                         </li>
                         <li class="nav-item" role="presentation">
@@ -1011,6 +1020,18 @@
                             <div id="purchasesPermsContainer" class="permissions-grid">
                                 <!-- Generated dynamically -->
                             </div>
+                        </div>
+                        <!-- Suppliers Permissions -->
+                        <div class="tab-pane fade" id="suppliers-perms" role="tabpanel" aria-labelledby="suppliers-tab">
+                            <div id="suppliersPermsContainer" class="permissions-grid"></div>
+                        </div>
+                        <!-- Payments Permissions -->
+                        <div class="tab-pane fade" id="payments-perms" role="tabpanel" aria-labelledby="payments-tab">
+                            <div id="paymentsPermsContainer" class="permissions-grid"></div>
+                        </div>
+                        <!-- Communications Permissions -->
+                        <div class="tab-pane fade" id="communications-perms" role="tabpanel" aria-labelledby="communications-tab">
+                            <div id="communicationsPermsContainer" class="permissions-grid"></div>
                         </div>
                         <!-- Returns Permissions -->
                         <div class="tab-pane fade" id="returns-perms" role="tabpanel" aria-labelledby="returns-tab">
@@ -1427,16 +1448,19 @@ document.addEventListener('DOMContentLoaded', function () {
 
         // Map permissions to their tab containers
         const permissionTabs = {
-            'Sales': ['can_access_sales', 'can_access_cheques', 'can_manage_customer_payments'],
-            'Purchases': ['can_access_purchases', 'can_access_suppliers'],
+            'Sales': ['can_access_sales'],
+            'Purchases': ['can_access_purchases'],
+            'Suppliers': ['can_access_suppliers'],
+            'Payments': ['can_access_cheques', 'can_manage_customer_payments'],
+            'Communications': ['can_access_messages'],
             'Returns': ['can_manage_returns', 'can_manage_purchase_returns'],
             'Inventory': ['can_view_inventory', 'can_edit_inventory', 'can_access_warehouse'],
-            'Customers': ['can_access_customers', 'can_view_sales_history', 'can_view_reports', 'can_view_profit'],
+            'Customers': ['can_access_customers'],
             'Reports': ['can_view_reports', 'can_view_profit', 'can_view_sales_history'],
             'Expenses': ['can_access_expenses'],
             'Settings': ['can_view_general_settings', 'can_view_receipt_settings', 'can_view_terminal_settings', 'can_view_backup_settings', 'can_view_hardware_settings', 'can_access_settings'],
             'Audit': ['can_access_audit_logs'],
-            'System': ['can_access_scale']
+            'System': ['can_access_scale', 'can_access_quotations']
         };
 
         // Clear all tab containers
@@ -1535,8 +1559,13 @@ document.addEventListener('DOMContentLoaded', function () {
             perms.can_view_sales_history = true;
             perms.can_view_reports = true;
             perms.can_view_profit = true;
-            // Equipment
+            // Expenses, communications, and equipment
+            perms.can_access_expenses = true;
+            perms.can_access_messages = true;
             perms.can_access_scale = true;
+            // Audit logs and quotations remain administrator-controlled by default
+            perms.can_access_audit_logs = false;
+            perms.can_access_quotations = false;
             // Settings (limited access)
             perms.can_view_general_settings = true;
             perms.can_view_receipt_settings = true;
@@ -1560,8 +1589,12 @@ document.addEventListener('DOMContentLoaded', function () {
             perms.can_view_sales_history = false;
             perms.can_view_reports = false;
             perms.can_view_profit = false;
-            // Equipment
+            // Expenses, communications, and equipment
+            perms.can_access_expenses = false;
+            perms.can_access_messages = false;
             perms.can_access_scale = false;
+            perms.can_access_quotations = false;
+            perms.can_access_audit_logs = false;
             // Settings (no access)
             perms.can_view_general_settings = false;
             perms.can_view_receipt_settings = false;
