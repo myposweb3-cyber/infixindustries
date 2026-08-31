@@ -387,7 +387,7 @@ class MessageScheduler:
         if not self.whatsapp_enabled:
             # Fallback to wa.me link
             link = generate_whatsapp_link(phone, message)
-            return False, f"WhatsApp not configured. Link: {link}"
+            return True, {'fallback': True, 'wa_link': link, 'notice': 'WhatsApp service is not configured; opening a WhatsApp message link.'}
         
         ok, result = send_whatsapp_via_twilio(phone, message)
         return ok, result

@@ -1012,12 +1012,20 @@ document.addEventListener('DOMContentLoaded', function() {
         fetch('/api/messages/customer/' + customerId + '/payment-reminder', {
             method: 'POST'
         })
-        .then(res => res.json())
-        .then(data => {
+        .then(async res => {
+            const data = await res.json().catch(() => ({}));
+            return {ok: res.ok, data};
+        })
+        .then(({data}) => {
             if (data.success) {
-                showToast('Payment reminder sent!');
+                if (data.wa_link) {
+                    window.open(data.wa_link, '_blank', 'noopener');
+                    showToast('WhatsApp message link opened. Review and send it in WhatsApp.');
+                } else {
+                    showToast(data.message || 'Payment reminder sent!');
+                }
             } else {
-                showToast(data.error || 'Failed to send reminder', false);
+                showToast(data.error || 'Reminder could not be sent. Check the customer contact details.', false);
             }
         })
         .catch(err => {

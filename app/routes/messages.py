@@ -103,9 +103,14 @@ def api_send_payment_reminder(customer_id):
         ok, result = scheduler.send_payment_reminder(customer_id)
         
         if ok:
-            return jsonify({'success': True, 'message': 'Payment reminder sent'})
+            return jsonify({
+                'success': True,
+                'message': 'WhatsApp message link ready' if isinstance(result, dict) and result.get('fallback') else 'Payment reminder sent',
+                'wa_link': result.get('wa_link') if isinstance(result, dict) else None,
+                'fallback': bool(isinstance(result, dict) and result.get('fallback'))
+            })
         else:
-            return jsonify({'success': False, 'error': result}), 400
+            return jsonify({'success': False, 'error': result}), 200
     except Exception as e:
         logger.error(f"Error sending payment reminder: {e}")
         return jsonify({'error': str(e)}), 500
